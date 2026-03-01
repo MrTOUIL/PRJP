@@ -1,4 +1,4 @@
-/*import WelcomePage from "@/components/WelcomePage";
+import WelcomePage from "@/components/WelcomePage";
 import { View , StyleSheet} from "react-native";
 
 export default function welcomepage(){
@@ -11,6 +11,7 @@ export default function welcomepage(){
 
 const styles = StyleSheet.create({
     container:{
+        flex: 1,
         backgroundColor:"white"
     }
-})*/
+})
