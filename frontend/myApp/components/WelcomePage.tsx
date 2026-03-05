@@ -443,8 +443,13 @@ export default function WelcomePage() {
   }));
 
    const router = useRouter();
+   
    const gotosignin = ():void => {
     router.push('/signin');
+   }
+
+   const gotosignup = ():void => {
+    router.push('/signup');
    }
 
   return (
@@ -499,9 +504,9 @@ export default function WelcomePage() {
             
             <View style={styles.buttonRow}>
               <Animated.View entering={FadeInUp.delay(200).duration(650)}>
-                <TouchableOpacity style={styles.primaryButton}>
+                <TouchableOpacity style={styles.primaryButton} onPress={gotosignin}>
                   <Animated.View pointerEvents="none" style={[styles.buttonShimmer, animatedPrimaryShimmer]} />
-                  <Text style={styles.primaryButtonText} onPress={gotosignin}>Get Started</Text>
+                  <Text style={styles.primaryButtonText}>Get Started</Text>
                 </TouchableOpacity>
               </Animated.View>
               <Animated.View entering={FadeInUp.delay(320).duration(650)}>
@@ -573,7 +578,7 @@ export default function WelcomePage() {
               Join thousands of students, teachers, and parents on ALEMNI Online. Create your free account today and take the first step towards smarter learning.
             </Text>
             <Animated.View style={animatedCtaButtonStyle}>
-              <TouchableOpacity style={styles.ctaButton}>
+              <TouchableOpacity style={styles.ctaButton} onPress={gotosignup}>
                 <Text style={styles.ctaButtonText}>Create Your Account</Text>
               </TouchableOpacity>
             </Animated.View>

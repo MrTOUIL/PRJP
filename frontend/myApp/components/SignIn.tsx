@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, SafeAreaView, Dimensions } from 'react-native';
+import { useRouter } from 'expo-router';
 import { FontAwesome5, MaterialCommunityIcons, AntDesign } from '@expo/vector-icons';
 import Animated, { 
   FadeInDown, 
@@ -66,6 +67,15 @@ export default function SignIn() {
       ],
     };
   });
+  const router = useRouter();
+
+   const gotosignup = ():void => {
+    router.push('/signup');
+   }
+
+   const gotoforgetpassword = ():void => {
+    router.push('/forgetpassword');
+   }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -157,14 +167,20 @@ export default function SignIn() {
 
                 {/* Forgot Password */}
                 <Animated.View entering={FadeInDown.delay(700).duration(600).springify()}>
-                    <TouchableOpacity>
+                    <TouchableOpacity onPress={gotoforgetpassword}>
                         <Text style={styles.forgotPassword}>Forgot your password?</Text>
                     </TouchableOpacity>
                 </Animated.View>
 
                 {/* Sign In Button */}
                 <Animated.View entering={FadeInDown.delay(800).duration(600).springify()}>
-                    <TouchableOpacity style={styles.signInButton}>
+                    <TouchableOpacity
+                      style={styles.signInButton}
+                      onPress={() => {
+                        // UI only: connect your auth logic here
+                        console.log('Sign In pressed');
+                      }}
+                    >
                         <Text style={styles.signInButtonText}>Sign In</Text>
                     </TouchableOpacity>
                 </Animated.View>
@@ -174,8 +190,8 @@ export default function SignIn() {
                     entering={FadeInUp.delay(900).duration(600).springify()}
                     style={styles.signUpContainer}
                 >
-                    <Text style={styles.noAccountText}>Don't have an account? </Text>
-                    <TouchableOpacity>
+                    <Text style={styles.noAccountText}>Don’t have an account? </Text>
+                    <TouchableOpacity onPress={gotosignup}>
                         <Text style={styles.signUpText}>Sign Up</Text>
                     </TouchableOpacity>
                 </Animated.View>
@@ -306,11 +322,12 @@ const styles = StyleSheet.create({
   },
   signInButton: {
     backgroundColor: '#33307E',
-    width: width * 0.5,
+    width: 220,
     height: 50,
     borderRadius: 25,
     justifyContent: 'center',
     alignItems: 'center',
+    alignSelf: 'center',
     marginBottom: 30,
     shadowColor: '#33307E',
     shadowOffset: { width: 0, height: 4 },
