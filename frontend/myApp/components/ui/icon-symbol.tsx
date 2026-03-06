@@ -19,6 +19,12 @@ const MAPPING = {
   'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
   'person.fill': 'person',
+  'person.2.fill': 'people',
+  'rectangle.stack.fill': 'article',
+  'exclamationmark.triangle.fill': 'warning',
+  'eye.slash.fill': 'visibility-off',
+  'trash.fill': 'delete',
+  'lock.shield': 'admin-panel-settings',
 } as IconMapping;
 
 /**
