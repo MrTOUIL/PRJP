@@ -35,3 +35,13 @@ Thumbs.db
 ############################
 .vscode/
 .idea/
+
+
+############################
+# put the server.key and the sever.crt 
+############################
+
+/backend/server.key
+/backend/server.crt
+
+

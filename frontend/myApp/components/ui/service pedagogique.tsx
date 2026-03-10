@@ -11,6 +11,9 @@ import {
   StatusBar,
   KeyboardAvoidingView,
   Platform,
+  Modal,
+  FlatList,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
@@ -28,6 +31,42 @@ const COLORS = {
   white: '#FFFFFF',
 };
 
+const SERVICE_TYPES = [
+  'Private Tutoring', 
+  'Group Classes', 
+  'Exam Preparation (BEM/BAC)', 
+  'Language Course', 
+  'Homework Assistance', 
+  'Special Needs Support', 
+  'Skills Workshop',
+  'Academic Orientations'
+];
+
+const TARGET_AUDIENCES = [
+  'Primary School', 
+  'Middle School (CEM)', 
+  'High School (Lycée)', 
+  'University', 
+  'Adults', 
+  'Professionals'
+];
+
+const DELIVERY_MODES = [
+  'Online', 
+  'In-Person (Home)', 
+  'In-Person (Center)', 
+  'Hybrid'
+];
+
+const DURATIONS = [
+  'Single Session', 
+  'Weekly', 
+  'Monthly', 
+  'Quarterly', 
+  'School Year', 
+  'Custom'
+];
+
 export default function ServicePedagogique() {
   const router = useRouter();
   
@@ -39,13 +78,57 @@ export default function ServicePedagogique() {
   const [duration, setDuration] = useState('');
   const [budget, setBudget] = useState('');
   const [notes, setNotes] = useState('');
+  const [resources, setResources] = useState<{name: string, type: string}[]>([]);
 
   // Mock Service ID
   const serviceID = 'SRV-260226-795';
 
+  // Selection Modal State
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectionTitle, setSelectionTitle] = useState('');
+  const [currentOptions, setCurrentOptions] = useState<string[]>([]);
+  const [onSelect, setOnSelect] = useState<(val: string) => void>(() => {});
+
+  const openSelection = (title: string, options: string[], callback: (val: string) => void) => {
+    setSelectionTitle(title);
+    setCurrentOptions(options);
+    setOnSelect(() => callback);
+    setModalVisible(true);
+  };
+
+  const handleOptionSelect = (item: string) => {
+    onSelect(item);
+    setModalVisible(false);
+  };
+
+  const handleAddResource = () => {
+    // Logic to pick file would go here
+    // For now, simulate adding a file for demonstration
+    const newResource = {
+        name: `Lesson_Plan_Module_${resources.length + 1}.pdf`,
+        type: 'pdf'
+    };
+    setResources([...resources, newResource]);
+  };
+
+  const handleRemoveResource = (index: number) => {
+    const newList = [...resources];
+    newList.splice(index, 1);
+    setResources(newList);
+  };
+
   const handleRequest = () => {
     // Implement request logic
-    console.log('Requesting service...');
+    console.log('Requesting service...', { 
+      serviceType, 
+      targetAudience, 
+      deliveryMode, 
+      expectations, 
+      duration, 
+      budget, 
+      notes,
+      resources: resources || [] 
+    });
   };
 
   const handleReset = () => {
@@ -56,112 +139,95 @@ export default function ServicePedagogique() {
     setDuration('');
     setBudget('');
     setNotes('');
+    setResources([]);
   };
 
   const renderSectionHeader = (icon: string, title: string, color: string = COLORS.primary) => (
     <View style={styles.sectionHeader}>
-      {/* Some icons require different libraries or names based on the screenshot */}
-      <FontAwesome5 name={icon} size={18} color={COLORS.secondary} style={{ marginRight: 10 }} />
-      <Text style={[styles.sectionTitle, { color }]}>{title}</Text>
+       <FontAwesome5 name={icon} size={20} color={COLORS.secondary} style={{ marginRight: 8 }} />
+       <Text style={styles.sectionTitle}>{title}</Text>
     </View>
   );
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
-      
-      {/* Header Section */}
-      <View style={styles.headerContainer}>
-        <SafeAreaView>
-          <View style={styles.headerContent}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-              <View style={styles.backIconCircle}>
-                <MaterialIcons name="chevron-left" size={24} color={COLORS.white} />
-              </View>
-            </TouchableOpacity>
-            <View style={styles.logoContainer}>
-              <Text style={styles.logoText}>ALEMNI</Text>
-            </View>
-          </View>
-          
-          <Animated.View entering={FadeInDown.delay(200).springify()} style={styles.titleContainer}>
-            <FontAwesome5 name="clipboard-list" size={32} color={COLORS.secondary} />
-            <Text style={styles.mainTitle}>Pedagogical Service</Text>
-            <Text style={styles.subTitle}>
-              Define the educational service details you require
-            </Text>
-          </Animated.View>
-        </SafeAreaView>
-      </View>
-
       <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
-        <ScrollView 
-          showsVerticalScrollIndicator={false} 
-          contentContainerStyle={styles.scrollContent}
-        >
-          
-          {/* Service Information */}
-          <Animated.View entering={FadeInDown.delay(300).springify()}>
-            {renderSectionHeader('info-circle', 'Service Information')}
-            <View style={styles.infoBox}>
-               <FontAwesome5 name="lightbulb" size={16} color="#666" style={{marginTop: 2}} />
-               <Text style={styles.infoText}>
-                 Please provide the details of the service you are requesting.
-               </Text>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Service ID <Text style={styles.required}>*</Text></Text>
-              <View style={[styles.inputContainer, styles.readOnlyInput]}>
-                <FontAwesome5 name="hashtag" size={16} color={COLORS.primary} style={{ marginRight: 10 }} />
-                <Text style={styles.inputText}>{serviceID}</Text>
+        <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
+        
+        {/* Header Section */}
+        <View style={styles.headerContainer}>
+          <SafeAreaView>
+            <View style={styles.headerContent}>
+              <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                <View style={styles.backIconCircle}>
+                  <MaterialIcons name="chevron-left" size={24} color={COLORS.white} />
+                </View>
+              </TouchableOpacity>
+              <View style={styles.logoContainer}>
+                <Text style={styles.logoText}>ALEMNI</Text>
               </View>
             </View>
-          </Animated.View>
-
-          {/* Type of Request */}
-          <Animated.View entering={FadeInDown.delay(400).springify()}>
-            <View style={styles.divider} />
-            <View style={styles.sectionHeader}>
-               <FontAwesome5 name="list-ul" size={18} color={COLORS.secondary} style={{ marginRight: 10 }} />
-               <Text style={[styles.sectionTitle, { color: COLORS.primary }]}>Type of Request</Text>
-            </View>
             
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Service Type <Text style={styles.required}>*</Text></Text>
-              <TouchableOpacity style={styles.inputContainer}>
-                <FontAwesome5 name="chalkboard-teacher" size={16} color={COLORS.primary} />
-                <Text style={serviceType ? styles.inputText : styles.placeholderText}>
-                  {serviceType || 'Select a service type'}
-                </Text>
-                <MaterialIcons name="keyboard-arrow-down" size={24} color={COLORS.textLight} style={styles.chevron} />
-              </TouchableOpacity>
-            </View>
+            <Animated.View entering={FadeInDown.delay(200).springify()} style={styles.titleContainer}>
+              <FontAwesome5 name="clipboard-list" size={32} color={COLORS.secondary} />
+              <Text style={styles.mainTitle}>Pedagogical Service</Text>
+              <Text style={styles.subTitle}>
+                Define the educational service details you require
+              </Text>
+            </Animated.View>
+          </SafeAreaView>
+        </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Target Audience <Text style={styles.required}>*</Text></Text>
-              <TouchableOpacity style={styles.inputContainer}>
-                <FontAwesome5 name="users" size={16} color={COLORS.primary} />
-                <Text style={targetAudience ? styles.inputText : styles.placeholderText}>
-                  {targetAudience || 'Who is this for?'}
-                </Text>
-                <MaterialIcons name="keyboard-arrow-down" size={24} color={COLORS.textLight} style={styles.chevron} />
-              </TouchableOpacity>
-            </View>
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          
+          {/* Service Details */}
+          <Animated.View entering={FadeInDown.delay(300).springify()}>
+              {renderSectionHeader('chalkboard', 'Service Details')}
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Mode of Delivery <Text style={styles.required}>*</Text></Text>
-              <TouchableOpacity style={styles.inputContainer}>
-                <FontAwesome5 name="home" size={16} color={COLORS.primary} />
-                <Text style={deliveryMode ? styles.inputText : styles.placeholderText}>
-                  {deliveryMode || 'Select mode'}
-                </Text>
-                <MaterialIcons name="keyboard-arrow-down" size={24} color={COLORS.textLight} style={styles.chevron} />
-              </TouchableOpacity>
-            </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Service Type <Text style={styles.required}>*</Text></Text>
+                <TouchableOpacity 
+                  style={styles.inputContainer}
+                  onPress={() => openSelection('Select Service Type', SERVICE_TYPES, setServiceType)}
+                >
+                  <FontAwesome5 name="chalkboard-teacher" size={16} color={COLORS.primary} />
+                  <Text style={serviceType ? styles.inputText : styles.placeholderText}>
+                    {serviceType || 'Select a service type'}
+                  </Text>
+                  <MaterialIcons name="keyboard-arrow-down" size={24} color={COLORS.textLight} style={styles.chevron} />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Target Audience <Text style={styles.required}>*</Text></Text>
+                <TouchableOpacity 
+                  style={styles.inputContainer}
+                  onPress={() => openSelection('Select Target Audience', TARGET_AUDIENCES, setTargetAudience)}
+                >
+                  <FontAwesome5 name="users" size={16} color={COLORS.primary} />
+                  <Text style={targetAudience ? styles.inputText : styles.placeholderText}>
+                    {targetAudience || 'Who is this for?'}
+                  </Text>
+                  <MaterialIcons name="keyboard-arrow-down" size={24} color={COLORS.textLight} style={styles.chevron} />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Mode of Delivery <Text style={styles.required}>*</Text></Text>
+                <TouchableOpacity 
+                  style={styles.inputContainer}
+                  onPress={() => openSelection('Select Mode of Delivery', DELIVERY_MODES, setDeliveryMode)}
+                >
+                  <FontAwesome5 name="globe" size={16} color={COLORS.primary} />
+                  <Text style={deliveryMode ? styles.inputText : styles.placeholderText}>
+                    {deliveryMode || 'Online, In-Person...'}
+                  </Text>
+                  <MaterialIcons name="keyboard-arrow-down" size={24} color={COLORS.textLight} style={styles.chevron} />
+                </TouchableOpacity>
+              </View>
           </Animated.View>
 
           {/* Methodology & Expectations */}
@@ -193,7 +259,10 @@ export default function ServicePedagogique() {
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Proposed Duration / Timeline <Text style={styles.required}>*</Text></Text>
-              <TouchableOpacity style={styles.inputContainer}>
+              <TouchableOpacity 
+                  style={styles.inputContainer}
+                  onPress={() => openSelection('Select Duration', DURATIONS, setDuration)}
+              >
                 <FontAwesome5 name="clock" size={16} color={COLORS.primary} />
                 <Text style={duration ? styles.inputText : styles.placeholderText}>
                   {duration || 'e.g. 3 months, 10 sessions, ongoing...'}
@@ -211,10 +280,11 @@ export default function ServicePedagogique() {
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Proposed Budget (Total or Hourly) <Text style={styles.required}>*</Text></Text>
               <View style={styles.inputContainer}>
-                <FontAwesome5 name="euro-sign" size={16} color={COLORS.textLight} />
+                <FontAwesome5 name="money-bill-wave" size={16} color={COLORS.primary} />
+                <Text style={{ fontSize: 16, fontWeight: 'bold', color: COLORS.textLight, marginLeft: 10 }}>DA</Text>
                 <TextInput
                   style={[styles.input, { marginLeft: 10 }]}
-                  placeholder="Ex: 50"
+                  placeholder="Ex: 2000"
                   placeholderTextColor={COLORS.textLight}
                   keyboardType="numeric"
                   value={budget}
@@ -224,8 +294,48 @@ export default function ServicePedagogique() {
             </View>
           </Animated.View>
 
-          {/* Additional Comments */}
+          {/* Pedagogical Resources */}
           <Animated.View entering={FadeInDown.delay(700).springify()}>
+            <View style={styles.divider} />
+            {renderSectionHeader('folder-open', 'Pedagogical Resources')}
+            
+            <View style={styles.infoBox}>
+               <FontAwesome5 name="info-circle" size={16} color="#666" style={{marginTop: 2}} />
+               <Text style={styles.infoText}>
+                 Upload your lesson plans, exercises, or supporting materials here.
+               </Text>
+            </View>
+
+            <TouchableOpacity style={styles.uploadButton} onPress={handleAddResource}>
+                <View style={styles.uploadIconContainer}>
+                    <FontAwesome5 name="cloud-upload-alt" size={24} color={COLORS.primary} />
+                </View>
+                <View style={styles.uploadTextContainer}>
+                    <Text style={styles.uploadTitle}>Click to upload materials</Text>
+                    <Text style={styles.uploadSubtitle}>PDF, DOCX, JPG (Max 5MB)</Text>
+                </View>
+            </TouchableOpacity>
+
+            {/* List of attached resources */}
+            {resources.length > 0 && (
+                <View style={styles.resourcesList}>
+                    {resources.map((res, index) => (
+                        <View key={index} style={styles.resourceItem}>
+                            <View style={styles.resourceInfo}>
+                                <FontAwesome5 name="file-pdf" size={20} color="#E74C3C" style={{ marginRight: 10 }} />
+                                <Text style={styles.resourceName}>{res.name}</Text>
+                            </View>
+                            <TouchableOpacity onPress={() => handleRemoveResource(index)}>
+                                <MaterialIcons name="close" size={20} color={COLORS.textLight} />
+                            </TouchableOpacity>
+                        </View>
+                    ))}
+                </View>
+            )}
+          </Animated.View>
+
+          {/* Additional Comments */}
+          <Animated.View entering={FadeInDown.delay(800).springify()}>
             <View style={styles.divider} />
             {renderSectionHeader('comment-dots', 'Additional Comments')}
             
@@ -247,7 +357,7 @@ export default function ServicePedagogique() {
           </Animated.View>
 
           {/* Action Buttons */}
-          <Animated.View entering={FadeInUp.delay(800).springify()} style={styles.footer}>
+          <Animated.View entering={FadeInUp.delay(900).springify()} style={styles.footer}>
             <TouchableOpacity style={styles.submitButton} onPress={handleRequest}>
               <FontAwesome5 name="paper-plane" size={16} color={COLORS.white} style={{ marginRight: 10 }} />
               <Text style={styles.submitButtonText}>Request Service</Text>
@@ -265,6 +375,48 @@ export default function ServicePedagogique() {
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Selection Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setModalVisible(false)}>
+          <View style={styles.modalOverlay}>
+            <TouchableWithoutFeedback>
+              <View style={styles.modalContent}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>{selectionTitle}</Text>
+                  <TouchableOpacity onPress={() => setModalVisible(false)}>
+                    <MaterialIcons name="close" size={24} color={COLORS.text} />
+                  </TouchableOpacity>
+                </View>
+                <FlatList
+                  data={currentOptions}
+                  keyExtractor={(item) => item}
+                  contentContainerStyle={styles.modalList}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity 
+                      style={styles.modalOption}
+                      onPress={() => handleOptionSelect(item)}
+                    >
+                      <Text style={styles.modalOptionText}>{item}</Text>
+                      {((selectionTitle.includes('Service') && serviceType === item) ||
+                        (selectionTitle.includes('Target') && targetAudience === item) ||
+                        (selectionTitle.includes('Delivery') && deliveryMode === item) ||
+                        (selectionTitle.includes('Duration') && duration === item)) && (
+                        <FontAwesome5 name="check" size={16} color={COLORS.primary} />
+                      )}
+                    </TouchableOpacity>
+                  )}
+                />
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
     </View>
   );
 }
@@ -341,13 +493,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: COLORS.primary,
   },
-  sectionHeading: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.primary,
-    marginBottom: 15,
-    marginTop: 5,
-  },
   infoBox: {
     flexDirection: 'row',
     backgroundColor: '#F0F2F5',
@@ -386,9 +531,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#EFEFEF',
   },
-  readOnlyInput: {
-    backgroundColor: '#F5F5F5',
-  },
   inputText: {
     flex: 1,
     fontSize: 15,
@@ -421,7 +563,7 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     textAlignVertical: 'top',
     width: '100%',
-    paddingTop: 12, // Ensure text starts a bit lower in the multiline input
+    paddingTop: 12,
   },
   divider: {
     height: 1,
@@ -475,5 +617,101 @@ const styles = StyleSheet.create({
     color: COLORS.textLight,
     fontSize: 12,
     marginLeft: 5,
+  },
+  uploadButton: {
+    backgroundColor: '#F8F9FA',
+    borderWidth: 1.5,
+    borderColor: '#D1D1D6',
+    borderStyle: 'dashed',
+    borderRadius: 12,
+    padding: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  uploadIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#E8E8F0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
+  },
+  uploadTextContainer: {
+    flex: 1,
+  },
+  uploadTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  uploadSubtitle: {
+    fontSize: 13,
+    color: COLORS.textLight,
+    marginTop: 2,
+  },
+  resourcesList: {
+    marginTop: 5,
+    marginBottom: 15,
+  },
+  resourceItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: COLORS.white,
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#EFEFEF',
+  },
+  resourceInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  resourceName: {
+    fontSize: 14,
+    color: COLORS.text,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: COLORS.white,
+    borderTopLeftRadius: 25,
+    borderTopRightRadius: 25,
+    maxHeight: '70%',
+    paddingBottom: 30,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EAEAEA',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.primary,
+  },
+  modalList: {
+    paddingHorizontal: 20,
+  },
+  modalOption: {
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  modalOptionText: {
+    fontSize: 16,
+    color: COLORS.text,
   },
 });

@@ -11,12 +11,45 @@ import {
   StatusBar,
   KeyboardAvoidingView,
   Platform,
+  Modal,
+  FlatList,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { FontAwesome5, MaterialIcons, Ionicons, Feather } from '@expo/vector-icons';
 
 const { width } = Dimensions.get('window');
+
+// Data choices respecting Algerian education program
+const SUBJECTS = [
+  'Mathematics', 'Physics', 'Natural Sciences', 
+  'Arabic Language', 'French Language', 'English Language',
+  'History & Geography', 'Islamic Sciences', 'Philosophy',
+  'Civil Engineering', 'Mechanical Engineering', 'Electrical Engineering', 
+  'Accounting & Finance', 'Management & Economy', 
+  'Amazigh', 'German', 'Spanish', 'Italian'
+];
+
+const LEVELS = [
+  // Primary
+  '1st Year Primary (1AP)', '2nd Year Primary (2AP)', '3rd Year Primary (3AP)', 
+  '4th Year Primary (4AP)', '5th Year Primary (5AP)',
+  // Middle
+  '1st Year Middle (1AM)', '2nd Year Middle (2AM)', '3rd Year Middle (3AM)', 
+  '4th Year Middle (4AM - BEM)',
+  // Secondary
+  '1st Year Secondary (1AS)', '2nd Year Secondary (2AS)', '3rd Year Secondary (3AS - BAC)'
+];
+
+const FREQUENCIES = [
+  '1 session / week', '2 sessions / week', '3 sessions / week', 
+  '4 sessions / week', '5 sessions / week', 'Weekend intensive'
+];
+
+const DURATIONS = [
+  '1 hour', '1.5 hours', '2 hours', '2.5 hours', '3 hours', '4 hours'
+];
 
 const COLORS = {
   primary: '#2E2D75', // Dark purple from the screenshot header
@@ -42,12 +75,27 @@ export default function DevisPedagogique() {
   const [budget, setBudget] = useState('');
   const [notes, setNotes] = useState('');
 
-  // Mock Quote ID
-  const quoteID = 'QT-260226-918';
+  // Selection Modal State
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectionTitle, setSelectionTitle] = useState('');
+  const [currentOptions, setCurrentOptions] = useState<string[]>([]);
+  const [onSelect, setOnSelect] = useState<(val: string) => void>(() => {});
+
+  const openSelection = (title: string, options: string[], callback: (val: string) => void) => {
+    setSelectionTitle(title);
+    setCurrentOptions(options);
+    setOnSelect(() => callback);
+    setModalVisible(true);
+  };
+
+  const handleOptionSelect = (item: string) => {
+    onSelect(item);
+    setModalVisible(false);
+  };
 
   const handleSend = () => {
     // Implement send logic
-    console.log('Sending quote...');
+    console.log('Sending quote...', { subject, level, objective, frequency, duration, budget, notes });
   };
 
   const handleReset = () => {
@@ -112,14 +160,7 @@ export default function DevisPedagogique() {
                  Fill in all fields to generate a complete and detailed quote.
                </Text>
             </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Quote ID <Text style={styles.required}>*</Text></Text>
-              <View style={[styles.inputContainer, styles.readOnlyInput]}>
-                <MaterialIcons name="qr-code" size={20} color={COLORS.textLight} />
-                <Text style={styles.inputText}>{quoteID}</Text>
-              </View>
-            </View>
+            {/* Quote ID removed */}
           </Animated.View>
 
           {/* Educational Details */}
@@ -129,7 +170,10 @@ export default function DevisPedagogique() {
             
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Subject <Text style={styles.required}>*</Text></Text>
-              <TouchableOpacity style={styles.inputContainer}>
+              <TouchableOpacity 
+                style={styles.inputContainer}
+                onPress={() => openSelection('Select Subject', SUBJECTS, setSubject)}
+              >
                 <FontAwesome5 name="graduation-cap" size={18} color={COLORS.primary} />
                 <Text style={subject ? styles.inputText : styles.placeholderText}>
                   {subject || 'Select a subject'}
@@ -140,7 +184,10 @@ export default function DevisPedagogique() {
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>School Level <Text style={styles.required}>*</Text></Text>
-              <TouchableOpacity style={styles.inputContainer}>
+              <TouchableOpacity 
+                style={styles.inputContainer}
+                onPress={() => openSelection('Select Level', LEVELS, setLevel)}
+              >
                 <Ionicons name="school" size={20} color={COLORS.primary} />
                 <Text style={level ? styles.inputText : styles.placeholderText}>
                   {level || 'Select a level'}
@@ -173,7 +220,10 @@ export default function DevisPedagogique() {
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Desired Frequency <Text style={styles.required}>*</Text></Text>
-              <TouchableOpacity style={styles.inputContainer}>
+              <TouchableOpacity 
+                style={styles.inputContainer}
+                onPress={() => openSelection('Select Frequency', FREQUENCIES, setFrequency)}
+              >
                 <FontAwesome5 name="calendar-alt" size={18} color={COLORS.primary} />
                 <Text style={frequency ? styles.inputText : styles.placeholderText}>
                   {frequency || 'Select a frequency'}
@@ -184,7 +234,10 @@ export default function DevisPedagogique() {
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Estimated Session Duration <Text style={styles.required}>*</Text></Text>
-              <TouchableOpacity style={styles.inputContainer}>
+              <TouchableOpacity 
+                style={styles.inputContainer}
+                onPress={() => openSelection('Select Duration', DURATIONS, setDuration)}
+              >
                 <FontAwesome5 name="hourglass-half" size={18} color={COLORS.primary} />
                 <Text style={duration ? styles.inputText : styles.placeholderText}>
                   {duration || 'Select a duration'}
@@ -202,10 +255,10 @@ export default function DevisPedagogique() {
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Budget per Session <Text style={styles.required}>*</Text></Text>
               <View style={styles.inputContainer}>
-                <FontAwesome5 name="euro-sign" size={18} color={COLORS.textLight} />
+                <Text style={{ fontSize: 16, fontWeight: 'bold', color: COLORS.textLight, marginLeft: 10 }}>DA</Text>
                 <TextInput
                   style={[styles.input, { marginLeft: 10 }]}
-                  placeholder="Ex: 30"
+                  placeholder="Ex: 2000"
                   placeholderTextColor={COLORS.textLight}
                   keyboardType="numeric"
                   value={budget}
@@ -257,6 +310,43 @@ export default function DevisPedagogique() {
 
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Selection Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setModalVisible(false)}>
+          <View style={styles.modalOverlay}>
+            <TouchableWithoutFeedback>
+              <View style={styles.modalContent}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>{selectionTitle}</Text>
+                  <TouchableOpacity onPress={() => setModalVisible(false)}>
+                    <MaterialIcons name="close" size={24} color={COLORS.text} />
+                  </TouchableOpacity>
+                </View>
+                <FlatList
+                  data={currentOptions}
+                  keyExtractor={(item, index) => index.toString()}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity
+                      style={styles.modalOption}
+                      onPress={() => handleOptionSelect(item)}
+                    >
+                      <Text style={styles.modalOptionText}>{item}</Text>
+                    </TouchableOpacity>
+                  )}
+                  style={styles.modalList}
+                  showsVerticalScrollIndicator={false}
+                />
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
     </View>
   );
 }
@@ -462,5 +552,42 @@ const styles = StyleSheet.create({
     color: COLORS.textLight,
     fontSize: 12,
     marginLeft: 5,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: COLORS.white,
+    borderTopLeftRadius: 25,
+    borderTopRightRadius: 25,
+    maxHeight: '70%',
+    paddingBottom: 30,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EAEAEA',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.primary,
+  },
+  modalList: {
+    paddingHorizontal: 20,
+  },
+  modalOption: {
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  modalOptionText: {
+    fontSize: 16,
+    color: COLORS.text,
   },
 });
