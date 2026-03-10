@@ -1,6 +1,7 @@
-const mongoose = require('mongoose') ; 
+//the pending_student schema and model!
+const mongoose = require('mongoose'); 
 
-const Schema = new mongoose.Schema({
+const shm = new mongoose.Schema({
     first_name:{type:String},
     last_name:{type:String},
     email:{type:String , unique:true},
@@ -8,7 +9,7 @@ const Schema = new mongoose.Schema({
     postal_adress:{type:String},
     password:{type:String},
     academic_level:{type:String},
-    role:{type:String}
+    code:{type:Number}
 }) ; 
 
-module.exports = mongoose.model("parents",Schema) ; 
+module.exports = mongoose.model("parent_pendings",shm) ; 
