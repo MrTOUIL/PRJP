@@ -87,67 +87,14 @@ router.post('/register_student',
           postal_adress:postal_adress,
           password:hashedpassword,
           academic_level:academic_level,
-          code:code 
+          code:code,
+          role:"student" 
         }) ;
         res.json({succ:"email sent!"}) ; 
     }catch(e){
         res.json({error:"invalid credentials"}) ;
     }
 }) ; 
-
-router.put('/resend_code_student',async(req,res) => {
-   try{ 
-     const {email} = req.body ; 
-     const pending_st = await student_pendings.findOne({email:email}) ; 
-     if (!pending_st){
-      return res.json({error:"invalid mail!"}) ; 
-     }
-     const code = generateCode() ;
-     const info = await transporter.sendMail({
-       from: `<${process.env.MAIL_USER}>`,
-       to: email,
-       subject: "Verify your mail!",
-       html: `<p>This is the code of your account to verify with : ${code} </p>`,
-     });
-     //update the panding student documnet 
-     pending_st.code = code ; 
-     await pending_st.save() ;
-     res.json({succ:"resent"}) ;
-   }catch(e){
-     res.json({error:"error!"}) ; 
-   }  
-}) ; 
-
-router.post('/addstudent',async(req,res) => {
-  //let's verify if the code entered by the user valid or not 
-  try{
-  const {email,code} = req.body ; 
-  const pending_st = await student_pendings.findOne({email:email}) ;
-  if (!pending_st){
-    return res.json({error:"invalid mail!"}) ; 
-  }
-  if (pending_st.code !== code){
-    return res.json({error:"invalid code!"}) ;
-  } 
-  //it is valid , so first we remove the pending student , and add it to the real db 
-  await students.create({
-    first_name:pending_st.first_name , 
-    last_name:pending_st.last_name , 
-    email:pending_st.email , 
-    phone:pending_st.phone , 
-    postal_adress:pending_st.postal_adress ,
-    password:pending_st.password,
-    academic_level:pending_st.academic_level,
-    role:"student"
-  }) ; 
-
-  await student_pendings.deleteOne({email:email}) ; 
-  res.json({succ:"register_done!"}) ;
-  }catch(e){
-    res.json({error:"error!"}) ; 
-  } 
-});
-
 
 //==========Parent registration==========//
 router.post('/register_parent',
@@ -195,67 +142,14 @@ router.post('/register_parent',
           postal_adress:postal_adress,
           password:hashedpassword,
           academic_level:academic_level,
-          code:code 
+          code:code,
+          role:"parent" 
         }) ;
         res.json({succ:"email sent!"}) ; 
     }catch(e){
         res.json({error:"invalid credentials"}) ;
     }
-}) ; 
-
-router.put('/resend_code_parent',async(req,res) => {
-   try{ 
-     const {email} = req.body ; 
-     const pending_st = await parent_pendings.findOne({email:email}) ; 
-     if (!pending_st){
-      return res.json({error:"invalid mail!"}) ; 
-     }
-     const code = generateCode() ;
-     const info = await transporter.sendMail({
-       from: `<${process.env.MAIL_USER}>`,
-       to: email,
-       subject: "Verify your mail!",
-       html: `<p>This is the code of your account to verify with : ${code} </p>`,
-     });
-     //update the panding student documnet 
-     pending_st.code = code ; 
-     await pending_st.save() ;
-     res.json({succ:"resent"}) ;
-   }catch(e){
-     res.json({error:"error!"}) ; 
-   }  
-}) ; 
-
-router.post('/addparent',async(req,res) => {
-  //let's verify if the code entered by the user valid or not 
-  try{
-  const {email,code} = req.body ; 
-  const pending_st = await parent_pendings.findOne({email:email}) ;
-  if (!pending_st){
-    return res.json({error:"invalid mail!"}) ; 
-  }
-  if (pending_st.code !== code){
-    return res.json({error:"invalid code!"}) ;
-  } 
-  //it is valid , so first we remove the pending student , and add it to the real db 
-  await parents.create({
-    first_name:pending_st.first_name , 
-    last_name:pending_st.last_name , 
-    email:pending_st.email , 
-    phone:pending_st.phone , 
-    postal_adress:pending_st.postal_adress ,
-    password:pending_st.password,
-    academic_level:pending_st.academic_level,
-    role:"parent"
-  }) ; 
-
-  await parent_pendings.deleteOne({email:email}) ; 
-  res.json({succ:"register_done!"}) ;
-  }catch(e){
-    res.json({error:"error!"}) ; 
-  } 
-});
-
+}) ;
 
 //==========teacher registration==========//
 router.post('/register_teacher',
@@ -298,7 +192,7 @@ router.post('/register_teacher',
         await teacher_pendings.create({
           first_name, last_name, email, phone, postal_adress, password:hashedpassword,
           subject, school_levels_taught, mode, available_days, start_time, end_time, home_visits, bio,
-          code
+          code,role:"teacher"
         });
 
         res.json({succ:"email sent!"});
@@ -307,53 +201,111 @@ router.post('/register_teacher',
     }
 });
 
-router.put('/resend_code_teacher', async(req,res) => {
-    try{
-        const {email} = req.body;
-        const pending_t = await teacher_pendings.findOne({email:email});
-        if(!pending_t) return res.json({error:"invalid mail!"});
 
-        const code = generateCode();
-        await transporter.sendMail({
-           from: `<${process.env.MAIL_USER}>`,
-           to: email,
-           subject: "Verify your mail!",
-           html: `<p>This is the code of your account to verify with : ${code} </p>`,
-        });
-
-        pending_t.code = code;
-        await pending_t.save();
-
-        res.json({succ:"resent"});
-    }catch(e){
-        res.json({error:"error!"});
+router.put('/resend_code',
+   body("email").isEmail().normalizeEmail().trim()
+  ,async(req,res) => {
+    const errors = validationResult(req) ; 
+    if (!errors.isEmpty()){
+        return res.status(400).json({errors:errors.array()})
     }
-});
-
-router.post('/addteacher', async(req,res) => {
+    
     try{
-        const {email,code} = req.body;
-        const pending_t = await teacher_pendings.findOne({email:email});
-        if(!pending_t) return res.json({error:"invalid mail!"});
-        if(pending_t.code !== code) return res.json({error:"invalid code!"});
+        const {email} = req.body ;
+        const pending_st = await student_pendings.findOne({email:email}) ;
+        const pending_tc = await teacher_pendings.findOne({email:email}) ;
+        const pending_pr = await parent_pendings.findOne({email:email}) ; 
 
-        await teachers.create({
-            first_name:pending_t.first_name, last_name:pending_t.last_name,
-            email:pending_t.email, phone:pending_t.phone, postal_adress:pending_t.postal_adress,
-            password:pending_t.password, subject:pending_t.subject, school_levels_taught:pending_t.school_levels_taught,
-            mode:pending_t.mode, available_days:pending_t.available_days, start_time:pending_t.start_time,
-            end_time:pending_t.end_time, home_visits:pending_t.home_visits, bio:pending_t.bio,
+        const user = pending_pr || pending_st || pending_tc ; 
+        if (!user){
+          return res.json({error:"invalid mail!"}) ;
+        }
+        const code = generateCode() ;
+        const info = await transporter.sendMail({
+         from: `<${process.env.MAIL_USER}>`,
+         to: email,
+         subject: "Verify your mail!",
+         html: `<p>This is the code of your account to verify with : ${code} </p>`,
+        });
+        //update 
+        user.code = code ; 
+        await user.save() ;
+        res.json({succ:"resent"}) ;
+    }catch(e){
+        res.json({error:"error!"}) ; 
+    }
+}) ; 
+
+router.post("/addactor",
+   body("email").isEmail().normalizeEmail().trim()
+  ,async(req,res) => {
+    const errors = validationResult(req) ; 
+    if (!errors.isEmpty()){
+        return res.status(400).json({errors:errors.array()})
+    }
+
+    try{
+        const {email,code} = req.body ; 
+        const pending_st = await student_pendings.findOne({email:email}) ;
+        const pending_tc = await teacher_pendings.findOne({email:email}) ;
+        const pending_pr = await parent_pendings.findOne({email:email}) ; 
+
+        const user = pending_pr || pending_st || pending_tc ; 
+        if (!user){
+          return res.json({error:"invalid mail!"}) ;
+        }
+        
+        if (user.code !== code){
+          return res.json({error:"invalid code!"}) ;
+        }
+        
+        //it is valid , now let's remove the pending and add to real db 
+        if (user.role === "student"){
+          await students.create({
+            first_name:pending_st.first_name , 
+            last_name:pending_st.last_name , 
+            email:pending_st.email , 
+            phone:pending_st.phone , 
+            postal_adress:pending_st.postal_adress ,
+            password:pending_st.password,
+            academic_level:pending_st.academic_level,
+            role:"student"
+          }) ;
+          await student_pendings.deleteOne({email:email}) ;
+        }
+
+        if(user.role ==="parent"){
+          await parents.create({
+            first_name:pending_pr.first_name , 
+            last_name:pending_pr.last_name , 
+            email:pending_pr.email , 
+            phone:pending_pr.phone , 
+            postal_adress:pending_pr.postal_adress ,
+            password:pending_pr.password,
+            academic_level:pending_pr.academic_level,
+            role:"parent"
+          }) ; 
+
+          await parent_pendings.deleteOne({email:email}) ; 
+        }
+
+        if (user.role === "teacher"){
+          await teachers.create({
+            first_name:pending_tc.first_name, last_name:pending_tc.last_name,
+            email:pending_tc.email, phone:pending_tc.phone, postal_adress:pending_tc.postal_adress,
+            password:pending_tc.password, subject:pending_tc.subject, school_levels_taught:pending_tc.school_levels_taught,
+            mode:pending_tc.mode, available_days:pending_tc.available_days, start_time:pending_tc.start_time,
+            end_time:pending_tc.end_time, home_visits:pending_tc.home_visits, bio:pending_tc.bio,
             role:"teacher" , status:"not verified"
         });
 
         await teacher_pendings.deleteOne({email:email});
-        res.json({succ:"register_done!"});
+        }
+        res.json({succ:"register_done!"}) ;
     }catch(e){
-        res.json({error:"error!"});
+        res.json({error:"error!"}) ;
     }
-});
-
-
+}) ;
 
 //==========handling the signin of students , parents and teachers==========//
 
@@ -525,39 +477,6 @@ router.post("/login",
   }
 ) ; 
 
-//get the forgotten password
-/*router.post("/forget_password",
-  body("email").isEmail().normalizeEmail().trim(),
-  async(req,res) => {
-    const errors = validationResult(req) ; 
-    if (!errors.isEmpty()){
-        return res.status(400).json({errors:errors.array()})
-    }
-    
-    try{
-        const {email} = req.body ; 
-        const user1 = await students.findOne({email:email}) ;
-        const user2 = await parents.findOne({email:email}) ; 
-        const user3 = await teachers.findOne({email:email}) ;
 
-        const user = user1 || user2 || user3  ; 
-        if (!user) {
-          return res.json({ error: "invalid credentials" });
-        } 
-        
-        //reset the password!
-
-        const info = await transporter.sendMail({
-          from: `<${process.env.MAIL_USER}>`,
-          to: email,
-          subject: "YOUR PASSWORD!",
-          html: `<p>This is your password account : ${} </p>`,
-        });
-
-    }catch(e){
-
-    }
-  }
-) ; */
  
 module.exports = router ; 

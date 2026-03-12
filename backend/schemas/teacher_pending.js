@@ -15,7 +15,8 @@ const shm = new mongoose.Schema({
     end_time:{type:String},
     home_visits:{type:Boolean},
     bio:{type:String},
-    code:{type:Number}
+    code:{type:Number},
+    role:{type:String}
 }) ; 
 
 module.exports = mongoose.model("teacher_pendings",shm) ;

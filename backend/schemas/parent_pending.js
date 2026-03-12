@@ -9,7 +9,8 @@ const shm = new mongoose.Schema({
     postal_adress:{type:String},
     password:{type:String},
     academic_level:{type:String},
-    code:{type:Number}
+    code:{type:Number},
+    role:{type:String}
 }) ; 
 
 module.exports = mongoose.model("parent_pendings",shm) ; 
