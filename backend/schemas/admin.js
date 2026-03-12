@@ -1,16 +1,24 @@
-const mongoose = require('mongoose') ; 
+const mongoose = require('mongoose');
+const bcrypt = require('bcrypt');
 
-const Schema = new mongoose.Schema({   //La plupart est obligatoire 
-    first_name:{type:String , required:true},
-    last_name:{type:String , required:true},
-    email:{type:String , unique:true , required:true},
-    phone:{type:String , unique:true , required:true},
-    password:{type:String , required:true},
-    nb_supp:{type:Number, default:0}, // le nombre ta3 les comptes supprimes par l'admin
-    nim:{type:Number , unique:true , required:true} ,// le numero ta3 carte nationale
-    isActive : { type: Boolean, default: true },   //online
-    lastLogin : { type: Date },   //kima f sinf
-    loginAttempts : { type: Number, default: 0 }  //en cas ou
-}) ; 
+const AdminSchema = new mongoose.Schema({
+    first_name: { type: String, required: true, trim: true },
+    last_name: { type: String, required: true, trim: true },
+    email: { type: String, unique: true, required: true, lowercase: true },
+    phone: { type: String, unique: true, required: true },
+    password: { type: String, required: true },
+    nb_supp: { type: Number, default: 0 },  //li banahom
+    nim: { type: Number, unique: true, required: true }, //numero carte nationale kima SINF
+    isActive: { type: Boolean, default: true }, //online wela nn
+    lastLogin: { type: Date },  //approche security
+    loginAttempts: { type: Number, default: 0 }  //ida ktr men 5 y5erjo
+}, { timestamps: true });   //bach y9dr y3rf ch7al men wa9t 3ml login
 
-module.exports = mongoose.model("admins",Schema) ; 
+//lazem yethacha le mot de passe avant ma ydirlo save
+AdminSchema.pre('save', async function(next) {
+    if (!this.isModified('password')) return next();
+    this.password = await bcrypt.hash(this.password, 12);
+    next();
+});
+
+module.exports = mongoose.model("admins", AdminSchema);

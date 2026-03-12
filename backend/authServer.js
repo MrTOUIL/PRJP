@@ -377,7 +377,10 @@ router.post("/login",
           return res.json({error:"invalid credentials"}) ; 
         }
         if (user1){
-          const ismatch = await bcrypt.compare(password,user1.password) ; 
+          if (user1.isBanned) {
+             return res.status(403).json({ error: "This account has been banned." });
+          }
+          const ismatch = await bcrypt.compare(password,user1.password) ;  
           if (!ismatch){
             return res.json({error:"invalid credentials"})
           }
@@ -409,6 +412,9 @@ router.post("/login",
         }
 
         if (user2){
+          if (user2.isBanned) {
+             return res.status(403).json({ error: "This account has been banned." });
+          }
           const ismatch = await bcrypt.compare(password,user2.password) ; 
           if (!ismatch){
             return res.json({error:"invalid credentials"})
@@ -438,7 +444,10 @@ router.post("/login",
           }) ;
 
           res.json({succ:"login success!" , role:"parent"}) ; 
-        }
+        }if (user3.isBanned) {
+             return res.status(403).json({ error: "This account has been banned." });
+          }
+          
 
         if (user3){
           const ismatch = await bcrypt.compare(password,user3.password) ; 
@@ -477,6 +486,35 @@ router.post("/login",
   }
 ) ; 
 
+//////////////////////////////////////////////
+//Login ta3 ADMIN//
 
+const jwt = require('jsonwebtoken');
+
+const authenticateAdmin = (req, res, next) => {
+    const token = req.cookies.AccessToken;
+
+    if (!token) {
+        return res.status(401).json({ error: "Accès refusé. Connectez-vous." });
+    }
+
+    try {
+        const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+        
+        
+        if (decoded.role !== 'admin') {
+            return res.status(403).json({ error: "Droits insuffisants." });
+        }
+
+        req.admin = decoded; 
+        next();
+    } catch (err) {
+        return res.status(401).json({ error: "Session expirée ou invalide." });
+    }
+};
+
+module.exports = authenticateAdmin;
+
+//////////////////////////////////////////////////////////////////////////////
  
 module.exports = router ; 

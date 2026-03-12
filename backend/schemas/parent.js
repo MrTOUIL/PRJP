@@ -8,7 +8,8 @@ const Schema = new mongoose.Schema({
     postal_adress:{type:String},
     password:{type:String},
     academic_level:{type:String},
-    role:{type:String}
-}) ; 
+    role:{type:String},
+    isBanned:{type:Boolean, default:false} 
+}) ;  
 
 module.exports = mongoose.model("parents",Schema) ; 
