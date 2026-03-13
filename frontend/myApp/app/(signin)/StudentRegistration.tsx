@@ -108,7 +108,7 @@ export default function StudentRegister() {
 					<View style={styles.headerWave} />
 					<View style={styles.headerLogoCutout}>
 						<Image
-							source={require('../assets/images/Logo_nobg.png')}
+							source={require('../../assets/images/Logo_nobg.png')}
 							style={styles.headerLogo}
 							resizeMode="contain"
 						/>

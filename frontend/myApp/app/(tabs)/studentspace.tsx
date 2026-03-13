@@ -3,10 +3,10 @@ import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Dimensions, Sta
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 
-import StudentSpace from '../../components/ui/student space';
-import StudentDocuments from '../../components/ui/student documents';
-import StudentSubjects from '../../components/ui/student subjects';
-import StudentRequests from '../../components/ui/student requests';
+import StudentSpace from '../../app/(student_space)/studentSpace';
+import StudentDocuments from '../../app/(student_space)/Documents';
+import StudentSubjects from '../../app/(student_space)/Subjects';
+import StudentRequests from '../../app/(student_space)/requests';
 
 const { width } = Dimensions.get('window');
 

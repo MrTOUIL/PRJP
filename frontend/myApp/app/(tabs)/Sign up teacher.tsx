@@ -1,4 +1,4 @@
-import SignUpTeacher from "@/components/ui/sign up teacher";
+import SignUpTeacher from "@/app/(signin)/sign_Up_teacher";
 
 export default function SignUpTeacherPage() {
   return (

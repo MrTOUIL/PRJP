@@ -471,9 +471,9 @@ export default function WelcomePage() {
           {/* White top-right curve overlay for Logo */}
           <View style={styles.topRightCurveContainer}>
             <View style={styles.topRightCurve} />
-            <Animated.Image
-              entering={FadeInRight.duration(600)}
-              source={require('../assets/images/Logo_nobg.png')}
+               <Animated.Image
+                 entering={FadeInRight.duration(600)}
+                 source={require('../../assets/images/Logo_nobg.png')}
               style={[styles.logo, animatedLogoStyle]}
               resizeMode="contain"
             />
