@@ -12,6 +12,7 @@ const parents = require('./schemas/parent');
 const parent_pendings = require('./schemas/parent_pending');
 const teachers = require('./schemas/teacher');
 const teacher_pendings = require('./schemas/teacher_pending');
+const admins = require('./schemas/admin') ;
 
 const tokens = require('./schemas/tokens') ; 
   
@@ -334,7 +335,7 @@ function generateRefreshToken(user){
   )
 }
 
-const protect = (req, res, next) => {
+/*const protect = (req, res, next) => {
   const token = req.cookies.AccessToken;
 
   if (!token) {
@@ -357,9 +358,9 @@ const authorize = (...roles) => {
     }
     next();
   };
-};
+};*/
 
-//login for student 
+
 router.post("/login",
   body("email").isEmail().normalizeEmail().trim(),
   body("password").isString().trim().isLength({min:8}),
@@ -372,8 +373,9 @@ router.post("/login",
         const {email,password} = req.body ; 
         const user1 = await students.findOne({email:email}) ;
         const user2 = await parents.findOne({email:email}) ; 
-        const user3 = await teachers.findOne({email:email}) ;  
-        if (!user1 && !user2 && !user3){
+        const user3 = await teachers.findOne({email:email}) ; 
+        const user4 = await admins.findOne({email:email}) ;  
+        if (!user1 && !user2 && !user3 && !user4){
           return res.json({error:"invalid credentials"}) ; 
         }
         if (user1){
@@ -471,12 +473,189 @@ router.post("/login",
 
           res.json({succ:"login success!" , role:"teacher"}) ; 
         }
+
+        if (user4){
+          const ismatch = await bcrypt.compare(password,user4.password) ; 
+          if (!ismatch){
+            return res.json({error:"invalid credentials"})
+          }
+
+          //now we can confirm and create the tokens 
+          const AccessToken = generateAccessToken(user4) ; 
+          const RefreshToken = generateRefreshToken(user4) ; 
+          //store the refresh tokens and access tokens 
+          //store the refresh tokens inside the database  ,
+          await tokens.create({
+            userId:user4._id , 
+            token:RefreshToken
+          }) ; 
+          
+          res.cookie("AccessToken",AccessToken,{
+            httpOnly:true ,
+            secure: true , 
+            sameSite : "strict" , 
+            maxAge:60*60*1000
+          }) ;
+          res.cookie("RefreshToken",RefreshToken,{
+            httpOnly:true,
+            secure:true , 
+            sameSite:"strict",
+            maxAge:7*24*60*60*1000,
+          }) ;
+
+          res.json({succ:"login success!" , role:"admin"}) ;
+        }
     }catch(e){
         res.json({error:"login failed!"}) ;
     } 
   }
-) ; 
+) ;
 
 
- 
+
+//==========handling "forgetpassword" routes==========//
+router.post("/forgetpw_mail",
+  body("email").isEmail().normalizeEmail().trim()
+  ,async(req,res) => {
+    const errors = validationResult(req) ; 
+    if (!errors.isEmpty()){
+        return res.status(400).json({errors:errors.array()})
+    }
+
+    try{
+        const {email} = req.body ; 
+
+        const user1 = await students.findOne({email:email}) ;
+        const user2 = await parents.findOne({email:email}) ; 
+        const user3 = await teachers.findOne({email:email}) ;
+        const user4 = await admins.findOne({email:email}) ; 
+        const user = user1 || user2 || user3 || user4 ; 
+        
+        if (!user){
+          return res.json({error:"invalid mail!"}) ;
+        }
+
+        //after the mail is verified , send the code 
+        const code = generateCode() ; 
+        const info = await transporter.sendMail({
+           from: `<${process.env.MAIL_USER}>`,
+           to: email,
+           subject: "Verify your mail!",
+           html: `<p>This is the code of your account to verify with : ${code} . It will expires in 10 minutes</p>`,
+        }) ;
+
+        //save this email and the code somewhere safe 
+        res.cookie("email",email,{
+          httpOnly:true , 
+          secure: true ,
+          sameSite:"strict",
+          maxAge:10*60*1000//maxAge = 2min  
+        }); 
+        res.cookie("code",code,{
+          httpOnly:true,
+          secure:true,
+          sameSite:"strict",
+          maxAge:10*60*1000//maxAge:2min
+        });
+        res.json({succ:"succ!"}) ; 
+
+    }catch(e){
+        res.json({error:"error!"}) ;
+    }
+}) ; 
+
+router.put("/resend_code_forgetpw",async(req,res) => {
+    //we will change the code , send to mail
+  try{
+
+    if (!req.cookies.email){
+      return res.json({error:"code and email expires!"}) ;
+    }
+
+    const code = generateCode() ; 
+    const info = await transporter.sendMail({
+      from: `<${process.env.MAIL_USER}>`,
+      to: req.cookies.email,
+      subject: "Verify your mail!",
+      html: `<p>This is the code of your account to verify with : ${code} </p>`,
+    }) ;
+    //then resave them in cookies 
+    res.cookie("code",code,{
+      httpOnly:true,
+      secure:true,
+      sameSite:"strict",
+      maxAge:10*60*1000//maxAge:2min
+    }) ;
+    res.json({succ:"succ!"}) ; 
+  }catch(e){
+    res.json({error:"error!"}) ; 
+  }   
+});
+
+router.post("/verify_code_forgetpw",async(req,res) => {
+  try{
+     if(!req.cookies.code){
+      return res.json({error:"code expires!"}) ; 
+     } 
+    const {code} = req.body ; 
+    if (Number(code) !== Number(req.cookies.code)){
+      return res.json({error:"invalid code"}) ; 
+    }
+
+    //the code is valid!we can remove the code from the cookie
+    res.clearCookie("code",{
+      httpOnly:true,
+      secure:true,
+      sameSite:"strict",
+    }) ; 
+    res.json({succ:"succ!"}) ; 
+  }catch(e){
+    res.json({error:"error!"}) ;
+  }
+});
+
+//the route to reset the pw 
+router.post("/reset_pw",
+  body("newpassword").isString().isLength({min:8}).trim(),
+  body("confirmpassword").isString().isLength({min:8}).trim()
+  ,async(req,res) => {
+    const errors = validationResult(req) ; 
+    if (!errors.isEmpty()){
+        return res.status(400).json({errors:errors.array()})
+    }
+
+    try{
+        if(!req.cookies.email){
+          return res.json({error:"email expires!"}) ; 
+        }
+        const {newpassword , confirmpassword} = req.body ;
+        if (newpassword !== confirmpassword){
+          return res.json({error:"no corresponding!"}) ;
+        }
+        //now we must update with new password!
+         //encrypt the pw 
+        const cryptedpw = await bcrypt.hash(newpassword,14) ; 
+        const email = req.cookies.email ; 
+        const user1 = await students.findOne({email:email}) ;
+        const user2 = await parents.findOne({email:email}) ; 
+        const user3 = await teachers.findOne({email:email}) ;
+        const user4 = await admins.findOne({email:email}) ; 
+        const user = user1 || user2 || user3 || user4 ;
+        
+        user.password = cryptedpw ; 
+        await user.save() ; 
+        //now remove the email from cookies 
+        res.clearCookie("email",{
+          httpOnly:true,
+          secure:true,
+          sameSite:"strict"
+        }) ;
+
+        res.json({succ:"succ!!"}) ; 
+  
+    }catch(e){
+        res.json({error:"error!"}) ; 
+    }
+}) ;
+
 module.exports = router ; 
