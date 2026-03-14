@@ -7,8 +7,7 @@ const shm = new mongoose.Schema({
     phone:{type:String , unique:true},
     postal_adress:{type:String},
     password:{type:String},
-    role:{type:String},
-    subject:[{type:String}],
+    subject:{type:String},
     school_levels_taught:{type:String},
     mode:{type:String},
     available_days:[{type:String}],
@@ -16,8 +15,8 @@ const shm = new mongoose.Schema({
     end_time:{type:String},
     home_visits:{type:Boolean},
     bio:{type:String},
-    status:{type:String},
-    isBanned:{type:Boolean, default:false} 
-}) ;  
+    code:{type:Number},
+    role:{type:String}
+}) ; 
 
-module.exports = mongoose.model("teachers",shm) ;
+module.exports = mongoose.model("teacher_pendings",shm) ;
