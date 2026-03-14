@@ -379,7 +379,7 @@ router.post("/login",
           return res.json({error:"invalid credentials"}) ; 
         }
         if (user1){
-          const ismatch = await bcrypt.compare(password,user1.password) ; 
+          const ismatch = await bcrypt.compare(password,user1.password) ;  
           if (!ismatch){
             return res.json({error:"invalid credentials"})
           }
@@ -440,7 +440,10 @@ router.post("/login",
           }) ;
 
           res.json({succ:"login success!" , role:"parent"}) ; 
-        }
+        }if (user3.isBanned) {
+             return res.status(403).json({ error: "This account has been banned." });
+          }
+          
 
         if (user3){
           const ismatch = await bcrypt.compare(password,user3.password) ; 
@@ -510,8 +513,6 @@ router.post("/login",
     } 
   }
 ) ;
-
-
 
 //==========handling "forgetpassword" routes==========//
 router.post("/forgetpw_mail",
@@ -657,5 +658,6 @@ router.post("/reset_pw",
         res.json({error:"error!"}) ; 
     }
 }) ;
+
 
 module.exports = router ; 
