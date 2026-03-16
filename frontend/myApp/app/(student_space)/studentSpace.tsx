@@ -2,18 +2,28 @@ import React from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, Dimensions, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown, FadeInRight, FadeInUp } from 'react-native-reanimated';
+import StudentTopFilters, { StudentMenuFilter } from './StudentTopFilters';
 
 const { width } = Dimensions.get('window');
 
 const TUTOR_SUGGESTIONS = [
-  { id: 1, name: 'Sara Belhadj', subject: 'Physics', price: '800 DZD', rating: '4.8', color: '#1E1B6B' },
-  { id: 2, name: 'M. Rahmani', subject: 'Maths', price: '650 DZD', rating: '4.9', color: '#1E293B' },
-  { id: 3, name: 'Laila Mansouri', subject: 'English', price: '700 DZD', rating: '4.7', color: '#FFD700' },
+    { id: 1, name: 'Sara Belhadj', level: 'Terminale S', subject: 'Physics', color: '#149A8B' },
+    { id: 2, name: 'M. Rahmani', level: 'Lycee', subject: 'Mathematics', color: '#FDBB2D' },
+    { id: 3, name: 'L. Mansouri', level: 'All levels', subject: 'English', color: '#EF4444' },
 ];
 
 const AVAILABLE_SERVICES = [
-  { id: 1, name: 'Individual Math Sessions', icon: 'calculator', color: '#1E1B6B' }, // Deep Blue
-  { id: 2, name: 'English Conversation Practice', icon: 'chatbubbles', color: '#FFD700' }, // Gold
+    {
+        id: 1,
+        name: 'Individual Math Sessions',
+        tutor: 'Sara Belhadj · Terminale S',
+        duration: '90 min',
+        mode: 'Online',
+        type: 'Individual',
+        price: '800 DZD',
+        priceSuffix: '/session',
+        color: '#149A8B',
+    },
 ];
 
 const MY_SUBJECTS = [
@@ -23,7 +33,18 @@ const MY_SUBJECTS = [
   { id: 4, name: 'Biology', progress: 0.52, color: '#334155' }, // Dark Slate
 ];
 
-export default function StudentSpace() {
+type StudentSpaceProps = {
+    activeFilter: StudentMenuFilter;
+    onSelectFilter: (filter: StudentMenuFilter) => void;
+};
+
+export default function StudentSpace({ activeFilter, onSelectFilter }: StudentSpaceProps) {
+    const showSuggestions = activeFilter === 'all' || activeFilter === 'suggestions';
+    const showServices = activeFilter === 'all' || activeFilter === 'services';
+    const showSubjects = activeFilter === 'all' || activeFilter === 'subjects';
+    const showRequests = activeFilter === 'all' || activeFilter === 'requests';
+    const showDocuments = activeFilter === 'documents';
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -45,23 +66,30 @@ export default function StudentSpace() {
         </View>
       </Animated.View>
 
+            {/* Floating Search Bar */}
+            <Animated.View entering={FadeInUp.delay(100).duration(600).springify()} style={styles.searchFloatingWrap}>
+                <View style={styles.searchContainer}>
+                    <Ionicons name="search" size={20} color="#94A3B8" style={styles.searchIcon} />
+                    <TextInput
+                        placeholder="Search tutors, subjects, files..."
+                        placeholderTextColor="#94A3B8"
+                        style={styles.searchInput}
+                    />
+                    <TouchableOpacity>
+                        <Ionicons name="filter" size={20} color="#1E1B6B" />
+                    </TouchableOpacity>
+                </View>
+            </Animated.View>
+
       <ScrollView 
         style={styles.content} 
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Search Bar */}
-        <Animated.View entering={FadeInUp.delay(100).duration(600).springify()} style={styles.searchContainer}>
-          <Ionicons name="search" size={20} color="#94A3B8" style={styles.searchIcon} />
-          <TextInput 
-            placeholder="Search tutors, subjects, files..." 
-            placeholderTextColor="#94A3B8"
-            style={styles.searchInput}
-          />
-          <TouchableOpacity>
-             <Ionicons name="filter" size={20} color="#1E1B6B" /> {/* Deep Blue */}
-          </TouchableOpacity>
-        </Animated.View>
+                {/* Top Filter Menu */}
+                <Animated.View entering={FadeInUp.delay(150).duration(500)}>
+                    <StudentTopFilters activeFilter={activeFilter} onSelect={onSelectFilter} />
+                </Animated.View>
 
         {/* Quick Stats */}
         <View style={styles.statsContainer}>
@@ -95,6 +123,7 @@ export default function StudentSpace() {
         </Animated.View>
 
         {/* Tutor Suggestions */}
+        {showSuggestions && (
         <Animated.View entering={FadeInUp.delay(600).duration(600)}>
             <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Tutor Suggestions</Text>
@@ -107,23 +136,25 @@ export default function StudentSpace() {
                             <View style={[styles.tutorAvatar, { backgroundColor: tutor.color }]}>
                                 <Text style={styles.tutorAvatarText}>{tutor.name.charAt(0)}</Text>
                             </View>
-                            <View>
-                                <Text style={styles.tutorName}>{tutor.name}</Text>
-                                <Text style={styles.tutorSubject}>{tutor.subject}</Text>
+                            <Text style={styles.tutorName}>{tutor.name}</Text>
+                            <Text style={styles.tutorLevel}>{tutor.level}</Text>
+                            <View style={styles.tutorSubjectPill}>
+                              <Text style={styles.tutorSubjectPillText}>{tutor.subject}</Text>
                             </View>
                         </View>
                         <View style={styles.tutorFooter}>
-                            <Text style={styles.tutorPrice}>{tutor.price}</Text>
                             <TouchableOpacity style={styles.tutorButton}>
-                                <Ionicons name="paper-plane-outline" size={16} color="#fff" />
+                                <Text style={styles.tutorButtonText}>Send Request</Text>
                             </TouchableOpacity>
                         </View>
                     </Animated.View>
                 ))}
             </ScrollView>
         </Animated.View>
+        )}
 
         {/* Available Services */}
+        {showServices && (
         <Animated.View entering={FadeInUp.delay(700).duration(600)}>
             <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Available Services</Text>
@@ -132,22 +163,44 @@ export default function StudentSpace() {
             <View>
                 {AVAILABLE_SERVICES.map((service) => (
                     <View key={service.id} style={styles.serviceCard}>
-                         <View style={[styles.serviceIcon, { backgroundColor: service.color }]}>
-                            <Ionicons name={service.icon as any} size={24} color="#fff" />
-                         </View>
-                         <View style={styles.serviceInfo}>
-                            <Text style={styles.serviceName}>{service.name}</Text>
-                            <Text style={styles.serviceSub}>800 DZD</Text>
-                         </View>
-                         <TouchableOpacity style={styles.bookButton}>
-                            <Text style={styles.bookButtonText}>Book</Text>
-                         </TouchableOpacity>
+                                            <View style={styles.serviceTopRow}>
+                                                <View style={[styles.serviceIcon, { backgroundColor: service.color }]}>
+                                                    <Text style={styles.serviceAvatarText}>S</Text>
+                                                </View>
+                                                <View style={styles.serviceInfo}>
+                                                    <Text style={styles.serviceName}>{service.name}</Text>
+                                                    <Text style={styles.serviceSub}>{service.tutor}</Text>
+                                                </View>
+                                                <View style={styles.servicePriceWrap}>
+                                                    <Text style={styles.servicePrice}>{service.price}</Text>
+                                                    <Text style={styles.servicePriceSuffix}>{service.priceSuffix}</Text>
+                                                </View>
+                                            </View>
+                                            <View style={styles.serviceTagsRow}>
+                                                <View style={styles.serviceTag}>
+                                                    <Ionicons name="time-outline" size={13} color="#98A2B3" />
+                                                    <Text style={styles.serviceTagText}>{service.duration}</Text>
+                                                </View>
+                                                <View style={styles.serviceTag}>
+                                                    <Ionicons name="wifi-outline" size={13} color="#98A2B3" />
+                                                    <Text style={styles.serviceTagText}>{service.mode}</Text>
+                                                </View>
+                                                <View style={styles.serviceTag}>
+                                                    <Ionicons name="person-outline" size={13} color="#98A2B3" />
+                                                    <Text style={styles.serviceTagText}>{service.type}</Text>
+                                                </View>
+                                            </View>
+                                            <TouchableOpacity style={styles.serviceActionButton}>
+                                                <Text style={styles.serviceActionButtonText}>Book This Service</Text>
+                                            </TouchableOpacity>
                     </View>
                 ))}
             </View>
         </Animated.View>
+        )}
 
         {/* My Subjects */}
+        {showSubjects && (
         <Animated.View entering={FadeInUp.delay(800).duration(600)}>
             <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>My Subjects</Text>
@@ -166,8 +219,10 @@ export default function StudentSpace() {
                 ))}
             </View>
         </Animated.View>
+        )}
 
         {/* My Requests (Preview) */}
+        {showRequests && (
         <Animated.View entering={FadeInUp.delay(900).duration(600)}>
             <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>My Requests</Text>
@@ -185,8 +240,29 @@ export default function StudentSpace() {
                 </View>
             </View>
         </Animated.View>
+                )}
 
-        <View style={{height: 100}} />
+                {showDocuments && (
+                    <Animated.View entering={FadeInUp.delay(750).duration(600)}>
+                        <View style={styles.sectionHeader}>
+                            <Text style={styles.sectionTitle}>Documents</Text>
+                        </View>
+                        <View style={styles.requestPreview}>
+                            <View style={styles.requestPreviewHeader}>
+                                <Ionicons name="document-text-outline" size={20} color="#666" />
+                                <View style={{ marginLeft: 10, flex: 1 }}>
+                                    <Text style={styles.reqPrevTitle}>Physics Chapter 03</Text>
+                                    <Text style={styles.reqPrevSub}>PDF · Uploaded 2 days ago</Text>
+                                </View>
+                                <TouchableOpacity style={styles.bookButton}>
+                                    <Text style={styles.bookButtonText}>Open</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </Animated.View>
+                )}
+
+                <View style={{height: 24}} />
       </ScrollView>
     </View>
   );
@@ -269,8 +345,16 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
       padding: 20,
-      paddingTop: 0,
+      paddingTop: 48,
       overflow: 'visible',
+  },
+  searchFloatingWrap: {
+      position: 'absolute',
+      top: 128,
+      left: 20,
+      right: 20,
+      zIndex: 50,
+      elevation: 50,
   },
   searchContainer: {
     flexDirection: 'row',
@@ -279,8 +363,8 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingHorizontal: 15,
     height: 55,
-    marginTop: 20, // Clean separation
-    marginBottom: 20,
+     marginTop: 0,
+     marginBottom: 0,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
@@ -291,12 +375,12 @@ const styles = StyleSheet.create({
   searchIcon: {
     marginRight: 10,
   },
-  searchInput: {
-    flex: 1,
-    height: '100%',
-    color: '#333',
-    fontSize: 15,
-  },
+    searchInput: {
+        flex: 1,
+        height: '100%',
+        color: '#333',
+        fontSize: 15,
+    },
   statsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -415,19 +499,22 @@ const styles = StyleSheet.create({
   },
   horizontalScroll: {
       marginBottom: 30,
-      paddingLeft: 5,
+      paddingLeft: 2,
   },
   tutorCard: {
       backgroundColor: '#fff',
-      width: 150,
-      padding: 15,
-      borderRadius: 16,
-      marginRight: 15,
+      width: 138,
+      minHeight: 210,
+      paddingTop: 18,
+      paddingHorizontal: 12,
+      paddingBottom: 12,
+      borderRadius: 22,
+      marginRight: 12,
       shadowColor: '#000',
-      shadowOpacity: 0.08,
-      shadowOffset: { width: 0, height: 4 },
-      shadowRadius: 6,
-      elevation: 3,
+      shadowOpacity: 0.07,
+      shadowOffset: { width: 0, height: 6 },
+      shadowRadius: 14,
+      elevation: 4,
       marginBottom: 5,
   },
   tutorHeader: {
@@ -435,82 +522,145 @@ const styles = StyleSheet.create({
       marginBottom: 12,
   },
   tutorAvatar: {
-      width: 48,
-      height: 48,
-      borderRadius: 24,
-      backgroundColor: '#F1F5F9',
+      width: 56,
+      height: 56,
+      borderRadius: 28,
       justifyContent: 'center',
       alignItems: 'center',
-      marginBottom: 10,
-      borderWidth: 1,
-      borderColor: '#E2E8F0',
+      marginBottom: 14,
   },
   tutorAvatarText: {
       color: '#fff',
       fontWeight: 'bold',
-      fontSize: 18,
+      fontSize: 28,
   },
   tutorName: {
       fontWeight: '700',
-      fontSize: 14,
+      fontSize: 13,
       textAlign: 'center',
       marginBottom: 2,
       color: '#1E293B',
   },
-  tutorSubject: {
+  tutorLevel: {
       fontSize: 11,
-      color: '#64748B',
+      color: '#98A2B3',
       textAlign: 'center',
+      marginBottom: 10,
+  },
+  tutorSubjectPill: {
+      backgroundColor: '#F1F4FF',
+      borderRadius: 999,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+  },
+  tutorSubjectPillText: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: '#2A3188',
   },
   tutorFooter: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginTop: 5,
-  },
-  tutorPrice: {
-      fontSize: 13,
-      fontWeight: 'bold',
-      color: '#1E1B6B',
+      marginTop: 0,
   },
   tutorButton: {
-      backgroundColor: '#EFF6FF', // Light Blue
-      padding: 6,
-      borderRadius: 15,
+      backgroundColor: '#1D247F',
+      paddingVertical: 10,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+  },
+  tutorButtonText: {
+      color: '#FFFFFF',
+      fontSize: 12,
+      fontWeight: '700',
   },
   serviceCard: {
       backgroundColor: '#fff',
+      padding: 14,
+      borderRadius: 20,
+      marginBottom: 16,
+      shadowColor: '#000',
+      shadowOpacity: 0.06,
+      shadowOffset: { width: 0, height: 6 },
+      shadowRadius: 16,
+      elevation: 3,
+  },
+  serviceTopRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      padding: 18,
-      borderRadius: 16,
-      marginBottom: 15,
-      shadowColor: '#000',
-      shadowOpacity: 0.05,
-      shadowOffset: { width: 0, height: 2 },
-      shadowRadius: 4,
-      elevation: 2,
+      marginBottom: 12,
   },
   serviceIcon: {
-      width: 44,
-      height: 44,
-      borderRadius: 22,
+      width: 56,
+      height: 56,
+      borderRadius: 28,
       justifyContent: 'center',
       alignItems: 'center',
-      marginRight: 15,
+      marginRight: 12,
+  },
+  serviceAvatarText: {
+      fontSize: 28,
+      fontWeight: '700',
+      color: '#FFFFFF',
   },
   serviceInfo: {
       flex: 1,
   },
   serviceName: {
-      fontWeight: '600',
+      fontWeight: '700',
       fontSize: 15,
       color: '#1E293B',
-      marginBottom: 2,
+      marginBottom: 3,
   },
   serviceSub: {
       fontSize: 12,
-      color: '#64748B',
+      color: '#98A2B3',
+  },
+  servicePriceWrap: {
+      alignItems: 'flex-end',
+      marginLeft: 8,
+  },
+  servicePrice: {
+      fontSize: 15,
+      fontWeight: '800',
+      color: '#1D247F',
+  },
+  servicePriceSuffix: {
+      fontSize: 11,
+      color: '#98A2B3',
+      marginTop: 2,
+  },
+  serviceTagsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      marginBottom: 14,
+  },
+  serviceTag: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#F6F7FB',
+      borderRadius: 999,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      marginRight: 8,
+      marginBottom: 6,
+  },
+  serviceTagText: {
+      fontSize: 11,
+      color: '#98A2B3',
+      fontWeight: '600',
+      marginLeft: 4,
+  },
+  serviceActionButton: {
+      backgroundColor: '#1D247F',
+      borderRadius: 12,
+      paddingVertical: 11,
+      alignItems: 'center',
+  },
+  serviceActionButtonText: {
+      fontSize: 12,
+      color: '#FFFFFF',
+      fontWeight: '700',
   },
   bookButton: {
       backgroundColor: '#F8FAFC',
@@ -590,6 +740,6 @@ const styles = StyleSheet.create({
   statusText: {
       fontSize: 11,
       fontWeight: '700',
-  }
+    }
 
 });

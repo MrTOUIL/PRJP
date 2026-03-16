@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown, FadeInUp, Layout } from 'react-native-reanimated';
+import StudentTopFilters, { StudentMenuFilter } from './StudentTopFilters';
 
 const { width } = Dimensions.get('window');
 
@@ -58,7 +59,11 @@ const REQUESTS = [
   },
 ];
 
-export default function StudentRequests() {
+type StudentRequestsProps = {
+  onSelectFilter?: (filter: StudentMenuFilter) => void;
+};
+
+export default function StudentRequests({ onSelectFilter }: StudentRequestsProps) {
   const [activeTab, setActiveTab] = useState('All');
 
   const filteredRequests = activeTab === 'All' 
@@ -103,6 +108,7 @@ export default function StudentRequests() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        <StudentTopFilters activeFilter="requests" onSelect={(filter) => onSelectFilter?.(filter)} />
         <View style={styles.requestsList}>
           {filteredRequests.map((req, index) => (
             <Animated.View 

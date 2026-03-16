@@ -471,9 +471,9 @@ export default function WelcomePage() {
           {/* White top-right curve overlay for Logo */}
           <View style={styles.topRightCurveContainer}>
             <View style={styles.topRightCurve} />
-               <Animated.Image
-                 entering={FadeInRight.duration(600)}
-                 source={require('../../assets/images/Logo_nobg.png')}
+            <Animated.Image
+              entering={FadeInRight.duration(600)}
+              source={require('../../assets/images/Logo_nobg.png')}
               style={[styles.logo, animatedLogoStyle]}
               resizeMode="contain"
             />
@@ -537,7 +537,7 @@ export default function WelcomePage() {
               index={1}
               icon={<FontAwesome5 name="chalkboard-teacher" size={28} color="#D97706" />}
               title="Teachers" 
-              description="MONSIEUR TOUIL is a student in the national higher school of computer science ESI"
+              description="Create and manage your courses, schedule sessions, share resources, and track student progress — all from one easy-to-use dashboard."
             />
 
             <FeatureCard 
@@ -633,8 +633,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     right: 0,
-    width: 310,
-    height: 160,
+    width: 240,
+    height: 130,
     alignItems: 'flex-end',
     justifyContent: 'flex-start',
     zIndex: 10,
@@ -646,14 +646,17 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     backgroundColor: '#FFFFFF',
-    borderBottomLeftRadius: 170,
-    borderTopLeftRadius: 36,
+    borderBottomLeftRadius: 165,
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+    borderBottomRightRadius: 0,
   },
   logo: {
-    width: 245,
-    height: 82,
-    marginTop: 10, // Status bar offset
+    width: 240,
+    height: 130,
+    marginTop: 13,
     marginRight: 12,
+    zIndex: 2,
   },
   headerContent: {
     paddingHorizontal: 24,

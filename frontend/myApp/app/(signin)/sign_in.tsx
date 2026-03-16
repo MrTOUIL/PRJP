@@ -77,6 +77,37 @@ export default function SignIn() {
     router.push('/forgetpassword');
    }
 
+
+
+   //handle login 
+
+   const handleLogin = async () => {
+  try {
+    const response = await fetch('http://192.168.43.32:5000/logs/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+
+    const data = await response.json();
+
+    if (data.succ) {
+      alert('Login successful!');
+      if (data.role === 'student') router.push('/studentSpace');
+      else if (data.role === 'teacher') router.push('/teacherSpace');
+      else if (data.role === 'parent') router.push('/studentSpace');
+    
+    } else {
+      alert(data.error || 'Login failed');
+    }
+
+  } catch (error) {
+    console.error('Login error:', error);
+    alert('server error');
+  }
+};
+
+
   return (
     <SafeAreaView style={styles.container}>
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -176,10 +207,7 @@ export default function SignIn() {
                 <Animated.View entering={FadeInDown.delay(800).duration(600).springify()}>
                     <TouchableOpacity
                       style={styles.signInButton}
-                      onPress={() => {
-                        // UI only: connect your auth logic here
-                        console.log('Sign In pressed');
-                      }}
+                      onPress={handleLogin}
                     >
                         <Text style={styles.signInButtonText}>Sign In</Text>
                     </TouchableOpacity>

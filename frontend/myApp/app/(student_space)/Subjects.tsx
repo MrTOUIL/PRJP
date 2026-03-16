@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown, FadeInUp, useSharedValue, useAnimatedStyle, withTiming, withDelay, ZoomIn } from 'react-native-reanimated';
+import StudentTopFilters, { StudentMenuFilter } from './StudentTopFilters';
 
 const { width } = Dimensions.get('window');
 
@@ -13,7 +14,11 @@ const subjects = [
   { id: 5, name: 'Chemistry', progress: 0.40, color: '#AB47BC', icon: 'telescope' },
 ];
 
-export default function StudentSubjects() {
+type StudentSubjectsProps = {
+  onSelectFilter?: (filter: StudentMenuFilter) => void;
+};
+
+export default function StudentSubjects({ onSelectFilter }: StudentSubjectsProps) {
   const chartProgress = useSharedValue(0);
 
   useEffect(() => {
@@ -45,6 +50,9 @@ export default function StudentSubjects() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        <View style={styles.filtersWrap}>
+          <StudentTopFilters activeFilter="subjects" onSelect={(filter) => onSelectFilter?.(filter)} />
+        </View>
         {/* Stats Cards */}
         <View style={styles.statsContainer}>
           {[
@@ -158,6 +166,9 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
       paddingBottom: 40,
+  },
+  filtersWrap: {
+    paddingHorizontal: 20,
   },
   statsContainer: {
     flexDirection: 'row',

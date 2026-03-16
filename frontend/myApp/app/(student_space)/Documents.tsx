@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, TextInput, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown, FadeInUp, Layout } from 'react-native-reanimated';
+import StudentTopFilters, { StudentMenuFilter } from './StudentTopFilters';
 
 const { width } = Dimensions.get('window');
 
@@ -20,7 +21,11 @@ const thisMonthDocuments = [
   { id: 7, title: 'Algebra Exercises – Ch. 2', subtitle: 'Mathematics · Feb 02, 2025 · 2.4 MB · PDF', type: 'pdf' },
 ];
 
-export default function StudentDocuments() {
+type StudentDocumentsProps = {
+  onSelectFilter?: (filter: StudentMenuFilter) => void;
+};
+
+export default function StudentDocuments({ onSelectFilter }: StudentDocumentsProps) {
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -39,6 +44,7 @@ export default function StudentDocuments() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        <StudentTopFilters activeFilter="documents" onSelect={(filter) => onSelectFilter?.(filter)} />
         {/* Search Bar */}
         <Animated.View entering={FadeInUp.delay(100).duration(600)} style={styles.searchContainer}>
           <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
@@ -134,6 +140,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#fff',
     letterSpacing: 0.5,
+  },
+  backButton: {
+    padding: 4,
+  },
+  searchButton: {
+    padding: 4,
   },
   content: {
     flex: 1,

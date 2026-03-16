@@ -7,26 +7,49 @@ import StudentSpace from '../../app/(student_space)/studentSpace';
 import StudentDocuments from '../../app/(student_space)/Documents';
 import StudentSubjects from '../../app/(student_space)/Subjects';
 import StudentRequests from '../../app/(student_space)/requests';
+import { StudentMenuFilter } from '../../app/(student_space)/StudentTopFilters';
 
 const { width } = Dimensions.get('window');
 
 const VIEWS = [
   { id: 'dashboard', label: 'Home', icon: 'home' },
-  { id: 'subjects', label: 'Subjects', icon: 'book' },
-  { id: 'requests', label: 'Requests', icon: 'notifications' },
-  { id: 'documents', label: 'Docs', icon: 'folder-open' },
+  { id: 'documents', label: 'Messages', icon: 'chatbubble-ellipses' },
+  { id: 'requests', label: 'Alerts', icon: 'notifications' },
+  { id: 'subjects', label: 'Profile', icon: 'person' },
 ];
 
 export default function StudentSpacePage() {
   const [currentView, setCurrentView] = useState('dashboard');
+  const [activeFilter, setActiveFilter] = useState<StudentMenuFilter>('all');
+
+  const handleTopFilterSelect = (filter: StudentMenuFilter) => {
+    setActiveFilter(filter);
+
+    if (filter === 'requests') {
+      setCurrentView('requests');
+      return;
+    }
+
+    if (filter === 'subjects') {
+      setCurrentView('subjects');
+      return;
+    }
+
+    if (filter === 'documents') {
+      setCurrentView('documents');
+      return;
+    }
+
+    setCurrentView('dashboard');
+  };
 
   const renderContent = () => {
     switch (currentView) {
-      case 'dashboard': return <StudentSpace />;
-      case 'documents': return <StudentDocuments />;
-      case 'subjects':  return <StudentSubjects />;
-      case 'requests':  return <StudentRequests />;
-      default:          return <StudentSpace />;
+      case 'dashboard': return <StudentSpace activeFilter={activeFilter} onSelectFilter={handleTopFilterSelect} />;
+      case 'documents': return <StudentDocuments onSelectFilter={handleTopFilterSelect} />;
+      case 'subjects':  return <StudentSubjects onSelectFilter={handleTopFilterSelect} />;
+      case 'requests':  return <StudentRequests onSelectFilter={handleTopFilterSelect} />;
+      default:          return <StudentSpace activeFilter={activeFilter} onSelectFilter={handleTopFilterSelect} />;
     }
   };
 
@@ -52,8 +75,7 @@ export default function StudentSpacePage() {
             return (
               <TouchableOpacity 
                 key={view.id} 
-                onPress={() => setCurrentView(view.id)}
-                activeOpacity={0.7}
+                activeOpacity={1}
                 style={styles.tabWrapper}
               >
                 <Animated.View style={[styles.iconContainer, isActive && styles.activeIconContainer]}>
