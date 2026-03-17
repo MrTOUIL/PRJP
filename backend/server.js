@@ -25,14 +25,9 @@ async function run() {
 
        app.use('/logs',require('./authServer')) ;
 
-       const options = {
-        key:fs.readFileSync("server.key"),
-        cert:fs.readFileSync("server.cert")
-       }
-
-       https.createServer(options,app).listen(5000,() => {
-        console.log("Server running on https://localhost:5000") ; 
-       })
+       app.listen(5000, () => {
+    console.log("Server running on http://localhost:5000");
+          });
     }catch(e){
        console.log("Error in main server!")
        console.error(e);

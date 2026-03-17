@@ -41,6 +41,8 @@ export default function StudentTopFilters({ activeFilter, onSelect, style }: Stu
                     router.back();
                      } else if (item.id === "subjects") {
                     router.push("/Subjects");
+                     }else if (item.id === "suggestions") {
+                    router.push("/(student_space)/suggestions");
                      }else {
                         onSelect(item.id);
                     }

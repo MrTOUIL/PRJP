@@ -83,8 +83,9 @@ export default function SignIn() {
 
    const handleLogin = async () => {
   try {
-    const response = await fetch('http://192.168.43.32:5000/logs/login', {
+    const response = await fetch('http://localhost:5000/logs/login', {
       method: 'POST',
+      credentials: 'include', // Include cookies for session management
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password })
     });
@@ -106,7 +107,6 @@ export default function SignIn() {
     alert('server error');
   }
 };
-
 
   return (
     <SafeAreaView style={styles.container}>
