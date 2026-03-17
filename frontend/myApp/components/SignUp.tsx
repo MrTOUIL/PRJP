@@ -4,7 +4,7 @@ import Animated, {
   FadeInDown,
   FadeInUp,
   interpolate,
-  useAnimatedStyle,
+  useAnimatedStyle,   //TEST GITHUB
   useSharedValue,
   withRepeat,
   withSequence,
