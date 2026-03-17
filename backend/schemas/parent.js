@@ -9,7 +9,6 @@ const Schema = new mongoose.Schema({
     password:{type:String},
     academic_level:{type:String},
     role:{type:String},
-    isBanned:{type:Boolean, default:false} 
 }) ;  
 
 module.exports = mongoose.model("parents",Schema) ; 
