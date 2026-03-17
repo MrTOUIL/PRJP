@@ -68,33 +68,35 @@ export default function StudentSpacePage() {
       </View>
 
       {/* Floating Bottom Tab Bar */}
-      <View style={styles.tabBarContainer}>
-        <View style={styles.tabBar}>
-          {VIEWS.map((view) => {
-            const isActive = currentView === view.id;
-            return (
-              <TouchableOpacity 
-                key={view.id} 
-                activeOpacity={1}
-                style={styles.tabWrapper}
-              >
-                <Animated.View style={[styles.iconContainer, isActive && styles.activeIconContainer]}>
-                  <Ionicons 
-                    name={isActive ? view.icon : `${view.icon}-outline` as any} 
-                    size={24} 
-                    color={isActive ? '#fff' : '#666'} 
-                  />
-                </Animated.View>
-                {isActive && (
-                  <Text style={styles.tabLabel}>
-                    {view.label} 
-                  </Text>
-                )}
-              </TouchableOpacity>
-            );
-          })}
+      {currentView !== 'requests' && (
+        <View style={styles.tabBarContainer}>
+          <View style={styles.tabBar}>
+            {VIEWS.map((view) => {
+              const isActive = currentView === view.id;
+              return (
+                <TouchableOpacity
+                  key={view.id}
+                  activeOpacity={1}
+                  style={styles.tabWrapper}
+                >
+                  <Animated.View style={[styles.iconContainer, isActive && styles.activeIconContainer]}>
+                    <Ionicons
+                      name={isActive ? view.icon : `${view.icon}-outline` as any}
+                      size={24}
+                      color={isActive ? '#fff' : '#666'}
+                    />
+                  </Animated.View>
+                  {isActive && (
+                    <Text style={styles.tabLabel}>
+                      {view.label}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         </View>
-      </View>
+      )}
     </View>
   );
 }

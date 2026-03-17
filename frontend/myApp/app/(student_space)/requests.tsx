@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Dimensions, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown, FadeInUp, Layout } from 'react-native-reanimated';
-import StudentTopFilters, { StudentMenuFilter } from './StudentTopFilters';
-
+import { useRouter } from 'expo-router';
 const { width } = Dimensions.get('window');
 
 const REQUEST_TABS = ['All', 'Accepted', 'Pending', 'Rejected'];
+
+type StudentRequestsProps = {
+  onSelectFilter?: (filter: string) => void;
+};
 
 const REQUESTS = [
   {
@@ -59,13 +62,10 @@ const REQUESTS = [
   },
 ];
 
-type StudentRequestsProps = {
-  onSelectFilter?: (filter: StudentMenuFilter) => void;
-};
 
 export default function StudentRequests({ onSelectFilter }: StudentRequestsProps) {
   const [activeTab, setActiveTab] = useState('All');
-
+  const router = useRouter();
   const filteredRequests = activeTab === 'All' 
     ? REQUESTS 
     : REQUESTS.filter(r => r.status === activeTab);
@@ -75,7 +75,7 @@ export default function StudentRequests({ onSelectFilter }: StudentRequestsProps
       {/* Header */}
       <Animated.View entering={FadeInDown.duration(600)} style={styles.header}>
         <View style={styles.headerTop}>
-             <TouchableOpacity style={styles.iconButton}>
+             <TouchableOpacity style={styles.iconButton} onPress={() => router.back()}>
                 <Ionicons name="chevron-back" size={24} color="#fff" />
              </TouchableOpacity>
              <Text style={styles.headerTitle}>My Requests</Text>
@@ -83,8 +83,25 @@ export default function StudentRequests({ onSelectFilter }: StudentRequestsProps
                 <Ionicons name="search" size={24} color="#fff" />
              </TouchableOpacity>
         </View>
-        
-        {/* Tabs inside Header for integration */}
+
+        <View style={styles.searchContainer}>
+          <Ionicons name="search" size={20} color="#94A3B8" style={styles.searchIcon} />
+          <TextInput
+            placeholder="Search requests..."
+            placeholderTextColor="#94A3B8"
+            style={styles.searchInput}
+          />
+          <TouchableOpacity>
+            <Ionicons name="options-outline" size={20} color="#1E1B6B" />
+          </TouchableOpacity>
+        </View>
+      </Animated.View>
+
+      <ScrollView 
+        style={styles.content} 
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.tabsContainer}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsScroll}>
             {REQUEST_TABS.map((tab, index) => (
@@ -94,21 +111,13 @@ export default function StudentRequests({ onSelectFilter }: StudentRequestsProps
                 onPress={() => setActiveTab(tab)}
               >
                 <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>
-                    {tab} 
-                    {/* Count badge logic could go here */}
+                    {tab}
                 </Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
         </View>
-      </Animated.View>
 
-      <ScrollView 
-        style={styles.content} 
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <StudentTopFilters activeFilter="requests" onSelect={(filter) => onSelectFilter?.(filter)} />
         <View style={styles.requestsList}>
           {filteredRequests.map((req, index) => (
             <Animated.View 
@@ -246,8 +255,29 @@ const styles = StyleSheet.create({
   iconButton: {
       padding: 4,
   },
+  searchContainer: {
+    marginHorizontal: 20,
+    marginTop: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    height: 48,
+    paddingHorizontal: 14,
+  },
+  searchIcon: {
+    marginRight: 10,
+  },
+  searchInput: {
+    flex: 1,
+    height: '100%',
+    color: '#1E293B',
+    fontSize: 14,
+    fontWeight: '500',
+  },
   tabsContainer: {
-    paddingHorizontal: 0,
+    marginTop: 8,
+    marginBottom: 16,
   },
   tabsScroll: {
       paddingHorizontal: 20,
@@ -256,26 +286,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: '#fff',
     marginRight: 10,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: '#E2E8F0',
   },
   activeTab: {
-    backgroundColor: '#fff',
+    backgroundColor: '#1E1B6B',
+    borderColor: '#1E1B6B',
   },
   tabText: {
-    color: 'rgba(255,255,255,0.9)',
+    color: '#64748B',
     fontWeight: '600',
     fontSize: 13,
   },
   activeTabText: {
-    color: '#1E1B6B', // Deep Blue
+    color: '#fff',
     fontWeight: '700',
   },
   content: {
     flex: 1,
-    marginTop: 10,
+    marginTop: 6,
   },
   scrollContent: {
       padding: 20,

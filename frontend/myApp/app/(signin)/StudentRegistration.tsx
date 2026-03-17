@@ -1,9 +1,11 @@
 import React from 'react';
 import {
 	Image,
+	Platform,
 	SafeAreaView,
 	ScrollView,
 	StyleSheet,
+	StatusBar,
 	Text,
 	TextInput,
 	TouchableOpacity,
@@ -95,8 +97,9 @@ export default function StudentRegister() {
 				{/* Header */}
 				<View style={styles.header}>
 					<TouchableOpacity activeOpacity={0.8} style={styles.backRow}>
-						<Ionicons name="chevron-back" size={18} color="#E8ECFF" />
-						<Text style={styles.backText}>Back to role selection</Text>
+						<View style={styles.backIconCircle}>
+							<Ionicons name="chevron-back" size={16} color="#E8ECFF" />
+						</View>
 					</TouchableOpacity>
 
 					<View style={styles.headerTextBlock}>
@@ -104,8 +107,7 @@ export default function StudentRegister() {
 						<Text style={styles.headerSubtitle}>Complete your details to get started</Text>
 					</View>
 
-					{/* Decorative cutouts */}
-					<View style={styles.headerWave} />
+					{/* Decorative cutout with logo */}
 					<View style={styles.headerLogoCutout}>
 						<Image
 							source={require('../../assets/images/Logo_nobg.png')}
@@ -118,7 +120,7 @@ export default function StudentRegister() {
 				{/* Role pill */}
 				<View style={styles.rolePill}>
 					<View style={styles.roleIconBadge}>
-						<MaterialCommunityIcons name="account-school" size={18} color="#FF4D4D" />
+						<MaterialCommunityIcons name="account-school" size={18} color="#FFD700" />
 					</View>
 					<View style={styles.roleText}>
 						<Text style={styles.roleTitle}>Student / Élève</Text>
@@ -235,9 +237,9 @@ const styles = StyleSheet.create({
 
 	header: {
 		backgroundColor: COLORS.primary,
-		paddingTop: 10,
+		paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 10 : 16,
 		paddingHorizontal: 18,
-		paddingBottom: 26,
+		paddingBottom: 30,
 		borderBottomLeftRadius: 28,
 		borderBottomRightRadius: 28,
 		overflow: 'hidden',
@@ -245,14 +247,17 @@ const styles = StyleSheet.create({
 	backRow: {
 		flexDirection: 'row',
 		alignItems: 'center',
-		gap: 6,
-		paddingVertical: 6,
+		paddingVertical: 4,
 		zIndex: 3,
+		alignSelf: 'flex-start',
 	},
-	backText: {
-		color: '#E8ECFF',
-		fontSize: 12,
-		fontWeight: '600',
+	backIconCircle: {
+		width: 32,
+		height: 32,
+		borderRadius: 16,
+		backgroundColor: 'rgba(255,255,255,0.18)',
+		alignItems: 'center',
+		justifyContent: 'center',
 	},
 	headerTextBlock: {
 		marginTop: 10,
@@ -267,41 +272,28 @@ const styles = StyleSheet.create({
 	headerSubtitle: {
 		marginTop: 4,
 		color: '#D7DCF3',
-		fontSize: 12,
+		fontSize: 11,
 		fontWeight: '600',
 	},
 	headerLogoCutout: {
 		position: 'absolute',
-		top: -18,
-		right: -10,
-		width: 172,
-		height: 88,
+		top: 0,
+		right: 0,
+		width: 136,
+		height: 70,
 		backgroundColor: '#FFFFFF',
-		borderBottomLeftRadius: 42,
-		borderTopLeftRadius: 8,
-		borderBottomRightRadius: 10,
+		borderBottomLeftRadius: 54,
 		justifyContent: 'center',
-		paddingHorizontal: 14,
+		paddingHorizontal: 6,
 		zIndex: 2,
 	},
 	headerLogo: {
 		width: '100%',
-		height: 48,
-	},
-	headerWave: {
-		position: 'absolute',
-		right: -70,
-		bottom: -64,
-		width: 220,
-		height: 150,
-		borderRadius: 90,
-		backgroundColor: COLORS.background,
-		transform: [{ rotate: '8deg' }],
-		zIndex: 1,
+		height: 68,
 	},
 
 	rolePill: {
-		marginTop: -18,
+		marginTop: 14,
 		marginHorizontal: 18,
 		backgroundColor: COLORS.primarySoft,
 		borderRadius: 14,

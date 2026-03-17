@@ -3,7 +3,7 @@ import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Dimensions } from
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown, FadeInUp, useSharedValue, useAnimatedStyle, withTiming, withDelay, ZoomIn } from 'react-native-reanimated';
 import StudentTopFilters, { StudentMenuFilter } from './StudentTopFilters';
-
+import { useRouter } from 'expo-router';
 const { width } = Dimensions.get('window');
 
 const subjects = [
@@ -20,7 +20,7 @@ type StudentSubjectsProps = {
 
 export default function StudentSubjects({ onSelectFilter }: StudentSubjectsProps) {
   const chartProgress = useSharedValue(0);
-
+  const router = useRouter();
   useEffect(() => {
     chartProgress.value = withDelay(500, withTiming(1, { duration: 1000 }));
   }, []);
@@ -36,7 +36,7 @@ export default function StudentSubjects({ onSelectFilter }: StudentSubjectsProps
     <View style={styles.container}>
       {/* Header */}
       <Animated.View entering={FadeInDown.duration(600)} style={styles.header}>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => router.push('/(student_space)/studentSpace')}>
            <Ionicons name="chevron-back" size={24} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>My Subjects</Text>
@@ -50,9 +50,7 @@ export default function StudentSubjects({ onSelectFilter }: StudentSubjectsProps
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.filtersWrap}>
-          <StudentTopFilters activeFilter="subjects" onSelect={(filter) => onSelectFilter?.(filter)} />
-        </View>
+       
         {/* Stats Cards */}
         <View style={styles.statsContainer}>
           {[

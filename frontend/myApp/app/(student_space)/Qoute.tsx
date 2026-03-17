@@ -121,20 +121,29 @@ export default function DevisPedagogique() {
       
       {/* Header Section */}
       <View style={styles.headerContainer}>
+        <View style={styles.topRightCurveContainer}>
+          <View style={styles.topRightCurve} />
+          <Animated.Image
+            source={require('../../assets/images/Logo_nobg.png')}
+            style={styles.headerLogo}
+            resizeMode="contain"
+          />
+        </View>
+
         <SafeAreaView>
           <View style={styles.headerContent}>
             <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-              <MaterialIcons name="chevron-left" size={28} color={COLORS.white} />
-              <Text style={styles.backText}>Back to selection</Text>
+              <View style={styles.backIconCircle}>
+                <MaterialIcons name="chevron-left" size={24} color={COLORS.white} />
+              </View>
             </TouchableOpacity>
-            <View style={styles.logoContainer}>
-              <Text style={styles.logoText}>ALEMNI</Text>
-            </View>
           </View>
           
           <Animated.View entering={FadeInDown.delay(200).springify()} style={styles.titleContainer}>
-            <FontAwesome5 name="file-invoice" size={32} color={COLORS.secondary} />
-            <Text style={styles.mainTitle}>Educational Quote</Text>
+            <View style={styles.titleRow}>
+              <FontAwesome5 name="file-invoice" size={24} color={COLORS.secondary} style={styles.titleIcon} />
+              <Text style={styles.mainTitle}>Educational Quote</Text>
+            </View>
             <Text style={styles.subTitle}>
               Create your personalized quote for your private lesson
             </Text>
@@ -363,43 +372,74 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
     marginBottom: 20,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  topRightCurveContainer: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: 160,
+    height: 95,
+    alignItems: 'flex-end',
+    justifyContent: 'flex-start',
+    zIndex: 10,
+  },
+  topRightCurve: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#FFFFFF',
+    borderBottomLeftRadius: 115,
+  },
+  headerLogo: {
+    width: 145,
+    height: 80,
+    marginTop: 8,
+    marginRight: 8,
+    zIndex: 2,
   },
   headerContent: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     alignItems: 'center',
     paddingHorizontal: 20,
     marginBottom: 20,
+    zIndex: 20,
   },
   backButton: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  backText: {
-    color: COLORS.white,
-    fontSize: 16,
-    marginLeft: 5,
-  },
-  logoContainer: {
-    backgroundColor: COLORS.white,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  logoText: {
-    color: COLORS.primary,
-    fontWeight: 'bold',
-    fontSize: 12,
+  backIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   titleContainer: {
     paddingHorizontal: 20,
+    paddingRight: 120,
+    zIndex: 20,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  titleIcon: {
+    marginRight: 10,
   },
   mainTitle: {
     fontSize: 24,
     fontWeight: 'bold',
     color: COLORS.white,
-    marginTop: 10,
-    marginBottom: 5,
+    marginTop: 0,
+    marginBottom: 0,
   },
   subTitle: {
     fontSize: 14,

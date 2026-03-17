@@ -2,11 +2,14 @@ import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, TextInput, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown, FadeInUp, Layout } from 'react-native-reanimated';
-import StudentTopFilters, { StudentMenuFilter } from './StudentTopFilters';
-
+import { useRouter } from 'expo-router';
 const { width } = Dimensions.get('window');
 
 const categories = ['All', 'PDF', 'DOCX', 'Exercises', 'Reports'];
+
+type StudentDocumentsProps = {
+  onSelectFilter?: (filter: string) => void;
+};
 
 const recentDocuments = [
   { id: 1, title: 'Algebra Exercises – Ch. 3', subtitle: 'Mathematics · Feb 20, 2025 · 2.4 MB · PDF', type: 'pdf' },
@@ -21,22 +24,36 @@ const thisMonthDocuments = [
   { id: 7, title: 'Algebra Exercises – Ch. 2', subtitle: 'Mathematics · Feb 02, 2025 · 2.4 MB · PDF', type: 'pdf' },
 ];
 
-type StudentDocumentsProps = {
-  onSelectFilter?: (filter: StudentMenuFilter) => void;
-};
+
 
 export default function StudentDocuments({ onSelectFilter }: StudentDocumentsProps) {
+  const router = useRouter();
+
   return (
     <View style={styles.container}>
       {/* Header */}
       <Animated.View entering={FadeInDown.duration(600)} style={styles.header}>
-        <TouchableOpacity style={styles.backButton}>
-             <Ionicons name="chevron-back" size={24} color="#fff" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>My Documents</Text>
-        <TouchableOpacity style={styles.searchButton}>
-             <Ionicons name="search" size={24} color="#fff" />
-        </TouchableOpacity>
+        <View style={styles.headerTop}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+               <Ionicons name="chevron-back" size={24} color="#fff" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>My Documents</Text>
+          <TouchableOpacity style={styles.searchButton}>
+               <Ionicons name="search" size={24} color="#fff" />
+          </TouchableOpacity>
+        </View>
+
+        <Animated.View entering={FadeInUp.delay(100).duration(600)} style={styles.searchContainer}>
+          <Ionicons name="search" size={20} color="#94A3B8" style={styles.searchIcon} />
+          <TextInput 
+            placeholder="Search documents..." 
+            placeholderTextColor="#94A3B8"
+            style={styles.searchInput}
+          />
+          <TouchableOpacity>
+             <Ionicons name="options-outline" size={20} color="#1E1B6B" />
+          </TouchableOpacity>
+        </Animated.View>
       </Animated.View>
 
       <ScrollView 
@@ -44,20 +61,6 @@ export default function StudentDocuments({ onSelectFilter }: StudentDocumentsPro
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <StudentTopFilters activeFilter="documents" onSelect={(filter) => onSelectFilter?.(filter)} />
-        {/* Search Bar */}
-        <Animated.View entering={FadeInUp.delay(100).duration(600)} style={styles.searchContainer}>
-          <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
-          <TextInput 
-            placeholder="Search documents..." 
-            placeholderTextColor="#999"
-            style={styles.searchInput}
-          />
-          <TouchableOpacity>
-             <Ionicons name="options-outline" size={20} color="#1E1B6B" /> {/* Deep Blue */}
-          </TouchableOpacity>
-        </Animated.View>
-
         {/* Categories */}
         <Animated.View entering={FadeInUp.delay(200).duration(600)} style={styles.categoriesContainer}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{paddingRight: 20}}>
@@ -122,9 +125,6 @@ const styles = StyleSheet.create({
     paddingTop: 50, // Standard status bar spacing
     paddingBottom: 25,
     paddingHorizontal: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     backgroundColor: '#1E1B6B', // Deep Blue
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
@@ -134,6 +134,12 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
     zIndex: 10,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 14,
   },
   headerTitle: {
     fontSize: 20,
@@ -151,7 +157,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-      padding: 20,
+      paddingHorizontal: 20,
+      paddingTop: 16,
+      paddingBottom: 20,
   },
   searchContainer: {
     flexDirection: 'row',
@@ -160,8 +168,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingHorizontal: 15,
     height: 55,
-    marginTop: 20, // Clean separation
-    marginBottom: 20,
+    marginTop: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,

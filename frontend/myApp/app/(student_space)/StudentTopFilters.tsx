@@ -1,7 +1,7 @@
 import React from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-
+import { useRouter } from 'expo-router';
 export type StudentMenuFilter = 'all' | 'suggestions' | 'services' | 'requests' | 'subjects' | 'documents';
 
 const FILTERS: Array<{ id: StudentMenuFilter; label: string; icon: keyof typeof Ionicons.glyphMap }> = [
@@ -20,6 +20,8 @@ type StudentTopFiltersProps = {
 };
 
 export default function StudentTopFilters({ activeFilter, onSelect, style }: StudentTopFiltersProps) {
+  const router = useRouter();
+
   return (
     <View style={[styles.filterRowWrap, style]}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRowContent}>
@@ -30,7 +32,19 @@ export default function StudentTopFilters({ activeFilter, onSelect, style }: Stu
             <TouchableOpacity
               key={item.id}
               style={[styles.filterChip, isActive && styles.filterChipActive]}
-              onPress={() => onSelect(item.id)}
+              onPress={() => {
+                     if (item.id === "documents") {
+                           router.push("/Documents");
+                      } else if (item.id === "requests") {
+                          router.push("/requests");
+                      } else if (item.id === "services") {
+                    router.back();
+                     } else if (item.id === "subjects") {
+                    router.push("/Subjects");
+                     }else {
+                        onSelect(item.id);
+                    }
+}}
             >
               <Ionicons
                 name={item.icon}

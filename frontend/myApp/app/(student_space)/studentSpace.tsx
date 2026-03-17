@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, Dimensions, Platform } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, Dimensions, Platform, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown, FadeInRight, FadeInUp } from 'react-native-reanimated';
 import StudentTopFilters, { StudentMenuFilter } from './StudentTopFilters';
@@ -34,11 +34,14 @@ const MY_SUBJECTS = [
 ];
 
 type StudentSpaceProps = {
-    activeFilter: StudentMenuFilter;
-    onSelectFilter: (filter: StudentMenuFilter) => void;
+    activeFilter?: StudentMenuFilter;
+    onSelectFilter?: (filter: StudentMenuFilter) => void;
 };
 
-export default function StudentSpace({ activeFilter, onSelectFilter }: StudentSpaceProps) {
+export default function StudentSpace({
+    activeFilter = 'all',
+    onSelectFilter = () => {},
+}: StudentSpaceProps) {
     const showSuggestions = activeFilter === 'all' || activeFilter === 'suggestions';
     const showServices = activeFilter === 'all' || activeFilter === 'services';
     const showSubjects = activeFilter === 'all' || activeFilter === 'subjects';
@@ -49,34 +52,42 @@ export default function StudentSpace({ activeFilter, onSelectFilter }: StudentSp
     <View style={styles.container}>
       {/* Header */}
       <Animated.View entering={FadeInDown.duration(600).springify()} style={styles.header}>
+                <View style={styles.topRightCurveContainer}>
+                    <View style={styles.topRightCurve} />
+                    <Image
+                        source={require('../../assets/images/Logo_nobg.png')}
+                        style={styles.headerLogo}
+                        resizeMode="contain"
+                    />
+                </View>
+
         <View style={styles.headerContent}>
           <View style={styles.userInfo}>
              <View style={styles.avatarContainer}>
                <Text style={styles.avatarText}>Y</Text>
              </View>
              <View>
-               <Text style={styles.welcomeText}>Welcome back,</Text>
                <Text style={styles.userName}>Student Name</Text>
              </View>
           </View>
-          <TouchableOpacity style={styles.notificationButton}>
-             <Ionicons name="notifications-outline" size={24} color="#fff" />
-             <View style={styles.notificationBadge} />
-          </TouchableOpacity>
         </View>
-      </Animated.View>
 
-            {/* Floating Search Bar */}
-            <Animated.View entering={FadeInUp.delay(100).duration(600).springify()} style={styles.searchFloatingWrap}>
-                <View style={styles.searchContainer}>
-                    <Ionicons name="search" size={20} color="#94A3B8" style={styles.searchIcon} />
-                    <TextInput
-                        placeholder="Search tutors, subjects, files..."
-                        placeholderTextColor="#94A3B8"
-                        style={styles.searchInput}
-                    />
-                    <TouchableOpacity>
-                        <Ionicons name="filter" size={20} color="#1E1B6B" />
+                <View style={styles.searchRow}>
+                    <Animated.View entering={FadeInUp.delay(100).duration(600).springify()} style={styles.searchContainer}>
+                        <Ionicons name="search" size={16} color="#94A3B8" style={styles.searchIcon} />
+                        <TextInput
+                            placeholder="Search tutors, subjects, files..."
+                            placeholderTextColor="#94A3B8"
+                            style={styles.searchInput}
+                        />
+                        <TouchableOpacity style={styles.filterButton}>
+                            <Ionicons name="options" size={14} color="#FFFFFF" />
+                        </TouchableOpacity>
+                    </Animated.View>
+
+                    <TouchableOpacity style={styles.notificationButton}>
+                        <Ionicons name="notifications-outline" size={15} color="#FFFFFF" />
+                        <View style={styles.notificationBadge} />
                     </TouchableOpacity>
                 </View>
             </Animated.View>
@@ -275,67 +286,98 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: '#1E1B6B', // Deep Blue (Logo Primary)
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-    paddingTop: 50, // Standard status bar spacing
-    paddingBottom: 30,
-    paddingHorizontal: 20,
+        borderBottomLeftRadius: 28,
+        borderBottomRightRadius: 28,
+        paddingTop: Platform.OS === 'android' ? 44 : 54,
+        paddingBottom: 18,
+        paddingHorizontal: 16,
     shadowColor: '#1E1B6B',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 15,
     elevation: 8,
     zIndex: 10,
+        overflow: 'hidden',
+        position: 'relative',
   },
+    topRightCurveContainer: {
+        position: 'absolute',
+        top: 0,
+        right: 0,
+        width: 118,
+        height: 62,
+        alignItems: 'flex-end',
+        justifyContent: 'center',
+        zIndex: 2,
+    },
+    topRightCurve: {
+        position: 'absolute',
+        top: 0,
+        right: 0,
+        width: '100%',
+        height: '100%',
+        backgroundColor: '#FFFFFF',
+        borderBottomLeftRadius: 48,
+    },
+    headerLogo: {
+        width: 118,
+        height: 70,
+        marginRight: 6,
+        marginTop: 0,
+        zIndex: 3,
+    },
   headerContent: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+        justifyContent: 'flex-start',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 10,
+        paddingHorizontal: 4,
+        marginTop: -8,
   },
   userInfo: {
       flexDirection: 'row',
       alignItems: 'center',
   },
   avatarContainer: {
-      width: 50,
-      height: 50,
-      borderRadius: 25,
-      backgroundColor: 'rgba(255, 215, 0, 0.2)', // Gold tint
+            width: 18,
+            height: 18,
+            borderRadius: 9,
+            backgroundColor: '#FFD700',
       justifyContent: 'center',
       alignItems: 'center',
-      marginRight: 12,
-      borderWidth: 2,
-      borderColor: '#FFD700', // Gold border
+            marginRight: 6,
   },
   avatarText: {
-      fontWeight: 'bold',
-      color: '#FFD700', // Gold text
-      fontSize: 20,
-  },
-  welcomeText: {
-      color: 'rgba(255,255,255,0.8)',
-      fontSize: 12,
-      marginBottom: 2,
+            fontWeight: '800',
+            color: '#1E1B6B',
+            fontSize: 10,
   },
   userName: {
       color: '#fff',
-      fontWeight: 'bold',
-      fontSize: 18,
+            fontWeight: '700',
+      fontSize: 14,
   },
+    searchRow: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            marginTop: 22,
+            zIndex: 3,
+    },
   notificationButton: {
-      padding: 8,
-      backgroundColor: 'rgba(255,255,255,0.1)',
-      borderRadius: 12,
+            marginLeft: 8,
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      backgroundColor: 'rgba(255,255,255,0.14)',
+            justifyContent: 'center',
+            alignItems: 'center',
   },
   notificationBadge: {
       position: 'absolute',
-      top: 8,
-      right: 8,
-      width: 8,
-      height: 8,
-      borderRadius: 4,
+            top: 5,
+            right: 5,
+            width: 6,
+            height: 6,
+            borderRadius: 3,
       backgroundColor: '#FFD700', // Gold notification dot
       borderWidth: 1,
       borderColor: '#1E1B6B',
@@ -345,41 +387,41 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
       padding: 20,
-      paddingTop: 48,
-      overflow: 'visible',
-  },
-  searchFloatingWrap: {
-      position: 'absolute',
-      top: 128,
-      left: 20,
-      right: 20,
-      zIndex: 50,
-      elevation: 50,
+            paddingTop: 12,
   },
   searchContainer: {
+        flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#fff',
-    borderRadius: 16,
-    paddingHorizontal: 15,
-    height: 55,
-     marginTop: 0,
-     marginBottom: 0,
+        borderRadius: 18,
+        paddingHorizontal: 12,
+        height: 34,
+        marginTop: 0,
+        marginBottom: 0,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 12,    // Higher elevation
-    zIndex: 20,       // Ensure it sits on top of header
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.08,
+        shadowRadius: 6,
+        elevation: 4,
+        zIndex: 20,
   },
   searchIcon: {
-    marginRight: 10,
+        marginRight: 8,
   },
     searchInput: {
         flex: 1,
         height: '100%',
         color: '#333',
-        fontSize: 15,
+                fontSize: 10,
+    },
+    filterButton: {
+            width: 20,
+            height: 20,
+            borderRadius: 6,
+            backgroundColor: '#2C2E83',
+            justifyContent: 'center',
+            alignItems: 'center',
     },
   statsContainer: {
     flexDirection: 'row',
