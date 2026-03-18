@@ -24,6 +24,7 @@ async function run() {
        }) ;
 
        app.use('/logs',require('./authServer')) ;
+       app.use('/service',require('./serviceServer')) ; 
 
        const options = {
         key:fs.readFileSync("server.key"),

@@ -6,7 +6,7 @@ const router = express.Router();
 const { body , validationResult } = require('express-validator');
 const  jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
-const students = require('./schemas/student'); 
+const students = require('./schemas/student');
 const student_pendings = require('./schemas/student_pending');
 const parents = require('./schemas/parent'); 
 const parent_pendings = require('./schemas/parent_pending');
@@ -335,32 +335,6 @@ function generateRefreshToken(user){
   )
 }
 
-/*const protect = (req, res, next) => {
-  const token = req.cookies.AccessToken;
-
-  if (!token) {
-    return res.status(401).json({ message: "No access token" });
-  }
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
-    next();
-  } catch (err) {
-    return res.status(401).json({ message: "Access token expired" });
-  }
-};
-
-const authorize = (...roles) => {
-  return (req, res, next) => {
-    if (!roles.includes(req.user.role)) {
-      return res.status(403).json({ message: "Forbidden" });
-    }
-    next();
-  };
-};*/
-
-
 router.post("/login",
   body("email").isEmail().normalizeEmail().trim(),
   body("password").isString().trim().isLength({min:8}),
@@ -455,7 +429,7 @@ router.post("/login",
           const AccessToken = generateAccessToken(user3) ; 
           const RefreshToken = generateRefreshToken(user3) ; 
           //store the refresh tokens and access tokens 
-          //store the refresh tokens inside the database  ,
+          //store the refresh tokens inside the database,
           await tokens.create({
             userId:user3._id , 
             token:RefreshToken
