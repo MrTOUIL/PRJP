@@ -14,10 +14,14 @@ app.use(express.json()) ;
 app.use(cors()) ; 
 app.use(mongoSanitize()) ;
 app.use(cookieParser()) ;
+
+const dns = require('dns');
+dns.setServers(['1.1.1.1', '1.0.0.1']);
+
 async function run() {
     try{
-       await mongoose.connect("mongodb://127.0.0.1:27017/alemni_app");
-       console.log("Connected ✅") ;
+       await mongoose.connect(`mongodb+srv://PRJP:${process.env.DB_PW}@prjp.do0q945.mongodb.net/alemni-app`);
+       console.log("Connected to mongo Atlas✅") ;
        
        app.get('/',(req,res) => {
         res.send("Welcome to Alemni API") ; 

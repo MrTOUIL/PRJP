@@ -42,6 +42,6 @@ Thumbs.db
 ############################
 
 /backend/server.key
-/backend/server.crt
+/backend/server.cert
 
 
