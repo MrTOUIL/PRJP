@@ -1,47 +1,43 @@
-############################
-# Node modules (any level)
-############################
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+
+# dependencies
 node_modules/
-**/node_modules/
 
-############################
-# Environment variables
-############################
-.env
-**/.env
-
-############################
-# Expo / React Native
-############################
+# Expo
 .expo/
-.expo-shared/
 dist/
 web-build/
+expo-env.d.ts
 
-############################
-# Logs
-############################
-logs/
-*.log
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
 
-############################
-# OS files
-############################
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
 .DS_Store
-Thumbs.db
+*.pem
 
-############################
-# IDE files (optional but recommended)
-############################
-.vscode/
-.idea/
+# local env files
+.env*.local
 
+# typescript
+*.tsbuildinfo
 
-############################
-# put the server.key and the sever.crt 
-############################
+app-example
 
-/backend/server.key
-/backend/server.cert
-
-
+# generated native folders
+/ios
+/android
