@@ -11,7 +11,10 @@ const fs = require('fs') ;
 const cookieParser = require('cookie-parser') ;
 const  jwt = require('jsonwebtoken') ; 
 app.use(express.json()) ; 
-app.use(cors()) ; 
+app.use(cors({
+  origin: "http://localhost:8081",  // your frontend origin
+  credentials: true,                // allow cookies
+})); 
 app.use(mongoSanitize()) ;
 app.use(cookieParser()) ;
 

@@ -1,4 +1,4 @@
-import WelcomePage from "@/components/WelcomePage";
+import WelcomePage from "@/app/(welcome page)/welcomePage";
 import { View , StyleSheet} from "react-native";
 
 export default function welcomepage(){
