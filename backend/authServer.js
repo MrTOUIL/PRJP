@@ -54,7 +54,9 @@ router.post('/register_student',
    return true
 }),//checks if the number is valid(a real algerian number)
     body("email").isEmail().normalizeEmail().trim(),//verify the validity of the email
-    body("password").isString().isLength({min:8}).trim()//checks the password validity
+    body("postal_adress").trim().isLength({min:1}),
+    body("password").isString().isLength({min:8}).trim(),  //checks the password validity
+    body("academic_level").trim().isLength({min:1})
     ,async(req,res) => {
 
     const errors = validationResult(req) ; 
@@ -69,6 +71,12 @@ router.post('/register_student',
         const st2 = await students.findOne({phone:phone}) ; 
         if (st1 || st2){
             return res.json({message:"account with same info exist!"}) ; 
+        }
+        const user2 = await parents.findOne({$or:[{email} , {phone}]}) ;
+        const user3 = await teachers.findOne({$or:[{email} , {phone}]}) ; 
+        const user4 = await admins.findOne({$or:[{email} , {phone}]}) ; 
+        if (user2 || user3 || user4){
+          return res.json({message:"account with same info exists!"}); 
         }
         //after the info are verified , we sent the email
         const code = generateCode() ;
@@ -115,14 +123,16 @@ router.post('/register_parent',
    return true
 }),//checks if the number is valid(a real algerian number)
     body("email").isEmail().normalizeEmail().trim(),//verify the validity of the email
-    body("password").isString().isLength({min:8}).trim()//checks the password validity
+    body("postal_adress").trim().isLength({min:1}),
+    body("password").isString().isLength({min:8}).trim(),//checks the password validity
+    body("academic_level").trim().isLength({min:1})
     ,async(req,res) => {
 
     const errors = validationResult(req) ; 
     if (!errors.isEmpty()){
         return res.status(400).json({error:errors.array()})
     }
-
+    
     try{
         const {first_name,last_name,parentf,parentl,email,phone,postal_adress,password,academic_level} = req.body ; 
         //verify if there is not an account with the same info 
@@ -130,6 +140,12 @@ router.post('/register_parent',
         const st2 = await parents.findOne({phone:phone}) ; 
         if (st1 || st2){
             return res.json({message:"account with same info exist!"}) ; 
+        }
+        const user2 = await students.findOne({$or:[{email} , {phone}]}) ;
+        const user3 = await teachers.findOne({$or:[{email} , {phone}]}) ; 
+        const user4 = await admins.findOne({$or:[{email} , {phone}]}) ;
+        if (user2 || user3 || user4){
+          return res.json({message:"account with same info exists!"}); 
         }
         //after the info are verified , we sent the email
         const code = generateCode() ;
@@ -175,7 +191,9 @@ router.post('/register_teacher',
        return true
     }),
     body("email").isEmail().normalizeEmail().trim(),
+    body("postal_adress").trim().isLength({min:1}),
     body("password").isString().isLength({min:8}).trim(),
+    body("mode").trim().isLength({min:1}) ,
     async(req,res) => {
 
     const errors = validationResult(req);
@@ -185,13 +203,20 @@ router.post('/register_teacher',
 
     try{
         const {first_name,last_name,email,phone,postal_adress,password,subject,school_levels_taught,mode,available_days,start_time,end_time,home_visits,bio} = req.body;
-
+        if (subject.length == 0 || school_levels_taught.length == 0){
+          return res.json({error:"error in registration!"}) ; 
+        }
         const t1 = await teachers.findOne({email:email});
         const t2 = await teachers.findOne({phone:phone});
         if (t1 || t2){
             return res.json({message:"account with same info exist!"});
         }
-
+        const user2 = await students.findOne({$or:[{email} , {phone}]}) ;
+        const user3 = await parents.findOne({$or:[{email} , {phone}]}) ; 
+        const user4 = await admins.findOne({$or:[{email} , {phone}]}) ;
+        if (user2 || user3 || user4){
+          return res.json({message:"account with same info exists!"}); 
+        }
         const code = generateCode();
         await transporter.sendMail({
            from: `<${process.env.MAIL_USER}>`,
@@ -278,7 +303,7 @@ router.post("/addactor",
         
         //it is valid , now let's remove the pending and add to real db 
         if (user.role === "student"){
-          await students.create({
+          const a = await students.create({
             first_name:pending_st.first_name , 
             last_name:pending_st.last_name , 
             email:pending_st.email , 
@@ -289,10 +314,12 @@ router.post("/addactor",
             role:"student"
           }) ;
           await student_pendings.deleteOne({email:email}) ;
+          res.json({succ:"register_done!" , id:a._id , role:user.role}) ;
+
         }
 
         if(user.role ==="parent"){
-          await parents.create({
+          const a = await parents.create({
             first_name:pending_pr.first_name , 
             last_name:pending_pr.last_name ,
             parentf:pending_pr.parentf,
@@ -306,10 +333,11 @@ router.post("/addactor",
           }) ; 
 
           await parent_pendings.deleteOne({email:email}) ; 
+          res.json({succ:"register_done!" , id:a._id , role:user.role}) ;
         }
 
         if (user.role === "teacher"){
-          await teachers.create({
+          const a = await teachers.create({
             first_name:pending_tc.first_name, last_name:pending_tc.last_name,
             email:pending_tc.email, phone:pending_tc.phone, postal_adress:pending_tc.postal_adress,
             password:pending_tc.password, subject:pending_tc.subject, school_levels_taught:pending_tc.school_levels_taught,
@@ -319,8 +347,9 @@ router.post("/addactor",
         });
 
         await teacher_pendings.deleteOne({email:email});
+        res.json({succ:"register_done!" , id:a._id , role:user.role}) ;
         }
-        res.json({succ:"register_done!" , id:user._id , role:user.role}) ;
+        
     }catch(e){
         console.log(e) ; 
         res.json({error:"error!"}) ;
@@ -380,7 +409,7 @@ router.post("/login",
           res.json({succ:"login success!" , role:"student" , id:user1._id}) ; 
         }
 
-        if (user2){
+        else if (user2){
           const ismatch = await bcrypt.compare(password,user2.password) ; 
           if (!ismatch){
             return res.json({error:"invalid credentials"})
@@ -391,7 +420,7 @@ router.post("/login",
         }
 
 
-        if (user3){
+        else if (user3){
           const ismatch = await bcrypt.compare(password,user3.password) ; 
           if (!ismatch){
             return res.json({error:"invalid credentials"})
@@ -400,7 +429,7 @@ router.post("/login",
           res.json({succ:"login success!" , role:"teacher" , id:user3._id}) ; 
         }
 
-        if (user4){
+        else if (user4){
           const ismatch = await bcrypt.compare(password,user4.password) ; 
           if (!ismatch){
             return res.json({error:"invalid credentials"})
@@ -545,7 +574,5 @@ router.post("/reset_pw",
         res.json({error:"error!"}) ; 
     }
 }) ;
-
-
 
 module.exports = router ; 
