@@ -58,7 +58,7 @@ body("cost").custom(value => {
             source:fileUrl ,
             fileId:uploadResponse.data.fileId, 
             comment:req.body.comment , 
-            done_by:req.user.id
+            done_by:req.body.id
         }); 
 
         res.json({succ:"added successfully!"}) ; 

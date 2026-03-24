@@ -173,9 +173,9 @@ export default function SignUp() {
                         router.push('/sign_Up_Student'); 
                     } else if (selectedRole === 'teacher') {
                         router.push('/(signin)/sign_Up_teacher'); 
-                    } /*else if (selectedRole === 'parent') {
-                      router.push('/parentRegistration'); 
-                   }*/
+                    } else if (selectedRole === 'parent') {
+                      router.push('/(signin)/sign_Up_parent'); 
+                   }
   }}
           >
             <Text style={styles.continueButtonText}>Continue</Text>

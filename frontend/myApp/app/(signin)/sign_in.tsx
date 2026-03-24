@@ -106,7 +106,6 @@ export default function SignIn() {
     const BASE_URL = "https://localhost:5000"
     fetch(`${BASE_URL}/logs/login`,{
       method:"POST",
-      credentials:"include",
       headers:{"Content-Type": "application/json"},
       body:JSON.stringify({email,password})
     })
@@ -116,8 +115,11 @@ export default function SignIn() {
       if (data.error){
         setMsg("Error in entry or user does not exist") ;
       }else if (data.succ){
-        if (data.role == "student" || data.role == "parent") router.push("/(student_space)/studentSpace")
-        if (data.role == "teacher") router.push("/(teacher_space)/teacherSpace") ;  
+        if (data.role == "student" || data.role == "parent") router.push({pathname:"/(student_space)/studentSpace" , params:{id:data.id}}) ; 
+        if (data.role == "teacher") router.push({
+          pathname:"/(teacher_space)/teacherSpace" , 
+          params:{id:data.id}
+        });  
       }
     })
    }

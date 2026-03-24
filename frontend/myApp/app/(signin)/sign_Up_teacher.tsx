@@ -12,8 +12,9 @@ import {
   ScrollView
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeInDown, useSharedValue, useAnimatedStyle, withRepeat, withTiming } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
+
 
 const { width } = Dimensions.get('window');
 
@@ -49,7 +50,9 @@ function InputRow({
   secureTextEntry,
   multiline,
   numberOfLines,
-  style
+  style,
+  value,
+  onChangeText,
 }: {
   icon: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
   placeholder: string;
@@ -58,6 +61,8 @@ function InputRow({
   multiline?: boolean;
   numberOfLines?: number;
   style?: any;
+  value?: string;
+  onChangeText?: (text: string) => void;
 }) {
   return (
     <View style={[styles.inputWrapper, style, multiline && { height: 80, alignItems: 'flex-start' }]}>
@@ -72,6 +77,8 @@ function InputRow({
         secureTextEntry={secureTextEntry}
         multiline={multiline}
         numberOfLines={numberOfLines}
+        value={value}
+        onChangeText={onChangeText}
       />
     </View>
   );
@@ -103,9 +110,23 @@ function SectionHeader({
 
 export default function SignUpTeacher() {
   const router = useRouter();
-  const [homeVisitsEnabled, setHomeVisitsEnabled] = useState(false);
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
+  const [postalAddress, setPostalAddress] = useState('');
+  const [subject, setSubject] = useState('');
+  const [mode, setMode] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState('');
+  const spinnerRotate = useSharedValue(0);
   const [selectedLevels, setSelectedLevels] = useState<string[]>([]);
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
+  const [homeVisitsEnabled, setHomeVisitsEnabled] = useState(false);
+  const [bio, setBio] = useState('');
 
   const toggleLevel = (level: string) => {
     if (selectedLevels.includes(level)) {
@@ -123,8 +144,54 @@ export default function SignUpTeacher() {
     }
   };
 
+  spinnerRotate.value = withRepeat(withTiming(360, { duration: 1000 }), -1, false);
+
+  const animatedSpinnerStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${spinnerRotate.value}deg` }],
+  }));
+
   const levels = ['Primary', 'Middle', 'High School', 'University'];
   const days = ['Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu'];
+  const subjects = ['math', 'physics', 'science', 'arab', 'history/goe', 'islamic', 'francais', 'english'];
+  const modes = ['presential', 'online', 'hybrid'];
+
+  const handleRegister = ():void => {
+     setLoading(true) ; setMsg("") ; 
+     fetch("https://localhost:5000/logs/register_teacher",{
+      method:"POST",
+      headers:{"content-type":"application/json"},
+      body:JSON.stringify({
+        first_name:firstName , 
+        last_name:lastName , 
+        email , 
+        phone , 
+        postal_adress:postalAddress , 
+        password , 
+        subject , 
+        school_levels_taught : selectedLevels , 
+        mode ,
+        available_days : selectedDays , 
+        start_time : startTime , 
+        end_time : endTime , 
+        home_visits : homeVisitsEnabled , 
+        bio 
+      })
+     })
+     .then(res => res.json())
+     .then(data => {
+      setLoading(false) ;
+      if (data.error){
+        setMsg("Error in registration")
+      }else if (data.message){
+        setMsg(data.message) ;
+      }else{
+        router.push({
+          pathname:"/VerifyCodereg",
+          params:{email}
+        }) ; 
+      }
+     })
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -184,35 +251,65 @@ export default function SignUpTeacher() {
             <View style={styles.row}>
               <View style={styles.col}>
                 <FieldLabel label="First Name" required />
-                <InputRow icon="pencil" placeholder="First name" />
+                <InputRow
+                  icon="pencil"
+                  placeholder="First name"
+                  value={firstName}
+                  onChangeText={(text: string) => setFirstName(text)}
+                />
               </View>
               <View style={styles.col}>
                 <FieldLabel label="Last Name" required />
-                <InputRow icon="pencil" placeholder="Last name" />
+                <InputRow
+                  icon="pencil"
+                  placeholder="Last name"
+                  value={lastName}
+                  onChangeText={(text: string) => setLastName(text)}
+                />
               </View>
             </View>
 
             <View>
                 <FieldLabel label="Email Address" required />
                 <InputRow
-                icon="email-outline"
-                placeholder="your.email@example.com"
-                keyboardType="email-address"
+                  icon="email-outline"
+                  placeholder="your.email@example.com"
+                  keyboardType="email-address"
+                  value={email}
+                  onChangeText={(text: string) => setEmail(text)}
                 />
             </View>
 
             <View>
                 <FieldLabel label="Phone Number" required />
                 <InputRow
-                icon="cellphone"
-                placeholder="+213 5XX XXX XXX"
-                keyboardType="phone-pad"
+                  icon="cellphone"
+                  placeholder="+213 5XX XXX XXX"
+                  keyboardType="phone-pad"
+                  value={phone}
+                  onChangeText={(text: string) => setPhone(text)}
+                />
+            </View>
+
+            <View>
+                <FieldLabel label="Password" required />
+                <InputRow
+                  icon="lock-outline"
+                  placeholder="••••••••"
+                  secureTextEntry
+                  value={password}
+                  onChangeText={(text: string) => setPassword(text)}
                 />
             </View>
 
             <View>
                 <FieldLabel label="Postal Address" />
-                <InputRow icon="map-marker-outline" placeholder="City, Wilaya" />
+                <InputRow
+                  icon="map-marker-outline"
+                  placeholder="City, Wilaya"
+                  value={postalAddress}
+                  onChangeText={(text: string) => setPostalAddress(text)}
+                />
             </View>
           </View>
         </Animated.View>
@@ -229,7 +326,23 @@ export default function SignUpTeacher() {
             <View style={styles.fieldGroup}>
                 <View>
                     <FieldLabel label="Domain of Expertise" required />
-                    <InputRow icon="school-outline" placeholder="Select your subject..." />
+                    <View style={styles.pillsContainer}>
+                        {subjects.map((subj) => (
+                            <TouchableOpacity
+                                key={subj}
+                                onPress={() => setSubject(subj)}
+                                style={[
+                                    styles.pill,
+                                    subject === subj && styles.pillActive
+                                ]}
+                            >
+                                <Text style={[
+                                    styles.pillText,
+                                    subject === subj && styles.pillTextActive
+                                ]}>{subj}</Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
                 </View>
 
                 <View>
@@ -248,6 +361,27 @@ export default function SignUpTeacher() {
                                     styles.pillText,
                                     selectedLevels.includes(level) && styles.pillTextActive
                                 ]}>{level}</Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                </View>
+
+                <View>
+                    <FieldLabel label="Mode of Teaching" required />
+                    <View style={styles.pillsContainer}>
+                        {modes.map((m) => (
+                            <TouchableOpacity
+                                key={m}
+                                onPress={() => setMode(m)}
+                                style={[
+                                    styles.pill,
+                                    mode === m && styles.pillActive
+                                ]}
+                            >
+                                <Text style={[
+                                    styles.pillText,
+                                    mode === m && styles.pillTextActive
+                                ]}>{m}</Text>
                             </TouchableOpacity>
                         ))}
                     </View>
@@ -292,11 +426,21 @@ export default function SignUpTeacher() {
                 <View style={styles.row}>
                     <View style={styles.col}>
                         <FieldLabel label="From" />
-                        <InputRow icon="clock-start" placeholder="--:-- --" />
+                        <InputRow
+                            icon="clock-start"
+                            placeholder="--:-- --"
+                            value={startTime}
+                            onChangeText={(text: string) => setStartTime(text)}
+                        />
                     </View>
                     <View style={styles.col}>
                         <FieldLabel label="To" />
-                        <InputRow icon="clock-end" placeholder="--:-- --" />
+                        <InputRow
+                            icon="clock-end"
+                            placeholder="--:-- --"
+                            value={endTime}
+                            onChangeText={(text: string) => setEndTime(text)}
+                        />
                     </View>
                 </View>
              </View>
@@ -319,7 +463,7 @@ export default function SignUpTeacher() {
                     </View>
                     <Switch
                         value={homeVisitsEnabled}
-                        onValueChange={setHomeVisitsEnabled}
+                        onValueChange={(value: boolean) => setHomeVisitsEnabled(value)}
                         trackColor={{ false: '#E2E8F0', true: COLORS.primary }}
                         thumbColor={'#FFFFFF'}
                     />
@@ -332,6 +476,8 @@ export default function SignUpTeacher() {
                         placeholder="Briefly describe your teaching approach and experience..." 
                         multiline={true}
                         numberOfLines={3}
+                        value={bio}
+                        onChangeText={(text: string) => setBio(text)}
                     />
                 </View>
             </View>
@@ -339,10 +485,20 @@ export default function SignUpTeacher() {
 
         {/* Submit Button & Footer */}
         <Animated.View entering={FadeInDown.delay(800).springify().damping(20)}>
-            <TouchableOpacity activeOpacity={0.8} style={styles.submitButton}>
+            <TouchableOpacity activeOpacity={0.8} style={styles.submitButton} onPress={handleRegister}>
                 <Text style={styles.submitButtonText}>Complete Registration →</Text>
             </TouchableOpacity>
-            
+
+            {/* message */}
+            <Animated.View entering={FadeInDown.duration(400).springify()}>
+              <Text style={styles.messageText}>{msg}</Text>
+            </Animated.View>
+
+            {/* spinner */}
+            {loading && (
+              <Animated.View style={[styles.spinner, animatedSpinnerStyle]} />
+            )}
+
             <TouchableOpacity onPress={() => router.push('/signin')} style={styles.loginLink}>
                 <Text style={styles.loginLinkText}>
                 Already have an account? <Text style={styles.loginLinkBold}>Sign In</Text>
@@ -627,6 +783,24 @@ const styles = StyleSheet.create({
   loginLink: {
     alignItems: 'center',
     padding: 10,
+  },
+  messageText: {
+    textAlign: 'center',
+    color: COLORS.primary,
+    marginHorizontal: 20,
+    marginBottom: 12,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  spinner: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 4,
+    borderColor: COLORS.primary,
+    borderTopColor: 'transparent',
+    alignSelf: 'center',
+    marginBottom: 12,
   },
   loginLinkText: {
     fontSize: 14,

@@ -13,6 +13,7 @@ const parent_pendings = require('./schemas/parent_pending');
 const teachers = require('./schemas/teacher');
 const teacher_pendings = require('./schemas/teacher_pending');
 const admins = require('./schemas/admin') ;
+const resetpasswords = require('./schemas/resetpassword') ; 
 
 const tokens = require('./schemas/tokens') ; 
   
@@ -58,7 +59,7 @@ router.post('/register_student',
 
     const errors = validationResult(req) ; 
     if (!errors.isEmpty()){
-        return res.status(400).json({errors:errors.array()})
+        return res.status(400).json({error:errors.array()})
     }
 
     try{
@@ -79,6 +80,10 @@ router.post('/register_student',
         }) ;
         //now we store in pending !
         const hashedpassword = await bcrypt.hash(password,14) ; 
+        const m = await student_pendings.findOne({ $or: [{email}, {phone}] });
+        if (m) {
+          await m.deleteOne();  // good if the user exists the app and do new registration
+        }
 
         await student_pendings.create({
           first_name:first_name , 
@@ -101,6 +106,8 @@ router.post('/register_student',
 router.post('/register_parent',
     body("first_name").trim().isLength({min:3}),//checks if length of first name is at least 3 chars
     body("last_name").trim().isLength({min:2}),//checks if length of last  name is at least 2 chars
+    body("parentf").trim().isLength({min:3}),
+    body("parentl").trim().isLength({min:2}),
     body("phone").custom(value => {
    if(!checkNumber(value)){
        throw new Error("Invalid phone number")
@@ -113,11 +120,11 @@ router.post('/register_parent',
 
     const errors = validationResult(req) ; 
     if (!errors.isEmpty()){
-        return res.status(400).json({errors:errors.array()})
+        return res.status(400).json({error:errors.array()})
     }
 
     try{
-        const {first_name,last_name,email,phone,postal_adress,password,academic_level} = req.body ; 
+        const {first_name,last_name,parentf,parentl,email,phone,postal_adress,password,academic_level} = req.body ; 
         //verify if there is not an account with the same info 
         const st1 = await parents.findOne({email:email}) ; 
         const st2 = await parents.findOne({phone:phone}) ; 
@@ -134,10 +141,15 @@ router.post('/register_parent',
         }) ;
         //now we store in pending !
         const hashedpassword = await bcrypt.hash(password,14) ; 
-
+        const m = await parent_pendings.findOne({ $or: [{email}, {phone}] });
+        if (m) {
+          await m.deleteOne();  // good if the user exists the app and do new registration
+        }
         await parent_pendings.create({
           first_name:first_name , 
           last_name:last_name ,
+          parentf,
+          parentl,
           email:email,
           phone:phone,
           postal_adress:postal_adress,
@@ -168,7 +180,7 @@ router.post('/register_teacher',
 
     const errors = validationResult(req);
     if (!errors.isEmpty()){
-        return res.status(400).json({errors:errors.array()});
+        return res.status(400).json({error:errors.array()});
     }
 
     try{
@@ -189,7 +201,10 @@ router.post('/register_teacher',
         });
 
         const hashedpassword = await bcrypt.hash(password,14);
-
+        const m = await teacher_pendings.findOne({ $or: [{email}, {phone}] });
+        if (m) {
+          await m.deleteOne();  // good if the user exists the app and do new registration
+        }
         await teacher_pendings.create({
           first_name, last_name, email, phone, postal_adress, password:hashedpassword,
           subject, school_levels_taught, mode, available_days, start_time, end_time, home_visits, bio,
@@ -198,6 +213,7 @@ router.post('/register_teacher',
 
         res.json({succ:"email sent!"});
     }catch(e){
+        console.log(e) ; 
         res.json({error:"invalid credentials"});
     }
 });
@@ -208,7 +224,7 @@ router.put('/resend_code',
   ,async(req,res) => {
     const errors = validationResult(req) ; 
     if (!errors.isEmpty()){
-        return res.status(400).json({errors:errors.array()})
+        return res.status(400).json({error:errors.array()})
     }
     
     try{
@@ -242,7 +258,7 @@ router.post("/addactor",
   ,async(req,res) => {
     const errors = validationResult(req) ; 
     if (!errors.isEmpty()){
-        return res.status(400).json({errors:errors.array()})
+        return res.status(400).json({error:errors.array()})
     }
 
     try{
@@ -278,7 +294,9 @@ router.post("/addactor",
         if(user.role ==="parent"){
           await parents.create({
             first_name:pending_pr.first_name , 
-            last_name:pending_pr.last_name , 
+            last_name:pending_pr.last_name ,
+            parentf:pending_pr.parentf,
+            parentl:pending_pr.parentl, 
             email:pending_pr.email , 
             phone:pending_pr.phone , 
             postal_adress:pending_pr.postal_adress ,
@@ -302,15 +320,16 @@ router.post("/addactor",
 
         await teacher_pendings.deleteOne({email:email});
         }
-        res.json({succ:"register_done!"}) ;
+        res.json({succ:"register_done!" , id:user._id , role:user.role}) ;
     }catch(e){
+        console.log(e) ; 
         res.json({error:"error!"}) ;
     }
 }) ;
 
 //==========handling the signin of students , parents and teachers==========//
 
-function generateAccessToken(user){
+/*function generateAccessToken(user){
   return jwt.sign(
     {
       id:user._id,
@@ -333,7 +352,7 @@ function generateRefreshToken(user){
       expiresIn:"7d"
     }
   )
-}
+}*/
 
 router.post("/login",
   body("email").isEmail().normalizeEmail().trim(),
@@ -357,31 +376,8 @@ router.post("/login",
           if (!ismatch){
             return res.json({error:"invalid credentials"})
           }
-
-          //now we can confirm and create the tokens 
-          const AccessToken = generateAccessToken(user1) ; 
-          const RefreshToken = generateRefreshToken(user1) ; 
-          //store the refresh tokens and access tokens 
-          //store the refresh tokens inside the database  ,
-          await tokens.create({
-            userId:user1._id , 
-            token:RefreshToken
-          }) ; 
           
-          res.cookie("AccessToken",AccessToken,{
-            httpOnly:true ,
-            secure: true , 
-            sameSite : "strict" , 
-            maxAge:60*60*1000
-          }) ;
-          res.cookie("RefreshToken",RefreshToken,{
-            httpOnly:true,
-            secure:true , 
-            sameSite:"strict",
-            maxAge:7*24*60*60*1000,
-          }) ;
-
-          res.json({succ:"login success!" , role:"student"}) ; 
+          res.json({succ:"login success!" , role:"student" , id:user1._id}) ; 
         }
 
         if (user2){
@@ -390,34 +386,10 @@ router.post("/login",
             return res.json({error:"invalid credentials"})
           }
 
-          //now we can confirm and create the tokens 
-          const AccessToken = generateAccessToken(user2) ; 
-          const RefreshToken = generateRefreshToken(user2) ; 
-          //store the refresh tokens and access tokens 
-          //store the refresh tokens inside the database  ,
-          await tokens.create({
-            userId:user2._id , 
-            token:RefreshToken
-          }) ; 
-          
-          res.cookie("AccessToken",AccessToken,{
-            httpOnly:true ,
-            secure: true , 
-            sameSite : "strict" , 
-            maxAge:60*60*1000
-          }) ;
-          res.cookie("RefreshToken",RefreshToken,{
-            httpOnly:true,
-            secure:true , 
-            sameSite:"strict",
-            maxAge:7*24*60*60*1000,
-          }) ;
 
-          res.json({succ:"login success!" , role:"parent"}) ; 
-        }if (user3.isBanned) {
-             return res.status(403).json({ error: "This account has been banned." });
-          }
-          
+          res.json({succ:"login success!" , role:"parent" , id:user2._id}) ; 
+        }
+
 
         if (user3){
           const ismatch = await bcrypt.compare(password,user3.password) ; 
@@ -425,30 +397,7 @@ router.post("/login",
             return res.json({error:"invalid credentials"})
           }
 
-          //now we can confirm and create the tokens 
-          const AccessToken = generateAccessToken(user3) ; 
-          const RefreshToken = generateRefreshToken(user3) ; 
-          //store the refresh tokens and access tokens 
-          //store the refresh tokens inside the database,
-          await tokens.create({
-            userId:user3._id , 
-            token:RefreshToken
-          }) ; 
-          
-          res.cookie("AccessToken",AccessToken,{
-            httpOnly:true ,
-            secure: true , 
-            sameSite : "strict" , 
-            maxAge:60*60*1000
-          }) ;
-          res.cookie("RefreshToken",RefreshToken,{
-            httpOnly:true,
-            secure:true , 
-            sameSite:"strict",
-            maxAge:7*24*60*60*1000,
-          }) ;
-
-          res.json({succ:"login success!" , role:"teacher"}) ; 
+          res.json({succ:"login success!" , role:"teacher" , id:user3._id}) ; 
         }
 
         if (user4){
@@ -457,30 +406,8 @@ router.post("/login",
             return res.json({error:"invalid credentials"})
           }
 
-          //now we can confirm and create the tokens 
-          const AccessToken = generateAccessToken(user4) ; 
-          const RefreshToken = generateRefreshToken(user4) ; 
-          //store the refresh tokens and access tokens 
-          //store the refresh tokens inside the database  ,
-          await tokens.create({
-            userId:user4._id , 
-            token:RefreshToken
-          }) ; 
-          
-          res.cookie("AccessToken",AccessToken,{
-            httpOnly:true ,
-            secure: true , 
-            sameSite : "strict" , 
-            maxAge:60*60*1000
-          }) ;
-          res.cookie("RefreshToken",RefreshToken,{
-            httpOnly:true,
-            secure:true , 
-            sameSite:"strict",
-            maxAge:7*24*60*60*1000,
-          }) ;
 
-          res.json({succ:"login success!" , role:"admin"}) ;
+          res.json({succ:"login success!" , role:"admin" , id:user4._id}) ;
         }
     }catch(e){
         res.json({error:"login failed!"}) ;
@@ -494,10 +421,11 @@ router.post("/forgetpw_mail",
   ,async(req,res) => {
     const errors = validationResult(req) ; 
     if (!errors.isEmpty()){
-        return res.status(400).json({errors:errors.array()})
+        return res.status(400).json({error:errors.array()})
     }
 
     try{
+
         const {email} = req.body ; 
 
         const user1 = await students.findOne({email:email}) ;
@@ -509,6 +437,11 @@ router.post("/forgetpw_mail",
         if (!user){
           return res.json({error:"invalid mail!"}) ;
         }
+        
+        const m = await resetpasswords.findOne({email}) ; 
+        if (m){ // if user want to do another request 
+          await resetpasswords.deleteOne({email}) ; 
+        }
 
         //after the mail is verified , send the code 
         const code = generateCode() ; 
@@ -518,99 +451,84 @@ router.post("/forgetpw_mail",
            subject: "Verify your mail!",
            html: `<p>This is the code of your account to verify with : ${code} . It will expires in 10 minutes</p>`,
         }) ;
-
-        //save this email and the code somewhere safe 
-        res.cookie("email",email,{
-          httpOnly:true , 
-          secure: true ,
-          sameSite:"strict",
-          maxAge:10*60*1000//maxAge = 2min  
-        }); 
-        res.cookie("code",code,{
-          httpOnly:true,
-          secure:true,
-          sameSite:"strict",
-          maxAge:10*60*1000//maxAge:2min
-        });
-        res.json({succ:"succ!"}) ; 
+        
+        await resetpasswords.create({
+          email , 
+          code 
+        }) ; 
+        res.json({succ:"succ!" , email}) ; 
 
     }catch(e){
         res.json({error:"error!"}) ;
     }
-}) ; 
+}) ;
+
+
+
 
 router.put("/resend_code_forgetpw",async(req,res) => {
     //we will change the code , send to mail
   try{
-
-    if (!req.cookies.email){
-      return res.json({error:"code and email expires!"}) ;
-    }
-
+    const {email} = req.body ; 
+    
     const code = generateCode() ; 
     const info = await transporter.sendMail({
       from: `<${process.env.MAIL_USER}>`,
-      to: req.cookies.email,
+      to: email,
       subject: "Verify your mail!",
-      html: `<p>This is the code of your account to verify with : ${code} </p>`,
+      html: `<p>This is the code of your account to verify with : ${code} . It will expires in 10 minutes</p>`,
     }) ;
-    //then resave them in cookies 
-    res.cookie("code",code,{
-      httpOnly:true,
-      secure:true,
-      sameSite:"strict",
-      maxAge:10*60*1000//maxAge:2min
-    }) ;
+    const m = await resetpasswords.findOne({email}) ;
+    if (m) // if the 10 min still not pass!!
+      {await resetpasswords.deleteOne({email}) ;}
+    
+    await resetpasswords.create({email , code}) ; 
+
     res.json({succ:"succ!"}) ; 
   }catch(e){
     res.json({error:"error!"}) ; 
   }   
 });
 
+
+
 router.post("/verify_code_forgetpw",async(req,res) => {
   try{
-     if(!req.cookies.code){
-      return res.json({error:"code expires!"}) ; 
-     } 
-    const {code} = req.body ; 
-    if (Number(code) !== Number(req.cookies.code)){
-      return res.json({error:"invalid code"}) ; 
+    const {code} = req.body ;
+    const m = await resetpasswords.findOne({code}) ;
+    if (!m){
+      return res.json({error:"code invalid or expired!"}) ; 
     }
 
-    //the code is valid!we can remove the code from the cookie
-    res.clearCookie("code",{
-      httpOnly:true,
-      secure:true,
-      sameSite:"strict",
-    }) ; 
+    //the code is valid!
+    await resetpasswords.deleteOne({code}) ;
+     
     res.json({succ:"succ!"}) ; 
   }catch(e){
     res.json({error:"error!"}) ;
   }
 });
 
+
 //the route to reset the pw 
+
 router.post("/reset_pw",
   body("newpassword").isString().isLength({min:8}).trim(),
   body("confirmpassword").isString().isLength({min:8}).trim()
   ,async(req,res) => {
     const errors = validationResult(req) ; 
     if (!errors.isEmpty()){
-        return res.status(400).json({errors:errors.array()})
+        return res.status(400).json({error:errors.array()})
     }
 
     try{
-        if(!req.cookies.email){
-          return res.json({error:"email expires!"}) ; 
-        }
-        const {newpassword , confirmpassword} = req.body ;
+        const {newpassword , confirmpassword , email} = req.body ;
         if (newpassword !== confirmpassword){
-          return res.json({error:"no corresponding!"}) ;
+          return res.json({error:"no correspondance!"}) ;
         }
         //now we must update with new password!
          //encrypt the pw 
-        const cryptedpw = await bcrypt.hash(newpassword,14) ; 
-        const email = req.cookies.email ; 
+        const cryptedpw = await bcrypt.hash(newpassword,14) ;  
         const user1 = await students.findOne({email:email}) ;
         const user2 = await parents.findOne({email:email}) ; 
         const user3 = await teachers.findOne({email:email}) ;
@@ -619,19 +537,15 @@ router.post("/reset_pw",
         
         user.password = cryptedpw ; 
         await user.save() ; 
-        //now remove the email from cookies 
-        res.clearCookie("email",{
-          httpOnly:true,
-          secure:true,
-          sameSite:"strict"
-        }) ;
-
+        //now remove from the resetpw db 
+        await resetpasswords.deleteOne({email}) ;
         res.json({succ:"succ!!"}) ; 
   
     }catch(e){
         res.json({error:"error!"}) ; 
     }
 }) ;
+
 
 
 module.exports = router ; 

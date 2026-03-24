@@ -8,7 +8,7 @@ const shm = new mongoose.Schema({
     postal_adress:{type:String},
     password:{type:String},
     subject:{type:String},
-    school_levels_taught:{type:String},
+    school_levels_taught:[{type:String}],
     mode:{type:String},
     available_days:[{type:String}],
     start_time:{type:String},

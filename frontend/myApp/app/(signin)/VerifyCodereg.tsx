@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   StyleSheet, 
   Text, 
@@ -15,7 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { FontAwesome5, MaterialIcons, Ionicons, Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import Animated, { FadeInDown, FadeInUp, useSharedValue, useAnimatedStyle, withRepeat, withTiming, Easing } from 'react-native-reanimated';
-
+import { useLocalSearchParams } from 'expo-router';
 
 const { width } = Dimensions.get('window');
 
@@ -34,12 +34,14 @@ const COLORS = {
   blueInfoText: '#0369A1',
 };
 
-export default function ForgetPassword() {
-  const [email, setEmail] = useState('');
-  const [loading , setLoading] = useState(false) ; 
-  const [msg , setMsg] = useState("") ; 
+export default function VerifyCodepw() {
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [loading1 , setLoading1] = useState(false) ;
+  const [loading2 , setLoading2] = useState(false) ;  
+  const [msg , setMsg] = useState("") ;
   const spinnerRotate = useSharedValue(0);
   const router = useRouter();
+  const { email } = useLocalSearchParams();
 
   // Spinner rotation
   spinnerRotate.value = withRepeat(withTiming(360, { duration: 1000 }), -1, false);
@@ -50,34 +52,58 @@ export default function ForgetPassword() {
     };
   });
 
+
+  const handleOtpChange = (value: string, index: number) => {
+    const newOtp = [...otp];
+    newOtp[index] = value;
+    setOtp(newOtp);
+    // Ideally, focus next input logic here
+  };
+
   const goBack = () => {
     router.back();
   };
 
-  const handleEmail = (text:string):void => {
-    setEmail(text) ; 
-  }
-
-  const handleSend = ():void => {
-    setMsg("") ; setLoading(true) ; 
-    fetch("https://localhost:5000/logs/forgetpw_mail",{
-      method:"POST",
-      headers:{"Content-Type": "application/json"},
-      body:JSON.stringify({email})
+    
+  const handleResend = async ():Promise<void> => {
+    setMsg("") ;
+    setLoading1(true) ;
+    fetch("https://localhost:5000/logs/resend_code",{
+        method:"PUT",
+        headers:{"content-type":"application/json"},
+        body:JSON.stringify({email})
     })
     .then(res => res.json())
     .then(data => {
-       setLoading(false) ; 
-       if (data.error){
-          setMsg("Mail invalid or does not exist!");
-       }else{
-          router.push({
-            pathname:"/VerifyCodepw",
-            params:{email}
-          }) ; 
-       }
-    }) ;
-  } 
+        setLoading1(false) ; 
+        if (data.error){
+            setMsg("Error in resending!") ;
+        }else{
+            setMsg("Code has been resent to your mail!") ;
+        }
+    });
+  }
+
+
+  const handleVerify = async():Promise<void> => {
+    setMsg("") ; 
+    setLoading2(true) ;
+    fetch("https://localhost:5000/logs/addactor",{
+        method:"POST",
+        headers:{"content-type":"application/json"},
+        body:JSON.stringify({email , code:Number(otp.join(""))})
+    })
+    .then(res => res.json())
+    .then(data => {
+        setLoading2(false) ;
+        if (data.error){
+            setMsg(data.error) ; 
+        }else{
+           if (data.role == "teacher") router.push({pathname:"/(teacher_space)/teacherSpace" , params:{id:data.id}}) 
+           if (data.role == "parent" || data.role == "student") router.push({pathname:"/(student_space)/studentSpace" , params:{id:data.id}}) 
+        }
+    })
+  }
 
   const renderHeader = () => (
     <View style={styles.headerContainer}>
@@ -89,7 +115,7 @@ export default function ForgetPassword() {
       >
         <SafeAreaView style={styles.safeArea}>
           <View style={styles.headerContent}>
-            <Text style={styles.headerTitle}>Forgot Password?</Text>
+            <Text style={styles.headerTitle}>Continue Registration</Text>
           </View>
         </SafeAreaView>
          {/* Decorative circle overlay */}
@@ -99,70 +125,86 @@ export default function ForgetPassword() {
       {/* Floating Lock Icon */}
       <View style={styles.lockIconWrapper}>
         <View style={styles.lockIconContainer}>
-          <FontAwesome5 name="lock" size={32} color="white" />
+          <FontAwesome5 name="shield-alt" size={32} color="white" />
         </View>
       </View>
     </View>
   );
 
-  const renderEmailStep = () => (
+  const renderOtpStep = () => (
     <Animated.View entering={FadeInDown.duration(600).springify()}>
       {/* Info Card */}
       <View style={styles.infoCard}>
         <View style={styles.infoIconContainer}>
-          <FontAwesome5 name="exclamation-circle" size={24} color={COLORS.primary} />
+          <MaterialIcons name="email" size={24} color={COLORS.primary} />
         </View>
-        <Text style={styles.infoText}>
-          Enter the <Text style={{fontWeight: '700'}}>email address</Text> associated with your ALEMNI account. We'll send you a verification code.
+         <Text style={styles.infoText}>
+          We sent a <Text style={{fontWeight: '700'}}>6-digit code</Text> to <Text style={{fontWeight: '700'}}>your email</Text>. Enter it below.
         </Text>
       </View>
 
       {/* Input Card */}
       <View style={styles.inputCard}>
         <View style={styles.cardHeader}>
-          <View style={[styles.cardIcon, { backgroundColor: COLORS.accent }]}>
-            <MaterialIcons name="email" size={24} color="white" />
+          <View style={[styles.cardIcon, { backgroundColor: COLORS.primary }]}>
+            <FontAwesome5 name="check-square" size={20} color="white" />
           </View>
           <View style={styles.cardHeaderTextContainer}>
-            <Text style={styles.cardTitle}>Email Address</Text>
-            <Text style={styles.cardSubtitle}>Your registered account email</Text>
+            <Text style={styles.cardTitle}>Verification Code</Text>
+            <Text style={styles.cardSubtitle}>6-digit code from your inbox</Text>
           </View>
         </View>
 
-        <Text style={styles.label}>Email Address <Text style={styles.required}>*</Text></Text>
-        <View style={styles.inputContainer}>
-          <MaterialIcons name="mail-outline" size={20} color={COLORS.textLight} style={styles.inputIcon} />
-          <TextInput
-            style={styles.input}
-            placeholder="your.email@example.com"
-            placeholderTextColor="#9CA3AF"
-            value={email}
-            onChangeText={handleEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
+        <Text style={styles.label}>Enter Code <Text style={styles.required}>*</Text></Text>
+        
+        <View style={styles.otpContainer}>
+          {otp.map((digit, index) => (
+            <TextInput
+              key={index}
+              style={styles.otpInput}
+              value={digit}
+              onChangeText={(text) => handleOtpChange(text, index)}
+              keyboardType="number-pad"
+              maxLength={1}
+              selectTextOnFocus
+            />
+          ))}
         </View>
+
+        
       </View>
-      <br />
+
       {/*the message "msg" section*/}
       <Animated.View entering={FadeInDown.duration(400).springify()}>
         <Text style={styles.messageText}>{msg}</Text>
       </Animated.View>
 
-      {/* Submit Button */}
-      <TouchableOpacity style={styles.submitButton} activeOpacity={0.9} onPress={handleSend}>
-        <Text style={styles.submitButtonText}>Send Verification Code</Text>
-        <FontAwesome5 name="arrow-right" size={16} color="white" />
+       {/* Resend Link */}
+       <TouchableOpacity style={styles.resendContainer} activeOpacity={0.7} >
+        <Text style={styles.resendText}>Didn't receive the code? <Text style={styles.resendLink} onPress={handleResend}>Resend Code</Text></Text>
       </TouchableOpacity>
 
-      {/*the spinner*/}
-      {loading && (
+      {/*the spinner for loading1 (resend)*/}
+      {loading1 && (
         <Animated.View
           entering={FadeInDown.duration(300).springify()}
           style={[styles.spinner, animatedSpinnerStyle]}
         />
       )}
 
+      {/* Verify Button */}
+      <TouchableOpacity style={styles.submitButton} activeOpacity={0.9} onPress={handleVerify}>
+        <Text style={styles.submitButtonText}>Verify Code</Text>
+        <FontAwesome5 name="arrow-right" size={16} color="white" />
+      </TouchableOpacity>
+
+      {/*the spinner for loading2 (verify)*/}
+      {loading2 && (
+        <Animated.View
+          entering={FadeInDown.duration(300).springify()}
+          style={[styles.spinner, animatedSpinnerStyle]}
+        />
+      )}
     </Animated.View>
   );
 
@@ -180,7 +222,7 @@ export default function ForgetPassword() {
             keyboardShouldPersistTaps="handled"
         >
             <View style={styles.spacer} />
-            {renderEmailStep()}
+            {renderOtpStep()}
             
             <View style={styles.footer}>
                 <Text style={styles.footerText}>Remember your password? </Text>
@@ -406,7 +448,7 @@ const styles = StyleSheet.create({
       marginTop: 10,
   },
   otpInput: {
-      width: (width - 40 - 40) / 7, 
+      width: (width - 40) / 6, 
       height: 50,
       backgroundColor: COLORS.inputBg,
       borderWidth: 1,
