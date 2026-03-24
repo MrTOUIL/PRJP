@@ -115,6 +115,15 @@ export default function DevisPedagogique() {
     </View>
   );
 
+  const handleGoBack = () => {
+  if (router.canGoBack()) {
+    router.back();
+  } else {
+    router.replace('/(student_space)/studentSpace');
+    router.push('/(student_space)/studentSpace');
+  }
+};
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
@@ -132,7 +141,7 @@ export default function DevisPedagogique() {
 
         <SafeAreaView>
           <View style={styles.headerContent}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
               <View style={styles.backIconCircle}>
                 <MaterialIcons name="chevron-left" size={24} color={COLORS.white} />
               </View>

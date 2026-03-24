@@ -75,11 +75,8 @@ export default function SignIn() {
 
    const gotoforgetpassword = ():void => {
     router.push('/forgetpassword');
+
    }
-
-
-
-   //handle login 
 
    const handleLogin = async () => {
   try {
@@ -90,23 +87,27 @@ export default function SignIn() {
       body: JSON.stringify({ email, password })
     });
 
+
     const data = await response.json();
+
 
     if (data.succ) {
       alert('Login successful!');
-      if (data.role === 'student') router.push('/studentSpace');
+      if (data.role === 'student') router.push('/(student_space)/studentSpace');
       else if (data.role === 'teacher') router.push('/teacherSpace');
-      else if (data.role === 'parent') router.push('/studentSpace');
-    
+      else if (data.role === 'parent') router.push('/(student_space)/studentSpace');
+   
     } else {
       alert(data.error || 'Login failed');
     }
+
 
   } catch (error) {
     console.error('Login error:', error);
     alert('server error');
   }
 };
+
 
   return (
     <SafeAreaView style={styles.container}>

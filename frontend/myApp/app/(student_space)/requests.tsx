@@ -20,7 +20,7 @@ const REQUESTS = [
     price: '800 DZD',
     service: 'Advanced Mathematics',
     date: 'Feb 26',
-    time: '16:00 - 18:00',
+    duration: '2 hours',
     avatarColor: '#4CAF50',
     initial: 'S'
   },
@@ -32,7 +32,7 @@ const REQUESTS = [
     price: '650 DZD',
     service: 'English Conversation',
     date: 'Feb 28',
-    time: '14:00',
+    duration: '1 hour',
     avatarColor: '#FFC107',
     initial: 'M'
   },
@@ -44,7 +44,7 @@ const REQUESTS = [
     price: '700 DZD',
     service: 'General Chemistry',
     date: 'Mar 01',
-    time: '10:00 - 12:00',
+    duration: '2 hours',
     avatarColor: '#F44336',
     initial: 'L'
   },
@@ -56,7 +56,7 @@ const REQUESTS = [
     price: '900 DZD',
     service: 'Algebra II',
     date: 'Mar 05',
-    time: '09:00 - 11:00',
+    duration: '1 hour 30 min',
     avatarColor: '#2196F3',
     initial: 'K'
   },
@@ -76,24 +76,22 @@ export default function StudentRequests({ onSelectFilter }: StudentRequestsProps
       <Animated.View entering={FadeInDown.duration(600)} style={styles.header}>
         <View style={styles.headerTop}>
              <TouchableOpacity style={styles.iconButton} onPress={() => router.back()}>
-                <Ionicons name="chevron-back" size={24} color="#fff" />
+                <Ionicons name="chevron-back" size={20} color="#fff" />
              </TouchableOpacity>
              <Text style={styles.headerTitle}>My Requests</Text>
              <TouchableOpacity style={styles.iconButton}>
-                <Ionicons name="search" size={24} color="#fff" />
+                <Ionicons name="search" size={20} color="#fff" />
              </TouchableOpacity>
         </View>
 
         <View style={styles.searchContainer}>
-          <Ionicons name="search" size={20} color="#94A3B8" style={styles.searchIcon} />
+          <Ionicons name="search" size={16} color="#94A3B8" style={styles.searchIcon} />
           <TextInput
             placeholder="Search requests..."
             placeholderTextColor="#94A3B8"
             style={styles.searchInput}
           />
-          <TouchableOpacity>
-            <Ionicons name="options-outline" size={20} color="#1E1B6B" />
-          </TouchableOpacity>
+          
         </View>
       </Animated.View>
 
@@ -152,6 +150,7 @@ export default function StudentRequests({ onSelectFilter }: StudentRequestsProps
 }
 
 function RequestCard({ req }: { req: any }) {
+  const router = useRouter();
   const statusConfig: any = {
     'Accepted': { bg: '#E8F5E9', text: '#2E7D32', icon: 'checkmark-circle' },
     'Pending': { bg: '#FEF9C3', text: '#A16207', icon: 'time' }, // Gold theme for Pending
@@ -189,7 +188,7 @@ function RequestCard({ req }: { req: any }) {
             </View>
             <View style={styles.metaItem}>
                 <Ionicons name="time-outline" size={16} color="#666" />
-                <Text style={styles.metaText}>{req.time}</Text>
+              <Text style={styles.metaText}>{req.duration}</Text>
             </View>
             <View style={styles.metaItem}>
                 <Ionicons name="wallet-outline" size={16} color="#666" />
@@ -200,7 +199,10 @@ function RequestCard({ req }: { req: any }) {
 
       <View style={styles.cardFooter}>
         {req.status === 'Accepted' && (
-            <TouchableOpacity style={[styles.actionButton, styles.primaryButton]}>
+          <TouchableOpacity
+            style={[styles.actionButton, styles.primaryButton]}
+            onPress={() => router.push('/(student_space)/requestAc')}
+          >
                 <Text style={styles.primaryButtonText}>View Details</Text>
             </TouchableOpacity>
         )}
@@ -228,8 +230,8 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: '#1E1B6B', // Deep Blue
-    paddingTop: 50,
-    paddingBottom: 25,
+    paddingTop: 34,
+    paddingBottom: 14,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
     shadowColor: '#1E1B6B',
@@ -243,36 +245,35 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 20,
+    paddingHorizontal: 16,
+    marginBottom: 10,
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: '700',
     color: '#fff',
-    letterSpacing: 0.5,
+    letterSpacing: 0.2,
   },
   iconButton: {
-      padding: 4,
+      padding: 2,
   },
   searchContainer: {
-    marginHorizontal: 20,
-    marginTop: 2,
+    marginHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#fff',
-    borderRadius: 14,
-    height: 48,
-    paddingHorizontal: 14,
+    borderRadius: 12,
+    height: 38,
+    paddingHorizontal: 10,
   },
   searchIcon: {
-    marginRight: 10,
+    marginRight: 7,
   },
   searchInput: {
     flex: 1,
     height: '100%',
     color: '#1E293B',
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '500',
   },
   tabsContainer: {

@@ -12,7 +12,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { FontAwesome5, FontAwesome , AntDesign } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, Stack } from 'expo-router';
 
 // Define theme colors locally or import from constants
 const COLORS = {
@@ -100,6 +100,7 @@ export default function SignUp() {
 
   return (
     <View style={styles.container}>
+      <Stack.Screen options={{ headerShown: false }} />
       <Animated.View entering={FadeInDown.delay(100).duration(600).springify()} style={styles.contentContainer}>
         
         {/* Header Section */}
@@ -168,8 +169,14 @@ export default function SignUp() {
             entering={FadeInUp.duration(600).springify()}
             style={styles.continueButton}
             onPress={() => {
-              console.log('Continue pressed with role:', selectedRole);
-            }}
+                    if (selectedRole === 'student') {
+                        router.push('/sign_Up_Student'); 
+                    } else if (selectedRole === 'teacher') {
+                        router.push('/sign_Up_teacher'); 
+                    } /*else if (selectedRole === 'parent') {
+                      router.push('/parentRegistration'); 
+                   }*/
+  }}
           >
             <Text style={styles.continueButtonText}>Continue</Text>
           </BouncyTouchable>

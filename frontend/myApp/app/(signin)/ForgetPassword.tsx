@@ -93,11 +93,6 @@ export default function ForgetPassword() {
       >
         <SafeAreaView style={styles.safeArea}>
           <View style={styles.headerContent}>
-            <TouchableOpacity onPress={goBack} style={styles.backButton}>
-              <FontAwesome5 name="chevron-left" size={14} color="white" />
-              <Text style={styles.backButtonText}>Back to Sign In</Text>
-            </TouchableOpacity>
-            
             <Text style={styles.headerTitle}>Forgot Password?</Text>
           </View>
         </SafeAreaView>

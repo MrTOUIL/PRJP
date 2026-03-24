@@ -44,6 +44,29 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="lock.shield" color={color} />,
         }}
       />
+   
+
+     <Tabs.Screen
+        name="student_space"
+        options={{
+          title: 'Student',
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={28} name="graduationcap.fill" color={color} />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="teacher_space"
+        options={{
+          title: 'Teacher',
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={28} name="person.2.fill" color={color} />
+          ),
+        }}
+      />
     </Tabs>
+
+    
   );
 }

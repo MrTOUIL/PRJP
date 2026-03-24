@@ -3,7 +3,7 @@ import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, Dimens
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown, FadeInRight, FadeInUp } from 'react-native-reanimated';
 import StudentTopFilters, { StudentMenuFilter } from './StudentTopFilters';
-
+import { useRouter } from 'expo-router';    
 const { width } = Dimensions.get('window');
 
 const TUTOR_SUGGESTIONS = [
@@ -47,6 +47,8 @@ export default function StudentSpace({
     const showSubjects = activeFilter === 'all' || activeFilter === 'subjects';
     const showRequests = activeFilter === 'all' || activeFilter === 'requests';
     const showDocuments = activeFilter === 'documents';
+
+  const router = useRouter();
 
   return (
     <View style={styles.container}>
@@ -154,8 +156,8 @@ export default function StudentSpace({
                             </View>
                         </View>
                         <View style={styles.tutorFooter}>
-                            <TouchableOpacity style={styles.tutorButton}>
-                                <Text style={styles.tutorButtonText}>Send Request</Text>
+                            <TouchableOpacity style={styles.tutorButton}  onPress={() => { router.push('/(student_space)/Qoute'); }} >
+                                <Text style={styles.tutorButtonText} >Send Request</Text>
                             </TouchableOpacity>
                         </View>
                     </Animated.View>

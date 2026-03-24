@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Dimensions, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown, FadeInUp, useSharedValue, useAnimatedStyle, withTiming, withDelay, ZoomIn } from 'react-native-reanimated';
 import StudentTopFilters, { StudentMenuFilter } from './StudentTopFilters';
@@ -36,13 +36,25 @@ export default function StudentSubjects({ onSelectFilter }: StudentSubjectsProps
     <View style={styles.container}>
       {/* Header */}
       <Animated.View entering={FadeInDown.duration(600)} style={styles.header}>
-        <TouchableOpacity onPress={() => router.push('/(student_space)/studentSpace')}>
-           <Ionicons name="chevron-back" size={24} color="#fff" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>My Subjects</Text>
-        <TouchableOpacity>
-           <Ionicons name="search" size={24} color="#fff" />
-        </TouchableOpacity>
+        <View style={styles.headerTop}>
+          <TouchableOpacity style={styles.iconButton} onPress={() => router.push('/(student_space)/studentSpace')}>
+            <Ionicons name="chevron-back" size={20} color="#fff" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>My Subjects</Text>
+          <TouchableOpacity style={styles.iconButton}>
+            <Ionicons name="search" size={20} color="#fff" />
+          </TouchableOpacity>
+        </View>
+
+        <Animated.View entering={FadeInUp.delay(100).duration(600)} style={styles.searchContainer}>
+          <Ionicons name="search" size={16} color="#94A3B8" style={styles.searchIcon} />
+          <TextInput
+            placeholder="Search subjects..."
+            placeholderTextColor="#94A3B8"
+            style={styles.searchInput}
+          />
+          
+        </Animated.View>
       </Animated.View>
 
       <ScrollView 
@@ -136,13 +148,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 50,
-    paddingBottom: 25,
+    paddingTop: 34,
+    paddingBottom: 14,
     backgroundColor: '#1E1B6B', // Deep Blue
-    paddingHorizontal: 20,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
     shadowColor: '#1E1B6B',
@@ -152,11 +160,40 @@ const styles = StyleSheet.create({
     elevation: 6,
     zIndex: 10,
   },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    marginBottom: 10,
+  },
   headerTitle: {
     color: '#fff',
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: '700',
-    letterSpacing: 0.5,
+    letterSpacing: 0.2,
+  },
+  iconButton: {
+    padding: 2,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    marginHorizontal: 16,
+    height: 38,
+    paddingHorizontal: 10,
+  },
+  searchIcon: {
+    marginRight: 7,
+  },
+  searchInput: {
+    flex: 1,
+    height: '100%',
+    color: '#1E293B',
+    fontSize: 12,
+    fontWeight: '500',
   },
   content: {
     flex: 1,

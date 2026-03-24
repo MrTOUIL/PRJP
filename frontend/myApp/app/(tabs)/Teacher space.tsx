@@ -1,5 +1,6 @@
-import TeacherSpace from '@/app/(teacher_space)/teacherSpace';
+import React from 'react';
+import { Redirect } from 'expo-router';
 
-export default function Page() {
-  return <TeacherSpace />;
+export default function TeacherSpaceTabsRedirect() {
+  return <Redirect href="/(teacher_space)/teacherSpace" />;
 }

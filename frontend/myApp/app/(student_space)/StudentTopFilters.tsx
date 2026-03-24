@@ -38,7 +38,7 @@ export default function StudentTopFilters({ activeFilter, onSelect, style }: Stu
                       } else if (item.id === "requests") {
                           router.push("/requests");
                       } else if (item.id === "services") {
-                    router.back();
+                    router.push("/StServices");
                      } else if (item.id === "subjects") {
                     router.push("/Subjects");
                      }else if (item.id === "suggestions") {

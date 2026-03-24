@@ -35,23 +35,23 @@ export default function StudentDocuments({ onSelectFilter }: StudentDocumentsPro
       <Animated.View entering={FadeInDown.duration(600)} style={styles.header}>
         <View style={styles.headerTop}>
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-               <Ionicons name="chevron-back" size={24} color="#fff" />
+               <Ionicons name="chevron-back" size={20} color="#fff" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>My Documents</Text>
           <TouchableOpacity style={styles.searchButton}>
-               <Ionicons name="search" size={24} color="#fff" />
+               <Ionicons name="search" size={20} color="#fff" />
           </TouchableOpacity>
         </View>
 
         <Animated.View entering={FadeInUp.delay(100).duration(600)} style={styles.searchContainer}>
-          <Ionicons name="search" size={20} color="#94A3B8" style={styles.searchIcon} />
+          <Ionicons name="search" size={16} color="#94A3B8" style={styles.searchIcon} />
           <TextInput 
             placeholder="Search documents..." 
             placeholderTextColor="#94A3B8"
             style={styles.searchInput}
           />
           <TouchableOpacity>
-             <Ionicons name="options-outline" size={20} color="#1E1B6B" />
+             <Ionicons name="options-outline" size={16} color="#1E1B6B" />
           </TouchableOpacity>
         </Animated.View>
       </Animated.View>
@@ -122,9 +122,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
   },
   header: {
-    paddingTop: 50, // Standard status bar spacing
-    paddingBottom: 25,
-    paddingHorizontal: 20,
+    paddingTop: 34,
+    paddingBottom: 14,
     backgroundColor: '#1E1B6B', // Deep Blue
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
@@ -139,19 +138,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 14,
+    paddingHorizontal: 16,
+    marginBottom: 10,
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: '700',
     color: '#fff',
-    letterSpacing: 0.5,
+    letterSpacing: 0.2,
   },
   backButton: {
-    padding: 4,
+    padding: 2,
   },
   searchButton: {
-    padding: 4,
+    padding: 2,
   },
   content: {
     flex: 1,
@@ -165,27 +165,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#fff',
-    borderRadius: 16,
-    paddingHorizontal: 15,
-    height: 55,
-    marginTop: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 12,
-    zIndex: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.05)',
+    borderRadius: 12,
+    marginHorizontal: 16,
+    height: 38,
+    paddingHorizontal: 10,
   },
   searchIcon: {
-    marginRight: 12,
+    marginRight: 7,
   },
   searchInput: {
     flex: 1,
     height: '100%',
     color: '#1E293B',
-    fontSize: 15,
+    fontSize: 12,
     fontWeight: '500',
   },
   categoriesContainer: {

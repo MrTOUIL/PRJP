@@ -102,13 +102,7 @@ export default function ServicePedagogique() {
   };
 
   const handleAddResource = () => {
-    // Logic to pick file would go here
-    // For now, simulate adding a file for demonstration
-    const newResource = {
-        name: `Lesson_Plan_Module_${resources.length + 1}.pdf`,
-        type: 'pdf'
-    };
-    setResources([...resources, newResource]);
+    router.push('/(teacher_space)/teacherResources');
   };
 
   const handleRemoveResource = (index: number) => {
@@ -308,12 +302,13 @@ export default function ServicePedagogique() {
 
             <TouchableOpacity style={styles.uploadButton} onPress={handleAddResource}>
                 <View style={styles.uploadIconContainer}>
-                    <FontAwesome5 name="cloud-upload-alt" size={24} color={COLORS.primary} />
+                    <FontAwesome5 name="folder-open" size={24} color={COLORS.primary} />
                 </View>
                 <View style={styles.uploadTextContainer}>
-                    <Text style={styles.uploadTitle}>Click to upload materials</Text>
-                    <Text style={styles.uploadSubtitle}>PDF, DOCX, JPG (Max 5MB)</Text>
+                    <Text style={styles.uploadTitle}>Open Resource Space</Text>
+                    <Text style={styles.uploadSubtitle}>Manage Courses, Exercises, Videos</Text>
                 </View>
+                <FontAwesome5 name="chevron-right" size={16} color={COLORS.textLight} />
             </TouchableOpacity>
 
             {/* List of attached resources */}

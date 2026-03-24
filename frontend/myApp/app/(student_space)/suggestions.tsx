@@ -101,9 +101,6 @@ export default function SuggestionsScreen() {
 							placeholderTextColor="#94A3B8"
 							style={styles.searchInput}
 						/>
-						<TouchableOpacity activeOpacity={0.8}>
-							<Ionicons name="options-outline" size={16} color="#1E1B6B" />
-						</TouchableOpacity>
 					</View>
 				</View>
 
@@ -154,24 +151,6 @@ export default function SuggestionsScreen() {
 					</ScrollView>
 				</View>
 
-				<View style={styles.bottomNav}>
-					<TouchableOpacity style={styles.navItem} activeOpacity={0.8}>
-						<Ionicons name="home-outline" size={17} color="#2A2A71" />
-						<Text style={[styles.navLabel, styles.navLabelActive]}>HOME</Text>
-					</TouchableOpacity>
-					<TouchableOpacity style={styles.navItem} activeOpacity={0.8}>
-						<Ionicons name="chatbubble-ellipses-outline" size={17} color="#C2C7D6" />
-						<Text style={styles.navLabel}>MESSAGES</Text>
-					</TouchableOpacity>
-					<TouchableOpacity style={styles.navItem} activeOpacity={0.8}>
-						<Ionicons name="notifications-outline" size={17} color="#C2C7D6" />
-						<Text style={styles.navLabel}>ALERTS</Text>
-					</TouchableOpacity>
-					<TouchableOpacity style={styles.navItem} activeOpacity={0.8}>
-						<Ionicons name="person-outline" size={17} color="#C2C7D6" />
-						<Text style={styles.navLabel}>PROFILE</Text>
-					</TouchableOpacity>
-				</View>
 			</View>
 		</SafeAreaView>
 	);
@@ -232,8 +211,8 @@ const styles = StyleSheet.create({
 	},
 	mainContent: {
 		flex: 1,
-		paddingHorizontal: 12,
-		paddingTop: 4,
+		paddingHorizontal: 14,
+		paddingTop: 6,
 		paddingBottom: 2,
 	},
 	contentScroll: {
@@ -247,17 +226,17 @@ const styles = StyleSheet.create({
 		fontWeight: '500',
 	},
 	filterRow: {
-		paddingTop: 8,
-		paddingBottom: 5,
-		gap: 6,
+		paddingTop: 10,
+		paddingBottom: 7,
+		gap: 8,
 	},
 	filterChip: {
 		backgroundColor: '#F4F5F9',
 		borderColor: '#DFE3EF',
 		borderWidth: 1,
-		paddingHorizontal: 12,
-		height: 24,
-		borderRadius: 12,
+		paddingHorizontal: 14,
+		height: 28,
+		borderRadius: 14,
 		justifyContent: 'center',
 	},
 	filterChipActive: {
@@ -265,7 +244,7 @@ const styles = StyleSheet.create({
 		borderColor: '#19226D',
 	},
 	filterText: {
-		fontSize: 9,
+		fontSize: 11,
 		color: '#9AA2B5',
 		fontWeight: '600',
 	},
@@ -279,25 +258,25 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 	},
 	sectionTitle: {
-		fontSize: 12,
+		fontSize: 14,
 		fontWeight: '700',
 		color: '#2A2E45',
 	},
 	sectionHint: {
-		fontSize: 9,
+		fontSize: 11,
 		color: '#B0B8CA',
 		fontWeight: '600',
 	},
 	listWrap: {
-		paddingTop: 6,
+		paddingTop: 8,
 		paddingBottom: 2,
-		gap: 8,
+		gap: 10,
 	},
 	card: {
 		backgroundColor: '#FFFFFF',
-		borderRadius: 14,
-		paddingHorizontal: 10,
-		paddingVertical: 10,
+		borderRadius: 16,
+		paddingHorizontal: 12,
+		paddingVertical: 12,
 		borderWidth: 1,
 		borderColor: '#E7EBF4',
 	},
@@ -306,9 +285,9 @@ const styles = StyleSheet.create({
 		alignItems: 'flex-start',
 	},
 	avatar: {
-		width: 34,
-		height: 34,
-		borderRadius: 17,
+		width: 40,
+		height: 40,
+		borderRadius: 20,
 		justifyContent: 'center',
 		alignItems: 'center',
 		marginTop: 2,
@@ -316,96 +295,72 @@ const styles = StyleSheet.create({
 	avatarText: {
 		color: '#FFFFFF',
 		fontWeight: '700',
-		fontSize: 14,
+		fontSize: 16,
 	},
 	cardInfo: {
-		marginLeft: 9,
+		marginLeft: 11,
 		flex: 1,
 	},
 	cardName: {
-		fontSize: 11,
+		fontSize: 14,
 		color: '#2E324A',
 		fontWeight: '700',
 	},
 	cardSubtitle: {
-		marginTop: 1,
+		marginTop: 2,
 		color: '#A0A7B8',
-		fontSize: 8,
-		fontWeight: '500',
+		fontSize: 10,
+		fontWeight: '600',
 	},
 	tagsRow: {
-		marginTop: 4,
+		marginTop: 6,
 		flexDirection: 'row',
 		alignItems: 'center',
-		gap: 3,
+		gap: 4,
 	},
 	subjectTag: {
-		fontSize: 8,
+		fontSize: 10,
 		fontWeight: '700',
 	},
 	dotTag: {
-		fontSize: 8,
+		fontSize: 10,
 		color: '#D2D6E2',
 		fontWeight: '700',
 	},
 	levelTag: {
-		fontSize: 8,
+		fontSize: 10,
 		color: '#535E7A',
 		fontWeight: '700',
 	},
 	actionsRow: {
 		flexDirection: 'row',
-		marginTop: 8,
-		gap: 7,
+		marginTop: 10,
+		gap: 8,
 	},
 	requestButton: {
 		flex: 1,
-		height: 26,
-		borderRadius: 13,
+		height: 34,
+		borderRadius: 17,
 		backgroundColor: '#1D2A82',
 		justifyContent: 'center',
 		alignItems: 'center',
 	},
 	requestButtonText: {
 		color: '#FFFFFF',
-		fontSize: 9,
+		fontSize: 11,
 		fontWeight: '700',
 	},
 	messageButton: {
 		flex: 1,
-		height: 26,
-		borderRadius: 13,
+		height: 34,
+		borderRadius: 17,
 		backgroundColor: '#F2F4FB',
 		justifyContent: 'center',
 		alignItems: 'center',
 	},
 	messageButtonText: {
 		color: '#2E3A75',
-		fontSize: 9,
+		fontSize: 11,
 		fontWeight: '700',
-	},
-	bottomNav: {
-		height: 54,
-		borderTopColor: '#E8EAF1',
-		borderTopWidth: 1,
-		backgroundColor: '#FFFFFF',
-		flexDirection: 'row',
-		justifyContent: 'space-around',
-		alignItems: 'center',
-		paddingHorizontal: 4,
-	},
-	navItem: {
-		alignItems: 'center',
-		justifyContent: 'center',
-		minWidth: 60,
-		gap: 3,
-	},
-	navLabel: {
-		fontSize: 8,
-		fontWeight: '700',
-		color: '#C2C7D6',
-	},
-	navLabelActive: {
-		color: '#222C73',
 	},
 });
