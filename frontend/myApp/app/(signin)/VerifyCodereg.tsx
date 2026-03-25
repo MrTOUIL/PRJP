@@ -18,12 +18,14 @@ import Animated, { FadeInDown, FadeInUp, useSharedValue, useAnimatedStyle, withR
 import { useLocalSearchParams } from 'expo-router';
 
 const { width } = Dimensions.get('window');
+const OTP_INPUT_SIZE = Math.min(46, (width - 72) / 6);
 
 // Colors based on screenshots
 const COLORS = {
   primary: '#0A1142', // Deep Dark Blue header bg
   primaryLight: '#1E2A78', // Lighter blue for gradient
   accent: '#FFC805', // Use FFC805 for closer match to screenshot yellow
+  error: '#EF4444',
   background: '#F4F6F9', // Light gray background body
   white: '#FFFFFF',
   text: '#1F2937',
@@ -446,17 +448,19 @@ const styles = StyleSheet.create({
       justifyContent: 'space-between',
       marginBottom: 20,
       marginTop: 10,
+      paddingHorizontal: 2,
   },
   otpInput: {
-      width: (width - 40) / 6, 
-      height: 50,
+      width: OTP_INPUT_SIZE,
+      height: OTP_INPUT_SIZE,
+      marginHorizontal: 2,
       backgroundColor: COLORS.inputBg,
       borderWidth: 1,
       borderColor: COLORS.border,
       borderRadius: 8,
       textAlign: 'center',
-      fontSize: 18,
-      fontWeight: 'bold',
+      fontSize: 16,
+      fontWeight: '700',
       color: COLORS.text,
   },
   timerContainer: {
