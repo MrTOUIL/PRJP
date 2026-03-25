@@ -229,7 +229,7 @@ export default function Sprofile() {
             <Text style={styles.primaryButtonText}>Edit Profile</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.secondaryButton}>
+          <TouchableOpacity style={styles.secondaryButton} onPress={()=> {router.push('/(signin)/log_out')}}>
             <Ionicons name="log-out-outline" size={18} color="#EF4444" />
             <Text style={styles.secondaryButtonText}>Log Out</Text>
           </TouchableOpacity>
@@ -595,3 +595,4 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 });
+

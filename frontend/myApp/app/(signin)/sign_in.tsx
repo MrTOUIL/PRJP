@@ -18,11 +18,13 @@ const { width } = Dimensions.get('window');
 export default function SignIn() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-
+  const [loading , setLoading] = useState(false) ;
+  const [msg , setMsg] = useState("") ;  
   // Shared values for animations (similar to WelcomePage)
   const logoFloat = useSharedValue(0);
   const logoScale = useSharedValue(1);
   const logoRotate = useSharedValue(0);
+  const spinnerRotate = useSharedValue(0);
 
   useEffect(() => {
     // Floating animation
@@ -56,6 +58,9 @@ export default function SignIn() {
         -1,
         true
       );
+
+      // Spinner rotation
+      spinnerRotate.value = withRepeat(withTiming(360, { duration: 1000 }), -1, false);
   }, []);
 
   const animatedLogoStyle = useAnimatedStyle(() => {
@@ -65,6 +70,12 @@ export default function SignIn() {
         { scale: logoScale.value },
         { rotate: `${logoRotate.value}deg` } // Apply subtle rotation
       ],
+    };
+  });
+
+  const animatedSpinnerStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ rotate: `${spinnerRotate.value}deg` }],
     };
   });
   const router = useRouter();
@@ -78,35 +89,41 @@ export default function SignIn() {
 
    }
 
-   const handleLogin = async () => {
-  try {
-    const response = await fetch('http://localhost:5000/logs/login', {
-      method: 'POST',
-      credentials: 'include', // Include cookies for session management
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    });
+   const handleEmail = (text:string):void => {
+     setEmail(text) ;
+   }
 
+   const handlePassword = (text:string):void => {
+    setPassword(text) ; 
+   } 
 
-    const data = await response.json();
-
-
-    if (data.succ) {
-      alert('Login successful!');
-      if (data.role === 'student') router.push('/(student_space)/studentSpace');
-      else if (data.role === 'teacher') router.push('/teacherSpace');
-      else if (data.role === 'parent') router.push('/(student_space)/studentSpace');
    
-    } else {
-      alert(data.error || 'Login failed');
-    }
 
+   const handleLogin = ():void => {
+    setLoading(true) ; 
+    setMsg("") ; 
+    setEmail("") ; setPassword("") ; 
+    const BASE_URL = "https://localhost:5000"
+    fetch(`${BASE_URL}/logs/login`,{
+      method:"POST",
+      headers:{"Content-Type": "application/json"},
+      body:JSON.stringify({email,password})
+    })
+    .then(res => res.json())
+    .then(data => {
+      setLoading(false) ; 
+      if (data.error){
+        setMsg("Error in entry or user does not exist") ;
+      }else if (data.succ){
+        if (data.role == "student" || data.role == "parent") router.push({pathname:"/(student_space)/studentSpace" , params:{id:data.id}}) ; 
+        if (data.role == "teacher") router.push({
+          pathname:"/(teacher_space)/teacherSpace" , 
+          params:{id:data.id}
+        });  
+      }
+    })
+   }
 
-  } catch (error) {
-    console.error('Login error:', error);
-    alert('server error');
-  }
-};
 
 
   return (
@@ -178,7 +195,7 @@ export default function SignIn() {
                             placeholder="Email"
                             placeholderTextColor="#999"
                             value={email}
-                            onChangeText={setEmail}
+                            onChangeText={handleEmail}
                             keyboardType="email-address"
                             autoCapitalize="none"
                         />
@@ -191,7 +208,7 @@ export default function SignIn() {
                             placeholder="Password"
                             placeholderTextColor="#999"
                             value={password}
-                            onChangeText={setPassword}
+                            onChangeText={handlePassword}
                             secureTextEntry={true}
                         />
                     </View>
@@ -204,6 +221,13 @@ export default function SignIn() {
                     </TouchableOpacity>
                 </Animated.View>
 
+                {/*the message "msg" space*/}
+                 
+                  <Animated.View entering={FadeInDown.duration(400).springify()}>
+                    <Text style={styles.messageText}>{msg}</Text>
+                  </Animated.View>
+                
+
                 {/* Sign In Button */}
                 <Animated.View entering={FadeInDown.delay(800).duration(600).springify()}>
                     <TouchableOpacity
@@ -213,6 +237,14 @@ export default function SignIn() {
                         <Text style={styles.signInButtonText}>Sign In</Text>
                     </TouchableOpacity>
                 </Animated.View>
+
+                {/*the spinning that will be activated when loading = true*/}
+                {loading && (
+                  <Animated.View
+                    entering={FadeInDown.duration(300).springify()}
+                    style={[styles.spinner, animatedSpinnerStyle]}
+                  />
+                )}
 
                 {/* Sign Up Link */}
                 <Animated.View 
@@ -349,6 +381,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 30,
   },
+  messageText: {
+    color: '#D4AF37',
+    fontSize: 13,
+    marginBottom: 20,
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
   signInButton: {
     backgroundColor: '#33307E',
     width: 220,
@@ -368,6 +407,22 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  spinner: {
+    width: 40,
+    height: 40,
+    borderWidth: 4,
+    borderColor: '#D4AF37',
+    borderTopColor: 'transparent',
+    borderRadius: 20,
+    alignSelf: 'center',
+    marginBottom: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    shadowColor: '#D4AF37',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
   },
   signUpContainer: {
     flexDirection: 'row',

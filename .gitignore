@@ -3,13 +3,11 @@
 ############################
 node_modules/
 **/node_modules/
-
 ############################
 # Environment variables
 ############################
 .env
 **/.env
-
 ############################
 # Expo / React Native
 ############################
@@ -17,31 +15,23 @@ node_modules/
 .expo-shared/
 dist/
 web-build/
-
 ############################
 # Logs
 ############################
 logs/
 *.log
-
 ############################
 # OS files
 ############################
 .DS_Store
 Thumbs.db
-
 ############################
 # IDE files (optional but recommended)
 ############################
 .vscode/
 .idea/
-
-
 ############################
 # put the server.key and the sever.crt 
 ############################
-
 /backend/server.key
-/backend/server.crt
-
-
+/backend/server.cert

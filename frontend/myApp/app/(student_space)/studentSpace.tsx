@@ -1,9 +1,21 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, Dimensions, Platform, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeInDown, FadeInRight, FadeInUp } from 'react-native-reanimated';
+import Animated, {
+    Easing,
+    FadeInDown,
+    FadeInRight,
+    FadeInUp,
+    useAnimatedStyle,
+    useSharedValue,
+    withDelay,
+    withRepeat,
+    withSequence,
+    withTiming,
+} from 'react-native-reanimated';
 import StudentTopFilters, { StudentMenuFilter } from './StudentTopFilters';
 import { useRouter } from 'expo-router';    
+
 const { width } = Dimensions.get('window');
 
 const TUTOR_SUGGESTIONS = [
@@ -47,9 +59,55 @@ export default function StudentSpace({
     const showSubjects = activeFilter === 'all' || activeFilter === 'subjects';
     const showRequests = activeFilter === 'all' || activeFilter === 'requests';
     const showDocuments = activeFilter === 'documents';
+    const orbX = useSharedValue(-180);
+    const orbY = useSharedValue(18);
+    const orbOpacity = useSharedValue(0);
+
+    useEffect(() => {
+        orbX.value = withRepeat(
+            withSequence(
+                withTiming(width * 0.16, { duration: 900, easing: Easing.out(Easing.cubic) }),
+                withTiming(width * 0.28, { duration: 700, easing: Easing.inOut(Easing.quad) }),
+                withTiming(width * 0.18, { duration: 700, easing: Easing.inOut(Easing.quad) }),
+                withTiming(width * 0.92, { duration: 820, easing: Easing.in(Easing.cubic) }),
+                withTiming(-180, { duration: 0 }),
+                withDelay(420, withTiming(-180, { duration: 0 }))
+            ),
+            -1,
+            false
+        );
+
+        orbY.value = withRepeat(
+            withSequence(
+                withTiming(40, { duration: 900, easing: Easing.out(Easing.quad) }),
+                withTiming(24, { duration: 700, easing: Easing.inOut(Easing.quad) }),
+                withTiming(36, { duration: 700, easing: Easing.inOut(Easing.quad) }),
+                withTiming(14, { duration: 820, easing: Easing.in(Easing.quad) }),
+                withTiming(18, { duration: 0 }),
+                withDelay(420, withTiming(18, { duration: 0 }))
+            ),
+            -1,
+            false
+        );
+
+        orbOpacity.value = withRepeat(
+            withSequence(
+                withTiming(0.22, { duration: 280, easing: Easing.out(Easing.quad) }),
+                withTiming(0.18, { duration: 1700, easing: Easing.inOut(Easing.quad) }),
+                withTiming(0, { duration: 620, easing: Easing.in(Easing.quad) }),
+                withDelay(420, withTiming(0, { duration: 0 }))
+            ),
+            -1,
+            false
+        );
+    }, [orbX, orbY, orbOpacity]);
+
+    const orbStyle = useAnimatedStyle(() => ({
+        transform: [{ translateX: orbX.value }, { translateY: orbY.value }],
+        opacity: orbOpacity.value,
+    }));
 
   const router = useRouter();
-
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -120,6 +178,7 @@ export default function StudentSpace({
 
         {/* Upcoming Session Promo */}
         <Animated.View entering={FadeInRight.delay(500).duration(600)} style={styles.promoCard}>
+              <Animated.View pointerEvents="none" style={[styles.promoGlowOrb, orbStyle]} />
           <View style={styles.promoContent}>
              <View style={styles.promoTag}>
                 <Ionicons name="time" size={12} color="#1E1B6B" /> {/* Deep Blue */}
@@ -130,8 +189,8 @@ export default function StudentSpace({
              <Text style={styles.promoTime}>Fri 27 Feb · 16:00 - 18:00</Text>
           </View>
           <TouchableOpacity style={styles.joinButton}>
-             <Text style={styles.joinButtonText}>Join</Text>
-             <Ionicons name="arrow-forward" size={16} color="#fff" />
+                 <Text style={styles.joinButtonText}>View Details</Text>
+                 <Ionicons name="arrow-forward" size={16} color="#1E1B6B" />
           </TouchableOpacity>
         </Animated.View>
 
@@ -156,8 +215,10 @@ export default function StudentSpace({
                             </View>
                         </View>
                         <View style={styles.tutorFooter}>
-                            <TouchableOpacity style={styles.tutorButton}  onPress={() => { router.push('/(student_space)/Qoute'); }} >
+
+                     <TouchableOpacity style={styles.tutorButton}  onPress={() => { router.push('/(student_space)/Qoute'); }} >
                                 <Text style={styles.tutorButtonText} >Send Request</Text>
+
                             </TouchableOpacity>
                         </View>
                     </Animated.View>
@@ -457,21 +518,37 @@ const styles = StyleSheet.create({
   },
   promoCard: {
       backgroundColor: '#2E2E8B', // Darker Blue variant
-      borderRadius: 18,
-      padding: 20,
+      borderRadius: 22,
+      paddingVertical: 24,
+      paddingHorizontal: 22,
       marginBottom: 30,
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
       shadowColor: '#1E1B6B',
       shadowOpacity: 0.3,
       shadowOffset: { width: 0, height: 8 },
       shadowRadius: 12,
       elevation: 6,
+      overflow: 'hidden',
+      minHeight: 168,
+      position: 'relative',
+  },
+  promoGlowOrb: {
+      position: 'absolute',
+      top: 8,
+      left: -80,
+      width: 188,
+      height: 188,
+      borderRadius: 94,
+      backgroundColor: 'rgba(255, 244, 190, 0.24)',
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.22)',
+      shadowColor: '#FFF6D2',
+      shadowOpacity: 0.42,
+      shadowRadius: 22,
+      shadowOffset: { width: 0, height: 0 },
   },
   promoContent: {
-      flex: 1,
-      marginRight: 15,
+      width: '100%',
+      zIndex: 2,
   },
   promoTag: {
       flexDirection: 'row',
@@ -507,22 +584,26 @@ const styles = StyleSheet.create({
       fontWeight: '600',
   },
   joinButton: {
-      backgroundColor: '#FFD700', // Gold button
-      paddingHorizontal: 16,
-      paddingVertical: 10,
+      backgroundColor: '#FFE44D',
+      paddingHorizontal: 18,
+      paddingVertical: 12,
       borderRadius: 25,
       flexDirection: 'row',
       alignItems: 'center',
-      shadowColor: '#000',
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 2,
+      shadowColor: '#FFE44D',
+      shadowOpacity: 0.5,
+      shadowRadius: 10,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 6,
+      zIndex: 2,
+      alignSelf: 'flex-end',
+      marginTop: 12,
   },
   joinButtonText: {
       color: '#1E1B6B', // Blue text on Gold
       fontWeight: 'bold',
       marginRight: 5,
-      fontSize: 14,
+      fontSize: 13,
   },
   sectionHeader: {
       flexDirection: 'row',

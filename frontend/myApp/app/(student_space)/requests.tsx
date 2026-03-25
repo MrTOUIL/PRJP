@@ -91,7 +91,6 @@ export default function StudentRequests({ onSelectFilter }: StudentRequestsProps
             placeholderTextColor="#94A3B8"
             style={styles.searchInput}
           />
-          
         </View>
       </Animated.View>
 

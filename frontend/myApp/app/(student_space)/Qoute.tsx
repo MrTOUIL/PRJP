@@ -141,6 +141,7 @@ export default function DevisPedagogique() {
 
         <SafeAreaView>
           <View style={styles.headerContent}>
+
             <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
               <View style={styles.backIconCircle}>
                 <MaterialIcons name="chevron-left" size={24} color={COLORS.white} />

@@ -172,10 +172,10 @@ export default function SignUp() {
                     if (selectedRole === 'student') {
                         router.push('/sign_Up_Student'); 
                     } else if (selectedRole === 'teacher') {
-                        router.push('/sign_Up_teacher'); 
-                    } /*else if (selectedRole === 'parent') {
-                      router.push('/parentRegistration'); 
-                   }*/
+                        router.push('/(signin)/sign_Up_teacher'); 
+                    } else if (selectedRole === 'parent') {
+                      router.push('/(signin)/sign_Up_parent'); 
+                   }
   }}
           >
             <Text style={styles.continueButtonText}>Continue</Text>
