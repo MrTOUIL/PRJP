@@ -19,6 +19,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 
+import * as SecureStore from "expo-secure-store";
+
 const { width } = Dimensions.get('window');
 
 // Colors
@@ -451,6 +453,31 @@ export default function WelcomePage() {
    const gotosignup = ():void => {
     router.push('/signup');
    }
+
+   useEffect(() => {
+  const checkAuth = async () => {
+    try {
+      const token = await SecureStore.getItemAsync("accessToken");
+      const role = await SecureStore.getItemAsync("role");
+
+      if (!token) {
+        /*router.replace("/signin");*/
+        return;
+      }
+      if (role === "teacher") {
+        router.replace("/(teacher_space)/teacherSpace");
+      } else {
+        router.replace("/(student_space)/studentSpace");
+      }
+
+    } catch (err) {
+      /*router.replace("/signin") */
+      console.error("error!!!") ; 
+    }
+  };
+
+  checkAuth();
+}, []);
 
   return (
     <View style={styles.mainContainer}>

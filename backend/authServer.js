@@ -313,8 +313,35 @@ router.post("/addactor",
             academic_level:pending_st.academic_level,
             role:"student"
           }) ;
+
           await student_pendings.deleteOne({email:email}) ;
-          res.json({succ:"register_done!" , id:a._id , role:user.role}) ;
+
+          const accessToken = jwt.sign(
+            { id: a._id, role: a.role },
+            process.env.JWT_SECRET,
+            { expiresIn: "1h" }
+          );
+
+          const refreshToken = jwt.sign(
+            { id: a._id },
+            process.env.REFRESH_SECRET,
+            { expiresIn: "7d" }
+          );
+
+          //remove old tokens
+          await tokens.deleteMany({ userId: a._id });
+
+          //store refresh token
+          await tokens.create({
+            userId: a._id,
+            token: refreshToken
+          });
+
+          res.json({
+            accessToken,
+            refreshToken,
+            role: a.role
+          });
 
         }
 
@@ -333,7 +360,33 @@ router.post("/addactor",
           }) ; 
 
           await parent_pendings.deleteOne({email:email}) ; 
-          res.json({succ:"register_done!" , id:a._id , role:user.role}) ;
+
+         const accessToken = jwt.sign(
+            { id: a._id, role: a.role },
+            process.env.JWT_SECRET,
+            { expiresIn: "1h" }
+          );
+
+          const refreshToken = jwt.sign(
+            { id: a._id },
+            process.env.REFRESH_SECRET,
+            { expiresIn: "7d" }
+          );
+
+          //remove old tokens
+          await tokens.deleteMany({ userId: a._id });
+
+          //store refresh token
+          await tokens.create({
+            userId: a._id,
+            token: refreshToken
+          });
+
+          res.json({
+            accessToken,
+            refreshToken,
+            role: a.role
+          });
         }
 
         if (user.role === "teacher"){
@@ -347,7 +400,33 @@ router.post("/addactor",
         });
 
         await teacher_pendings.deleteOne({email:email});
-        res.json({succ:"register_done!" , id:a._id , role:user.role}) ;
+        
+        const accessToken = jwt.sign(
+            { id: a._id, role: a.role },
+            process.env.JWT_SECRET,
+            { expiresIn: "1h" }
+          );
+
+          const refreshToken = jwt.sign(
+            { id: a._id },
+            process.env.REFRESH_SECRET,
+            { expiresIn: "7d" }
+          );
+
+          //remove old tokens
+          await tokens.deleteMany({ userId: a._id });
+
+          //store refresh token
+          await tokens.create({
+            userId: a._id,
+            token: refreshToken
+          });
+
+          res.json({
+            accessToken,
+            refreshToken,
+            role: a.role
+          });
         }
         
     }catch(e){
@@ -383,7 +462,7 @@ function generateRefreshToken(user){
   )
 }*/
 
-router.post("/login",
+/*router.post("/login",
   body("email").isEmail().normalizeEmail().trim(),
   body("password").isString().trim().isLength({min:8}),
   async(req,res) => {
@@ -405,8 +484,26 @@ router.post("/login",
           if (!ismatch){
             return res.json({error:"invalid credentials"})
           }
-          
-          res.json({succ:"login success!" , role:"student" , id:user1._id}) ; 
+
+          const accesstoken = jwt.sign(
+            {id:user1._id},
+            process.env.JWT_SECRET,
+            {
+              expiresIn:"1h"
+            }
+          ) ;
+          const refreshtoken = jwt.sign(
+            {id:user1._id},
+            process.env.REFRESH_SECRET,
+            {expiresIn:"7d"}
+          ) ; 
+          //store in db , 
+          await tokens.create({
+            userId:user1._id , 
+            token:refreshtoken
+          }) ; 
+
+          res.json({accesstoken , refreshtoken ,role:"student"}) ; 
         }
 
         else if (user2){
@@ -442,7 +539,73 @@ router.post("/login",
         res.json({error:"login failed!"}) ;
     } 
   }
-) ;
+) ;*/
+
+router.post("/login",
+  body("email").isEmail().normalizeEmail().trim(),
+  body("password").isString().trim().isLength({ min: 8 }),
+  async (req, res) => {
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ error: errors.array() });
+    }
+
+    try {
+      const { email, password } = req.body;
+
+      // 🔍 find user in all collections
+      const user =
+        await students.findOne({ email }) ||
+        await parents.findOne({ email }) ||
+        await teachers.findOne({ email }) ||
+        await admins.findOne({ email });
+
+      if (!user) {
+        return res.json({ error: "invalid credentials" });
+      }
+
+      
+      const isMatch = await bcrypt.compare(password, user.password);
+      if (!isMatch) {
+        return res.json({ error: "invalid credentials" });
+      }
+
+      
+      const accessToken = jwt.sign(
+        { id: user._id, role: user.role },
+        process.env.JWT_SECRET,
+        { expiresIn: "1h" }
+      );
+
+      const refreshToken = jwt.sign(
+        { id: user._id },
+        process.env.REFRESH_SECRET,
+        { expiresIn: "7d" }
+      );
+
+      //remove old tokens
+      await tokens.deleteMany({ userId: user._id });
+
+      //store refresh token
+      await tokens.create({
+        userId: user._id,
+        token: refreshToken
+      });
+
+      //send response
+      res.json({
+        accessToken,
+        refreshToken,
+        role: user.role
+      });
+
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: "login failed!" });
+    }
+  }
+);
 
 //==========handling "forgetpassword" routes==========//
 router.post("/forgetpw_mail",

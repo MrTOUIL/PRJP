@@ -13,6 +13,8 @@ import Animated, {
   Easing 
 } from 'react-native-reanimated';
 
+import * as SecureStore from 'expo-secure-store';
+
 const { width } = Dimensions.get('window');
 
 export default function SignIn() {
@@ -99,7 +101,7 @@ export default function SignIn() {
 
    
 
-   const handleLogin = ():void => {
+   /*const handleLogin = ():void => {
     setLoading(true) ; 
     setMsg("") ; 
     setEmail("") ; setPassword("") ; 
@@ -114,7 +116,7 @@ export default function SignIn() {
       setLoading(false) ; 
       if (data.error){
         setMsg("Error in entry or user does not exist") ;
-      }else if (data.succ){
+      }else{
         if (data.role == "student" || data.role == "parent") router.push({pathname:"/(student_space)/studentSpace" , params:{id:data.id}}) ; 
         if (data.role == "teacher") router.push({
           pathname:"/(teacher_space)/teacherSpace" , 
@@ -122,7 +124,52 @@ export default function SignIn() {
         });  
       }
     })
-   }
+   }*/
+
+    const handleLogin = (): void => {
+  setLoading(true);
+  setMsg("");
+
+  const BASE_URL = "https://localhost:5000";
+
+  fetch(`http://192.168.143.250:5000/logs/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password })
+  })
+    .then(res => res.json())
+    .then(async (data) => {
+      setLoading(false);
+
+      if (data.error) {
+        setMsg("Error in entry or user does not exist");
+        return;
+      }
+
+      try {
+        //SAVE TOKENS DIRECTLY HERE
+        await SecureStore.setItemAsync("accessToken", data.accessToken);
+        await SecureStore.setItemAsync("refreshToken", data.refreshToken);
+        await SecureStore.setItemAsync("role", data.role);
+
+        //NAVIGATION (no id needed anymore)
+        if (data.role === "student" || data.role === "parent") {
+          router.push("/(student_space)/studentSpace");
+        }
+
+        if (data.role === "teacher") {
+          router.push("/(teacher_space)/teacherSpace");
+        }
+
+      } catch (e) {
+        setMsg("Failed to store session");
+      }
+    })
+    .catch(() => {
+      setLoading(false);
+      setMsg("Network error");
+    });
+};
 
 
 

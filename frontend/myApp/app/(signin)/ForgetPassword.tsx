@@ -60,7 +60,7 @@ export default function ForgetPassword() {
 
   const handleSend = ():void => {
     setMsg("") ; setLoading(true) ; 
-    fetch("https://localhost:5000/logs/forgetpw_mail",{
+    fetch("http://192.168.143.250:5000/logs/forgetpw_mail",{
       method:"POST",
       headers:{"Content-Type": "application/json"},
       body:JSON.stringify({email})
@@ -143,7 +143,7 @@ export default function ForgetPassword() {
           />
         </View>
       </View>
-      <br />
+      <View style={{ height: 16 }} />
       {/*the message "msg" section*/}
       <Animated.View entering={FadeInDown.duration(400).springify()}>
         <Text style={styles.messageText}>{msg}</Text>

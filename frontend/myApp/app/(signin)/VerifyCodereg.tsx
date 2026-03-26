@@ -17,6 +17,8 @@ import { useRouter } from 'expo-router';
 import Animated, { FadeInDown, FadeInUp, useSharedValue, useAnimatedStyle, withRepeat, withTiming, Easing } from 'react-native-reanimated';
 import { useLocalSearchParams } from 'expo-router';
 
+import * as SecureStore from "expo-secure-store";
+
 const { width } = Dimensions.get('window');
 const OTP_INPUT_SIZE = Math.min(46, (width - 72) / 6);
 
@@ -70,7 +72,7 @@ export default function VerifyCodepw() {
   const handleResend = async ():Promise<void> => {
     setMsg("") ;
     setLoading1(true) ;
-    fetch("https://localhost:5000/logs/resend_code",{
+    fetch("http://192.168.143.250:5000/logs/resend_code",{
         method:"PUT",
         headers:{"content-type":"application/json"},
         body:JSON.stringify({email})
@@ -87,7 +89,7 @@ export default function VerifyCodepw() {
   }
 
 
-  const handleVerify = async():Promise<void> => {
+  /*const handleVerify = async():Promise<void> => {
     setMsg("") ; 
     setLoading2(true) ;
     fetch("https://localhost:5000/logs/addactor",{
@@ -105,7 +107,57 @@ export default function VerifyCodepw() {
            if (data.role == "parent" || data.role == "student") router.push({pathname:"/(student_space)/studentSpace" , params:{id:data.id}}) 
         }
     })
-  }
+  }*/
+
+  const handleVerify = async (): Promise<void> => {
+  setMsg("");
+  setLoading2(true);
+
+  fetch("http://192.168.143.250:5000/logs/addactor", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      email,
+      code: Number(otp.join(""))
+    })
+  })
+    .then(res => res.json())
+    .then(async (data) => {
+      setLoading2(false);
+
+      if (data.error) {
+        setMsg(data.error);
+        return;
+      }
+      console.log(data.accessToken , data.refreshToken) ; 
+      try {
+        if (!data.accessToken || !data.refreshToken) {
+          setMsg("Invalid session data received");
+          return;
+        }
+        //STORE TOKENS (same as login)
+        await SecureStore.setItemAsync("accessToken", data.accessToken);
+        await SecureStore.setItemAsync("refreshToken", data.refreshToken);
+        await SecureStore.setItemAsync("role", data.role);
+        
+        //NAVIGATION
+        if (data.role === "teacher") {
+          router.push("/(teacher_space)/teacherSpace");
+        }
+
+        if (data.role === "student" || data.role === "parent") {
+          router.push("/(student_space)/studentSpace");
+        }
+
+      } catch (e) {
+        setMsg("Failed to store session");
+      }
+    })
+    .catch(() => {
+      setLoading2(false);
+      setMsg("Network error");
+    });
+};    
 
   const renderHeader = () => (
     <View style={styles.headerContainer}>

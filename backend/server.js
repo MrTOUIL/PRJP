@@ -1,5 +1,5 @@
 //server.js
-require('dotenv').config() ;
+/*require('dotenv').config() ;
 const express = require('express') ; 
 const app = express() ; 
 const mongoose = require('mongoose') ; 
@@ -33,9 +33,14 @@ async function run() {
        app.use('/logs',require('./authServer')) ;
        app.use('/service',require('./serviceServer')) ; 
 
-       app.listen(5000, () => {
-    console.log("Server running on http://localhost:5000");
-          });
+       const options = {
+        key:fs.readFileSync("server.key"),
+        cert:fs.readFileSync("server.cert")
+       }
+
+       https.createServer(options,app).listen(5000,() => {
+        console.log("Server running on https://localhost:5000") ; 
+       })
     }catch(e){
        console.log("Error in main server!")
        console.error(e);
@@ -43,4 +48,56 @@ async function run() {
     
 }
 
-run(); 
+run(); */
+
+
+// server.js
+require('dotenv').config();
+const express = require('express');
+const app = express();
+const mongoose = require('mongoose');
+const mongoSanitize = require('express-mongo-sanitize');
+const cors = require('cors');
+const cookieParser = require('cookie-parser');
+const dns = require('dns');
+
+app.use(express.json());
+
+app.use(cors({
+  origin: "*",   // or set your IP if you want stricter control
+  credentials: true,
+}));
+
+app.use(mongoSanitize());
+app.use(cookieParser());
+
+// DNS fix (good)
+dns.setServers(['1.1.1.1', '1.0.0.1']);
+
+async function run() {
+  try {
+    await mongoose.connect(
+      `mongodb+srv://PRJP:${process.env.DB_PW}@prjp.do0q945.mongodb.net/alemni-app`
+    );
+
+    console.log("Connected to mongo Atlas✅");
+
+    app.get('/', (req, res) => {
+      res.send("Welcome to Alemni API");
+    });
+
+    app.use('/logs', require('./authServer'));
+    app.use('/service', require('./serviceServer'));
+
+    // ✅ HTTP SERVER (NO HTTPS)
+    app.listen(5000, () => {
+      console.log("Server running on http://localhost:5000");
+    });
+
+  } catch (e) {
+    console.log("Error in main server!");
+    console.error(e);
+  }
+}
+
+run();

@@ -130,7 +130,7 @@ export default function StudentRegister() {
     const handleRegister = ():void => {
         setMsg("") ; 
         setLoading(true) ; 
-        fetch("https://localhost:5000/logs/register_parent",{
+        fetch("http://192.168.143.250:5000/logs/register_parent",{
             method:"POST",
             headers:{"content-type":"application/json"},
             body:JSON.stringify({
@@ -286,7 +286,7 @@ export default function StudentRegister() {
                         />
                     </View>
 
-                    <br />
+                    <View style={{ height: 16 }} />
 
                     {/*<SectionHeader
                         icon="lock"
