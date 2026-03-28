@@ -28,14 +28,14 @@ import { useRouter } from 'expo-router';
 
 // Define theme colors based on the image and existing project style
 const COLORS = {
-  primary: '#1E1B6B',      // Deep Blue
-  secondary: '#FFD700',    // Gold
-  background: '#F8FAFC',   // Light Blue-Grey
+  primary: '#1A1A5E', // Deep Blue / Purple from header
+  secondary: '#FFD700', // Yellow accent
+  background: '#F5F6FA', // Light Gray background
   cardBg: '#FFFFFF',
-  textDark: '#1E293B',     // Dark Slate
-  textLight: '#64748B',    // Slate
-  green: '#10B981',        // Emerald
-  red: '#EF4444',
+  textDark: '#1A1A1A',
+  textLight: '#8E8E93',
+  green: '#00C853',
+  red: '#FF3D00',
   purpleStart: '#2E2E8C',
   purpleEnd: '#1A1A5E',
 };
@@ -111,82 +111,80 @@ export default function TeacherSpace() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
       
-      {/* Header Section - Matching Student Space Design */}
-      <Animated.View entering={FadeInDown.duration(600).springify()} style={styles.header}>
-        {/* Top Right Curve Decoration */}
-        <View style={styles.topRightCurveContainer}>
-            <View style={styles.topRightCurve} />
-            <Image
-                source={require('../../assets/images/Logo_nobg.png')}
-                style={styles.headerLogo}
-                resizeMode="contain"
-            />
-        </View>
+      {/* Header Section */}
+      <View style={styles.headerContainer}>
+        <SafeAreaView>
 
-        <View style={styles.headerContent}>
-            <View style={styles.userInfo}>
-                <View style={styles.avatarContainer}>
-                <Text style={styles.avatarText}>K</Text>
-                </View>
-                <View>
-                    <Text style={styles.greetingText}>Welcome back,</Text>
-                    <Text style={styles.userName}>Karim Hadj</Text>
-                </View>
-            </View>
-        </View>
-
-        <View style={styles.searchRow}>
-            <Animated.View entering={FadeInUp.delay(100).duration(600).springify()} style={styles.searchContainer}>
-                <Ionicons name="search" size={16} color="#94A3B8" style={styles.searchIcon} />
-                <TextInput
-                    placeholder="Search students, subjects..."
-                    placeholderTextColor="#94A3B8"
-                    style={styles.searchInput}
+          {/* Top Logo and Background */}
+          <View style={styles.brandingContainer}>
+            <View style={styles.whiteCurveContainer}>
+                <Image 
+                    source={require('../../assets/images/Logo_nobg.png')} 
+                    style={styles.brandingLogo} 
+                    resizeMode="contain"
                 />
-                <TouchableOpacity style={styles.filterButton}>
-                    <Ionicons name="options" size={14} color="#FFFFFF" />
-                </TouchableOpacity>
-            </Animated.View>
+            </View>
+          </View>
 
-            <TouchableOpacity style={styles.notificationButton}>
-                <Ionicons name="notifications-outline" size={20} color="#FFFFFF" />
-                <View style={styles.notificationBadge} />
-            </TouchableOpacity>
-        </View>
-      </Animated.View>
+          <View style={styles.headerContent}>
+            <View style={styles.profileRow}>
+              <View style={styles.avatarContainer}>
+                <Text style={styles.avatarText}>K</Text>
+                <View style={styles.onlineBadge} />
+              </View>
+              <View style={styles.profileInfo}>
+                <Text style={styles.profileName}>Karim Hadj</Text>
+                <View style={styles.roleTag}>
+                  <FontAwesome5 name="chalkboard-teacher" size={12} color="#FFD700" style={{ marginRight: 5 }} />
+                  <Text style={styles.roleText}>Teacher • <Text style={{color: '#FFD700'}}>Mathematics & Physics</Text></Text>
+                </View>
+              </View>
+            </View>
 
-      <ScrollView 
-        style={styles.scrollContent} 
-        contentContainerStyle={{ paddingBottom: 100, paddingTop: 10 }} 
-        showsVerticalScrollIndicator={false}
-      >
-        
-        {/* Quick Filters / Tabs */}
-        <Animated.View entering={FadeInUp.delay(150).duration(500)} style={styles.filterRow}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{paddingHorizontal: 5}}>
-              {['All', 'Sessions', 'Requests', 'Services'].map((tab, index) => (
+            <View style={styles.searchContainer}>
+              <Feather name="search" size={20} color="#999" style={styles.searchIcon} />
+              <TextInput 
+                placeholder="Search students, subjects, files..." 
+                placeholderTextColor="#999"
+                style={styles.searchInput}
+              />
+              <TouchableOpacity style={styles.filterButton}>
+                <Ionicons name="options" size={20} color="#fff" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Horizontal Tabs */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabsScroll} contentContainerStyle={{ paddingRight: 20 }}>
+              {[
+                { label: 'All', route: null, icon: 'appstore-o', active: true },
+                { label: 'My Sessions', route: '/(teacher_space)/teacherSessions', icon: null },
+                { label: 'Requests', route: '/(teacher_space)/teacherRequests', icon: null },
+                { label: 'Services', route: '/(teacher_space)/servicePdg', icon: null }
+              ].map((tab, index) => (
                 <TouchableOpacity 
                   key={index} 
-                  style={[styles.filterChip, index === 0 && styles.filterChipActive]}
-                  onPress={() => {
-                    if (tab === 'Sessions') router.push('/(teacher_space)/teacherSessions');
-                    else if (tab === 'Requests') router.push('/(teacher_space)/notification');
-                    else if (tab === 'Services') router.push('/(teacher_space)/servicePdg');
-                  }}
+                  style={[styles.tabItem, tab.active ? styles.activeTabItem : styles.inactiveTabItem]}
+                  onPress={() => tab.route ? router.push(tab.route as any) : {}}
+                  activeOpacity={0.8}
                 >
-                  {index === 0 && <AntDesign name="appstore-o" size={14} color="#fff" style={{marginRight: 6}} />}
-                  <Text style={[styles.filterLabel, index === 0 && styles.filterLabelActive]}>
-                    {tab}
+                  {tab.icon && <AntDesign name={tab.icon as any} size={16} color="#fff" style={{marginRight: 6}} />}
+                  <Text style={[styles.tabText, tab.active ? styles.activeTabText : styles.inactiveTabText]}>
+                    {tab.label}
                   </Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
-        </Animated.View>
+          </View>
+        </SafeAreaView>
+      </View>
+
+      <ScrollView style={styles.scrollContent} contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
         
         {/* Stats Section */}
         <Animated.View entering={FadeInDown.delay(100).springify()} style={styles.statsRow}>
           {stats.map((stat, index) => (
             <View key={stat.id} style={styles.statCard}>
+              <FontAwesome5 name={stat.icon} size={20} color={stat.color} style={{ marginBottom: 8 }} />
               <Text style={styles.statValue}>{stat.value}</Text>
               <Text style={styles.statLabel}>{stat.label}</Text>
             </View>
@@ -197,20 +195,30 @@ export default function TeacherSpace() {
         <Animated.View entering={FadeInDown.delay(200).springify()} style={styles.sectionContainer}>
           <SectionHeader title="Upcoming Session" actionText="View all" />
           <View style={styles.upcomingCard}>
-            <View style={styles.upcomingContent}>
-                <View style={styles.upcomingBadge}>
-                    <Ionicons name="time" size={12} color={COLORS.primary} />
-                    <Text style={styles.upcomingBadgeText}>IN 2 HOURS</Text>
-                </View>
-                <Text style={styles.upcomingTitle}>Advanced Mathematics</Text>
-                <Text style={styles.upcomingSubtitle}>with Boutagga Wafa • Online</Text>
-                <Text style={styles.upcomingTime}>Fri 27 Feb • 14:00 - 15:30</Text>
+            <View style={styles.upcomingHeader}>
+              <View style={styles.upcomingBadge}>
+                <MaterialIcons name="alarm" size={14} color="#FFD700" />
+                <Text style={styles.upcomingBadgeText}>IN 2 HOURS</Text>
+              </View>
+            </View>
+            <Text style={styles.upcomingTitle}>Advanced Mathematics</Text>
+            <Text style={styles.upcomingSubtitle}>with Boutagga Wafa • Online</Text>
+            
+            <View style={styles.upcomingFooter}>
+              <View style={styles.dateTimeRow}>
+                <Feather name="calendar" size={14} color="#A0A0E0" />
+                <Text style={styles.dateTimeText}>Fri 27 Feb</Text>
+                <Feather name="clock" size={14} color="#A0A0E0" style={{ marginLeft: 10 }} />
+                <Text style={styles.dateTimeText}>14:00 - 15:30</Text>
+              </View>
+              <AnimatedTouchableOpacity style={[styles.startButton, animatedPulseStyle]}>
+                <Text style={styles.startButtonText}>Start</Text>
+                <AntDesign name="arrowright" size={16} color={COLORS.primary} />
+              </AnimatedTouchableOpacity>
             </View>
             
-            <AnimatedTouchableOpacity style={[styles.startButton, animatedPulseStyle]}>
-                <Text style={styles.startButtonText}>Start</Text>
-                <Ionicons name="arrow-forward" size={16} color={COLORS.primary} />
-            </AnimatedTouchableOpacity>
+            {/* Abstract Background Decoration */}
+            <View style={styles.cardDecorationCircle} />
           </View>
         </Animated.View>
 
@@ -226,15 +234,23 @@ export default function TeacherSpace() {
                  <Text style={styles.reqName}>{req.name}</Text>
                  <Text style={styles.reqSchool}>{req.school}</Text>
                  
-                 <View style={styles.reqTag}>
-                    <Text style={styles.reqTagText}>{req.subject}</Text>
+                 <View style={styles.reqTags}>
+                   <View style={styles.reqTag}>
+                      <Text style={styles.reqTagText}>{req.subject}</Text>
+                   </View>
+                   <View style={[styles.reqTag, {marginLeft: 5, backgroundColor: req.type === 'Online' ? '#E3F2FD' : '#FFF3E0'}]}>
+                      <Text style={[styles.reqTagText, {color: req.type === 'Online' ? '#2196F3' : '#FF9800'}]}>{req.type}</Text>
+                   </View>
                  </View>
 
-                 <Text style={styles.reqPrice}>{req.price}</Text>
+                 <Text style={styles.reqPrice}>{req.price}<Text style={styles.reqPriceUnit}>/session</Text></Text>
 
                  <View style={styles.reqActions}>
                    <TouchableOpacity style={styles.acceptBtn}>
                      <Text style={styles.acceptBtnText}>Accept</Text>
+                   </TouchableOpacity>
+                   <TouchableOpacity style={styles.declineBtn}>
+                     <Text style={styles.declineBtnText}>Decline</Text>
                    </TouchableOpacity>
                  </View>
                </View>
@@ -245,10 +261,7 @@ export default function TeacherSpace() {
         {/* My Active Services */}
          <Animated.View entering={FadeInDown.delay(400).springify()} style={styles.sectionContainer}>
            <SectionHeader title="My Active Services" actionText="Browse all" />
-           
-           <TouchableOpacity style={styles.addServiceBtn}>
-             <Text style={styles.addServiceText}>+ Add New Service</Text>
-           </TouchableOpacity>
+
 
            <View style={styles.serviceCard}>
               <View style={styles.serviceHeader}>
@@ -259,20 +272,47 @@ export default function TeacherSpace() {
                   <Text style={styles.serviceTitle}>Advanced Mathematics</Text>
                   <Text style={styles.serviceSubtitle}>Karim Hadj • Terminale S</Text>
                 </View>
-                <View style={{alignItems: 'flex-end'}}>
+                <View>
                   <Text style={styles.servicePrice}>800 DZD</Text>
                   <Text style={styles.servicePriceUnit}>/session</Text>
                 </View>
               </View>
               
               <View style={styles.serviceTags}>
-                <View style={styles.smallTag}><Feather name="clock" size={12} color="#94A3B8"/><Text style={styles.smallTagText}>90 min</Text></View>
-                <View style={styles.smallTag}><Feather name="video" size={12} color="#94A3B8"/><Text style={styles.smallTagText}>Online</Text></View>
+                <View style={styles.smallTag}><Feather name="clock" size={12} color="#666"/><Text style={styles.smallTagText}>90 min</Text></View>
+                <View style={styles.smallTag}><Feather name="video" size={12} color="#666"/><Text style={styles.smallTagText}>Online</Text></View>
+                <View style={styles.smallTag}><Feather name="user" size={12} color="#666"/><Text style={styles.smallTagText}>Individual</Text></View>
               </View>
 
-              <TouchableOpacity style={styles.editServiceBtn}>
-                <Text style={styles.editServiceText}>Manage Service</Text>
-              </TouchableOpacity>
+              <Text style={styles.serviceStatus}>
+                <Text style={{color: COLORS.green}}>● Active</Text> • 12 sessions done • Next: Fri 27 Feb
+              </Text>
+           </View>
+
+           <View style={styles.serviceCard}>
+              <View style={styles.serviceHeader}>
+                <View style={[styles.serviceIcon, { backgroundColor: '#009688' }]}>
+                  <Text style={styles.serviceIconText}>G</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.serviceTitle}>Maths Group Sessions</Text>
+                  <Text style={styles.serviceSubtitle}>Karim Hadj • Lycée</Text>
+                </View>
+                <View>
+                  <Text style={styles.servicePrice}>400 DZD</Text>
+                  <Text style={styles.servicePriceUnit}>/session</Text>
+                </View>
+              </View>
+              
+              <View style={styles.serviceTags}>
+                <View style={styles.smallTag}><Feather name="clock" size={12} color="#666"/><Text style={styles.smallTagText}>60 min</Text></View>
+                <View style={styles.smallTag}><FontAwesome5 name="chalkboard-teacher" size={10} color="#666"/><Text style={styles.smallTagText}>In-person</Text></View>
+                <View style={styles.smallTag}><Feather name="users" size={12} color="#666"/><Text style={styles.smallTagText}>Group (max 4)</Text></View>
+              </View>
+
+              <Text style={styles.serviceStatus}>
+                <Text style={{color: COLORS.green}}>● Active</Text> • 5 sessions done • Next: Sat 28 Feb
+              </Text>
            </View>
          </Animated.View>
 
@@ -287,16 +327,38 @@ export default function TeacherSpace() {
                  </View>
                  <View style={{ flex: 1 }}>
                    <Text style={styles.reviewName}>Boutagga Wafa</Text>
-                   <View style={styles.starsRow}>
-                     {[1,2,3,4,5].map(i => <FontAwesome5 key={i} name="star" solid size={10} color="#FFD700" style={{marginRight: 2}} />)}
-                   </View>
+                   <Text style={styles.reviewDate}>28 Feb 2026</Text>
                  </View>
-                 <Text style={styles.reviewDate}>28 Feb</Text>
+                 <View style={styles.starsRow}>
+                   {[1,2,3,4,5].map(i => <FontAwesome5 key={i} name="star" solid size={12} color="#FFD700" style={{marginLeft: 2}} />)}
+                 </View>
               </View>
               <Text style={styles.reviewText}>
-                Excellent teacher! Very clear explanations and always on time.
+                Excellent teacher! Very clear explanations and always on time. Highly recommended for maths preparation.
               </Text>
+              <Text style={styles.reviewFooter}>Advanced Mathematics • Individual session</Text>
             </View>
+
+            <View style={styles.reviewCard}>
+              <View style={styles.reviewHeader}>
+                 <View style={[styles.reviewAvatar, { backgroundColor: '#FF9800' }]}>
+                   <Text style={styles.reviewAvatarText}>A</Text>
+                 </View>
+                 <View style={{ flex: 1 }}>
+                   <Text style={styles.reviewName}>Amira Darsi</Text>
+                   <Text style={styles.reviewDate}>25 Feb 2026</Text>
+                 </View>
+                 <View style={styles.starsRow}>
+                   {[1,2,3,4].map(i => <FontAwesome5 key={i} name="star" solid size={12} color="#FFD700" style={{marginLeft: 2}} />)}
+                   <FontAwesome5 name="star" solid size={12} color="#E0E0E0" style={{marginLeft: 2}} />
+                 </View>
+              </View>
+              <Text style={styles.reviewText}>
+                Great group sessions, very well organized. Methods are adapted and effective for exam preparation.
+              </Text>
+              <Text style={styles.reviewFooter}>Maths Group Sessions • Group session</Text>
+            </View>
+
          </Animated.View>
 
       </ScrollView>
@@ -309,200 +371,186 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  header: {
-    backgroundColor: COLORS.primary, // Deep Blue
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
-    paddingTop: Platform.OS === 'android' ? 44 : 54,
-    paddingBottom: 24,
-    paddingHorizontal: 20,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 15,
-    elevation: 8,
+  headerContainer: {
+    backgroundColor: COLORS.primary,
+    paddingBottom: 15,
+    borderBottomLeftRadius: 25,
+    borderBottomRightRadius: 25,
     overflow: 'hidden',
+    paddingTop: Platform.OS === 'android' ? 0 : 0,
+    position: 'relative',
   },
-  topRightCurveContainer: {
+  brandingContainer: {
     position: 'absolute',
     top: 0,
     right: 0,
-    width: 118,
-    height: 62,
-    alignItems: 'flex-end',
-    justifyContent: 'center',
-    zIndex: 2,
+    zIndex: 0,
   },
-  topRightCurve: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    width: '100%',
-    height: '100%',
+  whiteCurveContainer: {
     backgroundColor: '#FFFFFF',
-    borderBottomLeftRadius: 48,
-    opacity: 0.1, // Subtle
+    width: 140,
+    height: 90,
+    borderBottomLeftRadius: 70,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingBottom: 15,
+    paddingLeft: 15,
   },
-  headerLogo: {
+  brandingLogo: {
     width: 80,
-    height: 40,
-    marginRight: 10,
-    zIndex: 3,
-    tintColor: '#fff', // If it's a monochrome logo, otherwise remove tint
+    height: 35,
   },
   headerContent: {
-    flexDirection: 'row',
-    justifyContent: 'flex-start',
-    alignItems: 'center',
-    marginTop: 10,
-    marginBottom: 20,
+    paddingHorizontal: 20,
+    paddingTop: 40, 
+    zIndex: 1,
   },
-  userInfo: {
+  profileRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 15,
+    marginTop: 10,
   },
   avatarContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: COLORS.secondary,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#FFD700',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
+    position: 'relative',
   },
   avatarText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1A1A5E',
+  },
+  onlineBadge: {
+    width: 12,
+    height: 12,
+    backgroundColor: COLORS.green,
+    borderRadius: 6,
+    position: 'absolute',
+    bottom: 2,
+    right: 0,
+    borderWidth: 2,
+    borderColor: COLORS.primary,
+  },
+  profileInfo: {
+    flex: 1,
+  },
+  profileName: {
     fontSize: 20,
-    fontWeight: '800',
-    color: COLORS.primary,
-  },
-  greetingText: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  userName: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontWeight: 'bold',
     color: '#FFFFFF',
+    marginBottom: 2,
   },
-  searchRow: {
+  roleTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    zIndex: 3,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+  },
+  roleText: {
+    color: '#E0E0E0',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  logo: {
+    width: 80,
+    height: 40,
   },
   searchContainer: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 18,
-    paddingHorizontal: 12,
-    height: 40,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 4,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 25,
+    paddingHorizontal: 15,
+    height: 45,
+    marginBottom: 20,
   },
   searchIcon: {
-    marginRight: 8,
+    marginRight: 10,
   },
   searchInput: {
     flex: 1,
     height: '100%',
-    color: '#333',
-    fontSize: 14,
+    color: COLORS.textDark,
   },
   filterButton: {
-    width: 24,
-    height: 24,
+    backgroundColor: COLORS.primary,
+    padding: 6,
     borderRadius: 8,
-    backgroundColor: '#2C2E83',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
-  notificationButton: {
-    marginLeft: 12,
-    width: 40,
-    height: 40,
+  tabsScroll: {
+    flexDirection: 'row',
+  },
+  tabItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    marginRight: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
   },
-  notificationBadge: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: COLORS.secondary,
-    borderWidth: 1.5,
-    borderColor: COLORS.primary,
+  activeTabItem: {
+    backgroundColor: COLORS.primary,
+    borderColor: '#FFFFFF',
+    borderWidth: 1,
+  },
+  inactiveTabItem: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#FFFFFF',
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  activeTabText: {
+    color: '#FFFFFF',
+  },
+  inactiveTabText: {
+    color: '#666',
   },
   scrollContent: {
     flex: 1,
+    paddingTop: 20,
     paddingHorizontal: 20,
-  },
-  filterRow: {
-    marginVertical: 15,
-    flexDirection: 'row',
-  },
-  filterChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#fff',
-    marginRight: 10,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOpacity: 0.03,
-    shadowRadius: 3,
-    elevation: 1,
-  },
-  filterChipActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-  filterLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.textLight,
-  },
-  filterLabelActive: {
-    color: '#fff',
   },
   statsRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     marginBottom: 25,
+    gap: 12, // Responsive gap
   },
   statCard: {
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
+    flex: 1, // Responsive width filling
+    paddingVertical: 16,
+    paddingHorizontal: 8,
     borderRadius: 16,
-    paddingVertical: 15,
-    paddingHorizontal: 10,
     alignItems: 'center',
-    width: '31%',
+    justifyContent: 'center',
     shadowColor: '#000',
-    shadowOpacity: 0.05,
     shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
   },
   statValue: {
     fontSize: 22,
     fontWeight: '800',
-    color: COLORS.primary,
+    color: COLORS.textDark,
     marginBottom: 4,
   },
   statLabel: {
     fontSize: 10,
-    color: COLORS.textLight,
+    color: '#8E8E93',
     fontWeight: '700',
     letterSpacing: 0.5,
     textTransform: 'uppercase',
@@ -518,95 +566,98 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: 'bold',
     color: COLORS.textDark,
   },
   sectionAction: {
-    fontSize: 13,
+    fontSize: 14,
     color: COLORS.primary,
     fontWeight: '600',
   },
   upcomingCard: {
-    backgroundColor: '#2E2E8B', // Darker Blue variant
-    borderRadius: 18,
+    backgroundColor: COLORS.primary,
+    borderRadius: 20,
     padding: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    shadowColor: COLORS.primary,
-    shadowOpacity: 0.3,
-    shadowOffset: { width: 0, height: 8 },
-    shadowRadius: 12,
-    elevation: 6,
+    position: 'relative',
+    overflow: 'hidden',
   },
-  upcomingContent: {
-    flex: 1,
-    marginRight: 15,
+  cardDecorationCircle: {
+    position: 'absolute',
+    top: -50,
+    right: -50,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  upcomingHeader: {
+    flexDirection: 'row',
+    marginBottom: 15,
   },
   upcomingBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 215, 0, 0.2)', // Gold tint
-    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255,255,255,0.15)',
     paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: 8,
-    marginBottom: 10,
+    borderRadius: 10,
   },
   upcomingBadgeText: {
-    color: COLORS.secondary,
+    color: '#FFD700',
     fontSize: 10,
     fontWeight: 'bold',
     marginLeft: 5,
   },
   upcomingTitle: {
-    color: '#fff',
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 4,
+    color: '#FFFFFF',
+    marginBottom: 5,
   },
   upcomingSubtitle: {
-    color: 'rgba(255,255,255,0.8)',
-    fontSize: 12,
-    marginBottom: 6,
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.7)',
+    marginBottom: 20,
   },
-  upcomingTime: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '600',
+  upcomingFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  startButton: {
-    backgroundColor: COLORS.secondary,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 25,
+  dateTimeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+  },
+  dateTimeText: {
+    color: '#A0A0E0',
+    fontSize: 12,
+    marginLeft: 5,
+  },
+  startButton: {
+    backgroundColor: '#FFD700',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
   },
   startButtonText: {
     color: COLORS.primary,
     fontWeight: 'bold',
     marginRight: 5,
-    fontSize: 14,
   },
   requestCard: {
-    backgroundColor: '#fff',
-    width: 140,
-    minHeight: 180,
+    backgroundColor: '#FFFFFF',
+    width: 160,
     padding: 15,
-    borderRadius: 22,
-    marginRight: 12,
+    borderRadius: 20,
+    marginRight: 15,
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOpacity: 0.07,
-    shadowOffset: { width: 0, height: 6 },
-    shadowRadius: 14,
-    elevation: 4,
-    marginBottom: 10,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
   },
   requestAvatar: {
     width: 50,
@@ -617,196 +668,208 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   requestAvatarText: {
-    color: '#fff',
-    fontSize: 20,
+    color: '#FFFFFF',
+    fontSize: 22,
     fontWeight: 'bold',
   },
   reqName: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: 'bold',
     color: COLORS.textDark,
-    textAlign: 'center',
     marginBottom: 2,
+    textAlign: 'center',
   },
   reqSchool: {
-    fontSize: 11,
-    color: COLORS.textLight,
+    fontSize: 12,
+    color: '#999',
+    marginBottom: 10,
     textAlign: 'center',
-    marginBottom: 8,
+  },
+  reqTags: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: 10,
   },
   reqTag: {
-    backgroundColor: '#F1F4FF',
+    backgroundColor: '#F5F5F5',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
-    marginBottom: 10,
   },
   reqTagText: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#2A3188',
+    color: '#666',
   },
   reqPrice: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: COLORS.primary,
-    marginBottom: 12,
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: COLORS.textDark,
+    marginBottom: 15,
+  },
+  reqPriceUnit: {
+    fontSize: 12,
+    fontWeight: 'normal',
+    color: '#999',
   },
   reqActions: {
+    flexDirection: 'row',
     width: '100%',
+    justifyContent: 'space-between',
   },
   acceptBtn: {
-    backgroundColor: '#1D247F',
-    width: '100%',
+    backgroundColor: COLORS.primary,
+    flex: 1,
     paddingVertical: 8,
-    borderRadius: 12,
+    borderRadius: 15,
+    marginRight: 5,
     alignItems: 'center',
   },
   acceptBtnText: {
-    color: '#fff',
-    fontSize: 11,
-    fontWeight: '700',
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  declineBtn: {
+    backgroundColor: '#F5F5F5',
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 15,
+    marginLeft: 5,
+    alignItems: 'center',
+  },
+  declineBtnText: {
+    color: '#666',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   addServiceBtn: {
-    backgroundColor: '#1D247F', // Use primary variant
+    backgroundColor: COLORS.primary,
     padding: 15,
-    borderRadius: 16,
+    borderRadius: 15,
     alignItems: 'center',
     marginBottom: 15,
-    shadowColor: '#1D247F',
-    shadowOpacity: 0.2,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
   },
   addServiceText: {
-    color: '#fff',
+    color: '#FFFFFF',
     fontWeight: 'bold',
-    fontSize: 15,
+    fontSize: 16,
   },
   serviceCard: {
-    backgroundColor: '#fff',
-    padding: 16,
+    backgroundColor: '#FFFFFF',
     borderRadius: 20,
-    marginBottom: 16,
+    padding: 15,
+    marginBottom: 15,
     shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowOffset: { width: 0, height: 6 },
-    shadowRadius: 16,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
   },
   serviceHeader: {
     flexDirection: 'row',
     marginBottom: 12,
   },
   serviceIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
   serviceIconText: {
-    color: '#fff',
-    fontSize: 20,
+    color: '#FFFFFF',
+    fontSize: 18,
     fontWeight: 'bold',
   },
   serviceTitle: {
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: 'bold',
     color: COLORS.textDark,
-    marginBottom: 2,
   },
   serviceSubtitle: {
     fontSize: 12,
-    color: COLORS.textLight,
+    color: '#999',
+    marginTop: 2,
   },
   servicePrice: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#1D247F',
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: COLORS.primary,
+    textAlign: 'right',
   },
   servicePriceUnit: {
-    fontSize: 11,
-    color: COLORS.textLight,
+    fontSize: 10,
+    color: '#999',
+    textAlign: 'right',
   },
   serviceTags: {
     flexDirection: 'row',
-    marginBottom: 15,
+    marginBottom: 12,
   },
   smallTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F6F7FB',
+    backgroundColor: '#F5F5F5',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
     marginRight: 8,
   },
   smallTagText: {
-    fontSize: 11,
-    color: COLORS.textLight,
-    fontWeight: '600',
+    fontSize: 10,
+    color: '#666',
     marginLeft: 4,
   },
-  editServiceBtn: {
-    backgroundColor: '#F8FAFC',
-    paddingVertical: 10,
-    borderRadius: 12,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  editServiceText: {
-    color: COLORS.primary,
-    fontWeight: '700',
-    fontSize: 13,
+  serviceStatus: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 5,
   },
   reviewCard: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
-    elevation: 2,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 15,
     marginBottom: 15,
   },
   reviewHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
     marginBottom: 10,
+    alignItems: 'center',
   },
   reviewAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 10,
   },
   reviewAvatarText: {
-    color: '#fff',
+    color: '#FFFFFF',
     fontWeight: 'bold',
-    fontSize: 14,
   },
   reviewName: {
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: 'bold',
     color: COLORS.textDark,
   },
   reviewDate: {
-    fontSize: 11,
-    color: COLORS.textLight,
+    fontSize: 10,
+    color: '#999',
   },
   starsRow: {
     flexDirection: 'row',
-    marginTop: 2,
   },
   reviewText: {
     fontSize: 13,
-    color: COLORS.textLight,
+    color: '#666',
     lineHeight: 18,
+    marginBottom: 8,
+  },
+  reviewFooter: {
+    fontSize: 11,
+    color: '#999',
   },
 });

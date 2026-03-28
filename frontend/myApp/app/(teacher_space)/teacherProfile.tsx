@@ -155,17 +155,6 @@ export default function TeacherProfile() {
                       <Text style={styles.headerTagText}>Physics</Text>
                    </View>
                 </View>
-
-                <View style={styles.ratingRow}>
-                   <View style={styles.ratingBadge}>
-                      <FontAwesome5 name="star" solid size={10} color="#FFD700" style={{marginRight: 4}} />
-                      <Text style={styles.ratingText}>4.9 Rating</Text>
-                   </View>
-                   <View style={[styles.ratingBadge, {backgroundColor: 'rgba(0,200,83,0.2)'}]}>
-                      <Feather name="check-circle" size={10} color="#00C853" style={{marginRight: 4}} />
-                      <Text style={[styles.ratingText, {color: '#00C853'}]}>Verified</Text>
-                   </View>
-                </View>
              </View>
            </SafeAreaView>
         </View>

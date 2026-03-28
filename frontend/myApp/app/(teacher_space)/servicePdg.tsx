@@ -160,9 +160,6 @@ export default function ServicePedagogique() {
                   <MaterialIcons name="chevron-left" size={24} color={COLORS.white} />
                 </View>
               </TouchableOpacity>
-              <View style={styles.logoContainer}>
-                <Text style={styles.logoText}>ALEMNI</Text>
-              </View>
             </View>
             
             <Animated.View entering={FadeInDown.delay(200).springify()} style={styles.titleContainer}>
