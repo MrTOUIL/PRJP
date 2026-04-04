@@ -1,362 +1,352 @@
-/*
-
-script bash KALI USER psswrd *********
-
-#!/bin/bash
-
-
-RESET="\e[0m"
-
-REPORT_DIR="reports"
-mkdir -p $REPORT_DIR
-
-pause(){
-read -p "Press enter to continue"
-}
-
-network_scan(){
-read -p "Target IP: " target
-nmap -sS -sV -O -T4 $target -oN $REPORT_DIR/nmap_scan.txt
-pause
-}
-
-full_port_scan(){
-read -p "Target IP: " target
-nmap -p- -T4 $target -oN $REPORT_DIR/full_ports.txt
-pause
-}
-
-service_enum(){
-read -p "Target IP: " target
-nmap -sC -sV $target -oN $REPORT_DIR/service_enum.txt
-pause
-}
-
-web_scan(){
-read -p "Target URL: " target
-nikto -h $target -output $REPORT_DIR/nikto.txt
-pause
-}
-
-dir_scan(){
-read -p "Target URL: " target
-gobuster dir -u $target -w /usr/share/wordlists/dirb/common.txt -o $REPORT_DIR/directories.txt
-pause
-}
-
-dir_deep_scan(){
-read -p "Target URL: " target
-gobuster dir -u $target -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -o $REPORT_DIR/deep_directories.txt
-pause
-}
-
-sql_scan(){
-read -p "URL with parameter: " target
-sqlmap -u $target --batch --crawl=2 --dbs --output-dir=$REPORT_DIR
-pause
-}
-
-tech_scan(){
-read -p "Target URL: " target
-whatweb $target > $REPORT_DIR/tech_stack.txt
-pause
-}
-
-dns_enum(){
-read -p "Domain: " domain
-dnsenum $domain > $REPORT_DIR/dns_enum.txt
-pause
-}
-
-subdomain_scan(){
-read -p "Domain: " domain
-amass enum -passive -d $domain -o $REPORT_DIR/subdomains.txt
-pause
-}
-
-osint_scan(){
-read -p "Domain: " domain
-theHarvester -d $domain -b google -f $REPORT_DIR/osint.html
-pause
-}
-
-whois_lookup(){
-read -p "Domain: " domain
-whois $domain > $REPORT_DIR/whois.txt
-pause
-}
-
-cms_detect(){
-read -p "Target URL: " target
-whatweb $target --aggression 3 > $REPORT_DIR/cms_detection.txt
-pause
-}
-
-network_sniff(){
-read -p "Interface (eth0/wlan0): " iface
-sudo tcpdump -i $iface -w $REPORT_DIR/network_capture.pcap
-pause
-}
-
-auto_recon(){
-read -p "Target domain: " domain
-
-mkdir -p $REPORT_DIR/$domain
-
-amass enum -passive -d $domain -o $REPORT_DIR/$domain/subdomains.txt
-
-theHarvester -d $domain -b google -f $REPORT_DIR/$domain/osint.html
-
-dnsenum $domain > $REPORT_DIR/$domain/dns.txt
-
-whatweb http://$domain > $REPORT_DIR/$domain/tech.txt
-
-nikto -h http://$domain -output $REPORT_DIR/$domain/nikto.txt
-
-gobuster dir -u http://$domain -w /usr/share/wordlists/dirb/common.txt -o $REPORT_DIR/$domain/dirs.txt
-
-pause
-}
-
-menu(){
-
-clear
-
-echo "1 Network Scan"
-echo "2 Full Port Scan"
-echo "3 Service Enumeration"
-echo "4 Web Vulnerability Scan"
-echo "5 Directory Bruteforce"
-echo "6 Deep Directory Scan"
-echo "7 SQL Injection Scanner"
-echo "8 Technology Detection"
-echo "9 DNS Enumeration"
-echo "10 Subdomain Discovery"
-echo "11 OSINT Email Harvest"
-echo "12 WHOIS Lookup"
-echo "13 CMS Detection"
-echo "14 Network Sniffer"
-echo "15 Auto Recon"
-echo "16 Exit"
-
-read -p "Choice: " option
-
-case $option in
-
-1. network_scan ;;
-2. full_port_scan ;;
-3. service_enum ;;
-4. web_scan ;;
-5. dir_scan ;;
-6. dir_deep_scan ;;
-7. sql_scan ;;
-8. tech_scan ;;
-9. dns_enum ;;
-10. subdomain_scan ;;
-11. osint_scan ;;
-12. whois_lookup ;;
-13. cms_detect ;;
-14. network_sniff ;;
-15. auto_recon ;;
-16. exit ;;
-    *) menu ;;
-
-esac
-
-}
-
-while true
-do
-menu
-done
-
-*/
-
-require('dotenv').config();
 const express = require('express');
 const router = express.Router();
-const { body, validationResult } = require('express-validator');
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt');
-const rateLimit = require('express-rate-limit');
 
+// Importation des schemas
 const Admin = require('./schemas/admin');
-const tokens = require('./schemas/tokens'); 
 const students = require('./schemas/student');
 const parents = require('./schemas/parent');
 const teachers = require('./schemas/teacher');
+const services = require('./schemas/service');
+const banned = require('./schemas/banned');
 
-const userModels = {
-    student: students,
-    parent: parents,
-    teacher: teachers
-};
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'dev-admin-token';
 
-const adminLoginLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 10,
-    standardHeaders: true,
-    legacyHeaders: false,
-});
+const memberModels = [
+    { role: 'student', model: students },
+    { role: 'parent', model: parents },
+    { role: 'teacher', model: teachers }
+];
 
-const adminActionLimiter = rateLimit({
-    windowMs: 10 * 60 * 1000,
-    max: 60,
-    standardHeaders: true,
-    legacyHeaders: false,
-});
-
-// ==========================================
-// MIDDLEWARE DE PROTECTION ADMIN
-// ==========================================
-const authenticateAdmin = (req, res, next) => {
-    const token = req.cookies.AccessToken;
-
-    if (!token) {
-        return res.status(401).json({ error: "mamnou3 dokhol, token na9es." });
+async function findMemberById(memberId) {
+    for (const entry of memberModels) {
+        const member = await entry.model.findById(memberId);
+        if (member) return member;
     }
+    return null;
+}
 
+async function findMemberWithRole(memberId) {
+    for (const entry of memberModels) {
+        const member = await entry.model.findById(memberId);
+        if (member) {
+            return { member, role: member.role || entry.role };
+        }
+    }
+    return null;
+}
+
+function escapeRegex(value) {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function requireAdminToken(req, res, next) {
+    const token = req.headers['x-admin-token'];
+    if (!token || token !== ADMIN_TOKEN) {
+        return res.status(401).json({ message: 'Admin token invalid' });
+    }
+    next();
+}
+
+async function appendAdminLog(adminId, action, target, detail, meta = {}) {
+    if (!adminId) return;
+    await Admin.findByIdAndUpdate(
+        adminId,
+        {
+            $push: {
+                actions: {
+                    action,
+                    target,
+                    detail,
+                    targetType: meta.targetType,
+                    targetId: meta.targetId,
+                    createdAt: new Date()
+                }
+            }
+        }
+    );
+}
+
+router.use(requireAdminToken);
+
+/**
+ * @route   GET /api/admin/search
+ * @desc    Recherche globale (Membres, Devis, Services) par Nom, Prénom, Email, ID ou Titre
+ */
+router.get('/search', async (req, res) => {
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        
-        if (decoded.role !== 'admin') {
-            return res.status(403).json({ error: "mamnou3, khask tkoun admin." });
+        const { query } = req.query;
+        if (!query) return res.status(400).json({ message: "Veuillez saisir un terme de recherche" });
+
+        const normalizedQuery = String(query).trim();
+        const isWildcard = normalizedQuery === '*';
+        const searchRegex = new RegExp(escapeRegex(normalizedQuery), 'i');
+
+        const members = [];
+        for (const entry of memberModels) {
+            const hits = isWildcard
+                ? await entry.model.find({})
+                : await entry.model.find({
+                    $or: [
+                        { first_name: searchRegex },
+                        { last_name: searchRegex },
+                        { email: searchRegex },
+                        { phone: searchRegex }
+                    ]
+                });
+            hits.forEach((member) => {
+                members.push({
+                    ...member.toObject(),
+                    role: member.role || entry.role
+                });
+            });
         }
 
-        req.admin = decoded;
-        next();
-    } catch (err) {
-        return res.status(401).json({ error: "session salat wla token mashi s7i7." });
-    }
-};
+        const devis = [];
 
-// ==========================================
-// UTILS (Token Generation)
-// ==========================================
-function generateAccessToken(user) {
-    return jwt.sign(
-        { id: user._id, role: 'admin' }, 
-        process.env.JWT_SECRET,
-        { expiresIn: '1h' }
-    );
-}
-
-function generateRefreshToken(user) {
-    return jwt.sign(
-        { id: user._id, role: 'admin' }, 
-        process.env.REFRESH_SECRET,
-        { expiresIn: '7d' }
-    );
-}
-
-// ==========================================
-// 1. AUTHENTIFICATION ADMIN
-// ==========================================
-
-router.post('/login',
-    adminLoginLimiter,
-    body("email").isEmail().normalizeEmail().trim(),
-    body("password").exists().trim(),
-    async (req, res) => {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
-
-        try {
-            const { email, password } = req.body;
-
-            const admin = await Admin.findOne({ email });
-            if (!admin) return res.status(401).json({ error: "lma3loumat ghalat" });
-
-            if (!admin.isActive) {
-                return res.status(403).json({ error: "l7sab mوقوف, t3asl b da3m." });
-            }
-
-            const isMatch = await bcrypt.compare(password, admin.password);
-            
-            if (!isMatch) {
-                admin.loginAttempts = (admin.loginAttempts || 0) + 1;
-                if (admin.loginAttempts >= 5) admin.isActive = false;
-                await admin.save();
-                return res.status(401).json({ error: "lma3loumat ghalat" });
-            }
-
-            admin.loginAttempts = 0;
-            admin.lastLogin = new Date();
-            await admin.save();
-
-            const AccessToken = generateAccessToken(admin);
-            const RefreshToken = generateRefreshToken(admin);
-
-            await tokens.create({ userId: admin._id, token: RefreshToken });
-
-            const isProd = process.env.NODE_ENV === 'production';
-            const cookieSettings = {
-                httpOnly: true,
-                secure: true,
-                sameSite: "strict",
+        const serviceQuery = isWildcard
+            ? {}
+            : {
+                $or: [
+                    { type: searchRegex },
+                    { target_audiance: searchRegex },
+                    { mode: searchRegex },
+                    { expectations: searchRegex },
+                    { comment: searchRegex }
+                ]
             };
 
-            res.cookie("AccessToken", AccessToken, { ...cookieSettings, maxAge: 3600000 });
-            res.cookie("RefreshToken", RefreshToken, { ...cookieSettings, maxAge: 7 * 24 * 3600000 });
+        const serviceResults = await services
+            .find(serviceQuery)
+            .populate('done_by', 'first_name last_name email');
 
-            res.json({ 
-                succ: "tsejjel dokhol b njah", 
-                admin: { id: admin._id, firstName: admin.first_name } 
-            });
-
-        } catch (e) {
-            console.error(e);
-            res.status(500).json({ error: "wa9e3 mochkil f lkhadem" });
-        }
-    }
-);
-
-router.post('/logout', async (req, res) => {
-    try {
-        const refreshToken = req.cookies.RefreshToken;
-        if (refreshToken) await tokens.findOneAndDelete({ token: refreshToken });
-        
-        res.clearCookie("AccessToken");
-        res.clearCookie("RefreshToken");
-        res.json({ succ: "tsejjel lkhoroj" });
-    } catch (e) {
-        res.status(500).json({ error: "wa9e3 mochkil f tsejjel lkhoroj" });
+        res.status(200).json({ members, devis, services: serviceResults });
+    } catch (err) {
+        res.status(500).json({ message: "Erreur lors de la recherche", error: err.message });
     }
 });
 
-// ==========================================
-// 2. GESTION DES UTILISATEURS 
-// ==========================================
+/**
+ * @route   GET /api/admin/member/:id
+ * @desc    Details d'un membre
+ */
+router.get('/member/:id', async (req, res) => {
+    try {
+        const memberId = req.params.id;
+        const result = await findMemberWithRole(memberId);
+        if (!result) return res.status(404).json({ message: "Membre non trouvé" });
 
-router.post('/ban-user', 
-    authenticateAdmin,
-    adminActionLimiter,
-    body('targetEmail').isEmail().normalizeEmail().trim(),
-    body('targetRole').isIn(['student', 'parent', 'teacher']),
-    async (req, res) => {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+        const { member, role } = result;
+        const payload = member.toObject({ getters: true, virtuals: false });
+        delete payload.password;
+        delete payload.__v;
 
-        const { targetEmail, targetRole } = req.body;
-        const Model = userModels[targetRole];
-
-        try {
-            const user = await Model.findOneAndUpdate(
-                { email: targetEmail },
-                { $set: { isBanned: true } },
-                { new: true }
-            );
-
-            if (!user) return res.status(404).json({ error: 'ma l9inach lmostakhdem' });
-
-            await Admin.findByIdAndUpdate(req.admin.id, { $inc: { nb_supp: 1 } });
-
-            return res.json({ succ: `t7dar lmostakhdem (${targetRole}) b njah.` });
-        } catch (e) {
-            console.error(e);
-            return res.status(500).json({ error: 'wa9e3 mochkil f 3amaliyat l7adr' });
-        }
+        res.status(200).json({
+            id: member._id,
+            role,
+            ...payload
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
-);
+});
+
+/**
+ * @route   POST /api/admin/ban-member/:id
+ * @desc    Supprime un membre, l'ajoute à la liste noire et incrémente nb_supp de l'admin
+ */
+router.post('/ban-member/:id', async (req, res) => {
+    try {
+        const { adminId } = req.body; // Optionnel: ID de l'admin qui fait l'action
+        const memberId = req.params.id;
+
+        let deletedMember = null;
+        for (const entry of memberModels) {
+            const member = await entry.model.findById(memberId);
+            if (member) {
+                deletedMember = member;
+                await entry.model.findByIdAndDelete(memberId);
+                break;
+            }
+        }
+
+        if (!deletedMember) return res.status(404).json({ message: "Membre non trouvé" });
+
+        await banned.create({
+            first_name: deletedMember.first_name,
+            last_name: deletedMember.last_name,
+            email: deletedMember.email,
+            phone: deletedMember.phone
+        });
+
+        // Mettre à jour le compteur 'nb_supp' de l'admin si fourni
+        if (adminId) {
+            await Admin.findByIdAndUpdate(adminId, { $inc: { nb_supp: 1 } });
+            await appendAdminLog(
+                adminId,
+                'delete member',
+                `${deletedMember.first_name} ${deletedMember.last_name}`.trim(),
+                memberId,
+                { targetType: 'member', targetId: memberId }
+            );
+        }
+
+        res.status(200).json({ 
+            message: `Le membre ${deletedMember.first_name} a été supprimé.` 
+        });
+
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+/**
+ * @route   GET /api/admin/stats
+ * @desc    Statistiques simples pour le tableau de bord admin
+ */
+router.get('/stats', async (req, res) => {
+    try {
+        const [studentsCount, parentsCount, teachersCount, servicesCount] = await Promise.all([
+            students.countDocuments({}),
+            parents.countDocuments({}),
+            teachers.countDocuments({}),
+            services.countDocuments({})
+        ]);
+
+        res.status(200).json({
+            membersActive: studentsCount + parentsCount + teachersCount,
+            devisPending: servicesCount,
+            servicesActive: servicesCount
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+/**
+ * @route   POST /api/admin/warn-member/:id
+ * @desc    Envoyer un message d'avertissement ou une remarque à un membre
+ */
+router.post('/warn-member/:id', async (req, res) => {
+    try {
+        const { message, adminId } = req.body;
+        const memberId = req.params.id;
+
+        if (!message) return res.status(400).json({ message: "Le contenu du message est vide" });
+
+        // Ici, selon ta logique, tu peux soit :
+        // - Envoyer un email (Nodemailer)
+        // - Ajouter une notification dans le profil du membre
+        // Pour l'exemple, on simule l'action :
+        console.log(`Notification envoyée au membre ${memberId} : ${message}`);
+
+        const member = await findMemberById(memberId);
+        const targetName = member
+            ? `${member.first_name} ${member.last_name}`.trim()
+            : memberId;
+        await appendAdminLog(
+            adminId,
+            'warning sent',
+            targetName,
+            message,
+            { targetType: 'member', targetId: memberId }
+        );
+
+        res.status(200).json({ message: "Avertissement envoyé avec succès au membre." });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+/**
+ * @route   DELETE /api/admin/devis/:id
+ * @desc    Suppression directe d'un devis
+ */
+router.delete('/devis/:id', async (req, res) => {
+    try {
+        const adminId = req.body?.adminId || req.query?.adminId || req.headers['x-admin-id'];
+        await appendAdminLog(adminId, 'delete devis', req.params.id, undefined, { targetType: 'devis', targetId: req.params.id });
+        return res.status(501).json({ message: "Devis non disponible sur ce backend." });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+/**
+ * @route   GET /api/admin/devis/:id
+ * @desc    Details d'un devis (non disponible)
+ */
+router.get('/devis/:id', async (req, res) => {
+    try {
+        return res.status(501).json({ message: "Devis non disponible sur ce backend." });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+/**
+ * @route   DELETE /api/admin/service/:id
+ * @desc    Suppression directe d'un service pédagogique
+ */
+router.delete('/service/:id', async (req, res) => {
+    try {
+        const adminId = req.body?.adminId || req.query?.adminId || req.headers['x-admin-id'];
+        const serviceDoc = await services.findById(req.params.id);
+        if (!serviceDoc) return res.status(404).json({ message: "Service non trouvé." });
+
+        await services.findByIdAndDelete(req.params.id);
+        const serviceLabel = serviceDoc.type || serviceDoc.comment || req.params.id;
+        await appendAdminLog(
+            adminId,
+            'delete service',
+            serviceLabel,
+            req.params.id,
+            { targetType: 'service', targetId: req.params.id }
+        );
+        res.status(200).json({ message: "Service pédagogique supprimé." });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+/**
+ * @route   GET /api/admin/service/:id
+ * @desc    Details d'un service pédagogique
+ */
+router.get('/service/:id', async (req, res) => {
+    try {
+        const serviceDoc = await services
+            .findById(req.params.id)
+            .populate('done_by', 'first_name last_name email phone');
+
+        if (!serviceDoc) return res.status(404).json({ message: "Service non trouvé." });
+
+        const payload = serviceDoc.toObject({ getters: true, virtuals: false });
+        delete payload.__v;
+
+        res.status(200).json(payload);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+/**
+ * @route   GET /api/admin/logs
+ * @desc    Logs d'actions admin
+ */
+router.get('/logs', async (req, res) => {
+    try {
+        const adminId = req.query?.adminId || req.headers['x-admin-id'];
+        if (!adminId) return res.status(400).json({ message: 'ID Admin requis' });
+
+        const admin = await Admin.findById(adminId).lean();
+        if (!admin) return res.status(404).json({ message: 'Admin non trouvé' });
+
+        const actions = Array.isArray(admin.actions) ? admin.actions : [];
+        actions.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        res.status(200).json({ actions });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 
 module.exports = router;
