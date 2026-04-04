@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -16,8 +16,17 @@ import {
   TouchableWithoutFeedback,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+import Animated, { 
+  FadeInDown, 
+  FadeInUp, 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withRepeat, 
+  withTiming, 
+  Easing 
+} from 'react-native-reanimated';
 import { FontAwesome5, MaterialIcons, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import * as SecureStore from 'expo-secure-store';
 
 const COLORS = {
   primary: '#2E2D75', // Dark purple from the screenshot header
@@ -58,31 +67,33 @@ const DELIVERY_MODES = [
   'Hybrid'
 ];
 
-const DURATIONS = [
-  'Single Session', 
-  'Weekly', 
-  'Monthly', 
-  'Quarterly', 
-  'School Year', 
-  'Custom'
-];
-
 export default function ServicePedagogique() {
   const router = useRouter();
   
   // State for form fields
+  const [title , setTitle] = useState('');
   const [serviceType, setServiceType] = useState('');
   const [targetAudience, setTargetAudience] = useState('');
   const [deliveryMode, setDeliveryMode] = useState('');
-  const [expectations, setExpectations] = useState('');
-  const [duration, setDuration] = useState('');
-  const [budget, setBudget] = useState('');
+  const [budget, setBudget] = useState<number>(0);
   const [notes, setNotes] = useState('');
-  const [resources, setResources] = useState<{name: string, type: string}[]>([]);
+  const [loading , setLoading] = useState(false) ; 
+  const [msg , setMsg] = useState("") ; 
+  
+  // Shared values for animations
+  const spinnerRotate = useSharedValue(0);
 
-  // Mock Service ID
-  const serviceID = 'SRV-260226-795';
+  useEffect(() => {
+    // Spinner rotation
+    spinnerRotate.value = withRepeat(withTiming(360, { duration: 1000 }), -1, false);
+  }, []);
 
+  const animatedSpinnerStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ rotate: `${spinnerRotate.value}deg` }],
+    };
+  });
+  
   // Selection Modal State
   const [modalVisible, setModalVisible] = useState(false);
   const [selectionTitle, setSelectionTitle] = useState('');
@@ -100,40 +111,85 @@ export default function ServicePedagogique() {
     onSelect(item);
     setModalVisible(false);
   };
+  
+  const handleRequest = async (): Promise<void> => {
+  try {
+    const accessToken = await SecureStore.getItemAsync("accessToken");
+    const refreshToken = await SecureStore.getItemAsync("refreshToken");
+    setMsg(""); setLoading(true);
 
-  const handleAddResource = () => {
-    router.push('/(teacher_space)/teacherResources');
-  };
-
-  const handleRemoveResource = (index: number) => {
-    const newList = [...resources];
-    newList.splice(index, 1);
-    setResources(newList);
-  };
-
-  const handleRequest = () => {
-    // Implement request logic
-    console.log('Requesting service...', { 
-      serviceType, 
-      targetAudience, 
-      deliveryMode, 
-      expectations, 
-      duration, 
-      budget, 
-      notes,
-      resources: resources || [] 
+    fetch("http://10.89.124.250:5000/teacher/create_service", {
+      method: "POST",
+      headers: { "content-type": "application/json", "authorization": `Bearer ${accessToken}` },
+      body: JSON.stringify({
+        title: title,
+        type: serviceType,
+        target_audiance: targetAudience,
+        mode: deliveryMode,
+        cost: budget,
+        comment: notes
+      })
+    })
+    .then(res => res.json())
+    .then(data => {
+      setLoading(false); setMsg("");
+      if (data.succ) {
+        router.push("/(teacher_space)/teacherSpace");
+      } else if (data.error !== "Token expired!"){
+        setMsg("Error in creating the service..Try again!") ; 
+      }
+      
+        else if (data.error === "Token expired!") {
+        fetch("http://10.89.124.250:5000/teacher/refresh", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ refreshToken })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.accessToken) {
+            SecureStore.setItemAsync("accessToken", data.accessToken);
+            fetch("http://10.89.124.250:5000/teacher/create_service", {
+              method: "POST",
+              headers: { "content-type": "application/json", "authorization": `Bearer ${data.accessToken}` },
+              body: JSON.stringify({
+                title: title,
+                type: serviceType,
+                target_audiance: targetAudience,
+                mode: deliveryMode,
+                cost: budget,
+                comment: notes
+              })
+            })
+            .then(res => res.json())
+            .then(data => {
+              if (data.succ) {
+                router.push("/(teacher_space)/teacherSpace");
+              } else {
+                router.replace("/sign_in");
+              }
+            });
+          } else {
+            router.replace("/sign_in");
+          }
+        });
+      } else {
+        router.replace("/sign_in");
+      }
     });
-  };
+  } catch (e) {
+    console.error(e);
+    router.replace("/sign_in");
+  }
+};
 
   const handleReset = () => {
+    setTitle('');
     setServiceType('');
     setTargetAudience('');
     setDeliveryMode('');
-    setExpectations('');
-    setDuration('');
-    setBudget('');
+    setBudget(0);
     setNotes('');
-    setResources([]);
   };
 
   const renderSectionHeader = (icon: string, title: string, color: string = COLORS.primary) => (
@@ -179,6 +235,20 @@ export default function ServicePedagogique() {
               {renderSectionHeader('chalkboard', 'Service Details')}
 
               <View style={styles.inputGroup}>
+                <Text style={styles.label}>Service Title <Text style={styles.required}>*</Text></Text>
+                <View style={styles.inputContainer}>
+                  <FontAwesome5 name="heading" size={16} color={COLORS.primary} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Give your service a title"
+                    placeholderTextColor={COLORS.textLight}
+                    value={title}
+                    onChangeText={(text: string) => setTitle(text)}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.inputGroup}>
                 <Text style={styles.label}>Service Type <Text style={styles.required}>*</Text></Text>
                 <TouchableOpacity 
                   style={styles.inputContainer}
@@ -221,47 +291,7 @@ export default function ServicePedagogique() {
               </View>
           </Animated.View>
 
-          {/* Methodology & Expectations */}
-          <Animated.View entering={FadeInDown.delay(500).springify()}>
-            <View style={styles.divider} />
-            <View style={styles.sectionHeader}>
-               <Ionicons name="radio-button-on" size={20} color={COLORS.secondary} style={{ marginRight: 8 }} />
-               <View>
-                 <Text style={[styles.sectionTitle, { color: COLORS.primary, fontSize: 16 }]}>Methodology &</Text>
-                 <Text style={[styles.sectionTitle, { color: COLORS.primary, fontSize: 16 }]}>Expectations</Text>
-               </View>
-            </View>
-            
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Specific Expectations <Text style={styles.required}>*</Text></Text>
-              <View style={[styles.inputContainer, styles.textAreaContainer]}>
-                <TextInput
-                  style={styles.textArea}
-                  placeholder="What are your specific expectations for this service? (e.g. Regular progress reports, specific teaching materials...)"
-                  placeholderTextColor={COLORS.textLight}
-                  multiline
-                  numberOfLines={4}
-                  textAlignVertical="top"
-                  value={expectations}
-                  onChangeText={setExpectations}
-                />
-              </View>
-            </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Proposed Duration / Timeline <Text style={styles.required}>*</Text></Text>
-              <TouchableOpacity 
-                  style={styles.inputContainer}
-                  onPress={() => openSelection('Select Duration', DURATIONS, setDuration)}
-              >
-                <FontAwesome5 name="clock" size={16} color={COLORS.primary} />
-                <Text style={duration ? styles.inputText : styles.placeholderText}>
-                  {duration || 'e.g. 3 months, 10 sessions, ongoing...'}
-                </Text>
-                <MaterialIcons name="keyboard-arrow-down" size={24} color={COLORS.textLight} style={styles.chevron} />
-              </TouchableOpacity>
-            </View>
-          </Animated.View>
 
           {/* Service Cost */}
           <Animated.View entering={FadeInDown.delay(600).springify()}>
@@ -278,53 +308,14 @@ export default function ServicePedagogique() {
                   placeholder="Ex: 2000"
                   placeholderTextColor={COLORS.textLight}
                   keyboardType="numeric"
-                  value={budget}
-                  onChangeText={setBudget}
+                  value={budget.toString()}
+                  onChangeText={(text: string) => setBudget(Number(text) || 0)}
                 />
               </View>
             </View>
           </Animated.View>
 
-          {/* Pedagogical Resources */}
-          <Animated.View entering={FadeInDown.delay(700).springify()}>
-            <View style={styles.divider} />
-            {renderSectionHeader('folder-open', 'Pedagogical Resources')}
-            
-            <View style={styles.infoBox}>
-               <FontAwesome5 name="info-circle" size={16} color="#666" style={{marginTop: 2}} />
-               <Text style={styles.infoText}>
-                 Upload your lesson plans, exercises, or supporting materials here.
-               </Text>
-            </View>
 
-            <TouchableOpacity style={styles.uploadButton} onPress={handleAddResource}>
-                <View style={styles.uploadIconContainer}>
-                    <FontAwesome5 name="folder-open" size={24} color={COLORS.primary} />
-                </View>
-                <View style={styles.uploadTextContainer}>
-                    <Text style={styles.uploadTitle}>Open Resource Space</Text>
-                    <Text style={styles.uploadSubtitle}>Manage Courses, Exercises, Videos</Text>
-                </View>
-                <FontAwesome5 name="chevron-right" size={16} color={COLORS.textLight} />
-            </TouchableOpacity>
-
-            {/* List of attached resources */}
-            {resources.length > 0 && (
-                <View style={styles.resourcesList}>
-                    {resources.map((res, index) => (
-                        <View key={index} style={styles.resourceItem}>
-                            <View style={styles.resourceInfo}>
-                                <FontAwesome5 name="file-pdf" size={20} color="#E74C3C" style={{ marginRight: 10 }} />
-                                <Text style={styles.resourceName}>{res.name}</Text>
-                            </View>
-                            <TouchableOpacity onPress={() => handleRemoveResource(index)}>
-                                <MaterialIcons name="close" size={20} color={COLORS.textLight} />
-                            </TouchableOpacity>
-                        </View>
-                    ))}
-                </View>
-            )}
-          </Animated.View>
 
           {/* Additional Comments */}
           <Animated.View entering={FadeInDown.delay(800).springify()}>
@@ -342,23 +333,36 @@ export default function ServicePedagogique() {
                   numberOfLines={4}
                   textAlignVertical="top"
                   value={notes}
-                  onChangeText={setNotes}
+                  onChangeText={(text: string) => setNotes(text)}
                 />
               </View>
             </View>
+          </Animated.View>
+
+          {/* Message Section */}
+          <Animated.View entering={FadeInDown.duration(400).springify()}>
+            <Text style={styles.messageText}>{msg}</Text>
           </Animated.View>
 
           {/* Action Buttons */}
           <Animated.View entering={FadeInUp.delay(900).springify()} style={styles.footer}>
             <TouchableOpacity style={styles.submitButton} onPress={handleRequest}>
               <FontAwesome5 name="paper-plane" size={16} color={COLORS.white} style={{ marginRight: 10 }} />
-              <Text style={styles.submitButtonText}>Request Service</Text>
+              <Text style={styles.submitButtonText}>Create Service</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.resetButton} onPress={handleReset}>
               <Ionicons name="refresh" size={18} color={COLORS.text} style={{ marginRight: 8 }} />
               <Text style={styles.resetButtonText}>Reset</Text>
             </TouchableOpacity>
+
+            {/* Loading Spinner */}
+            {loading && (
+              <Animated.View
+                entering={FadeInDown.duration(300).springify()}
+                style={[styles.spinner, animatedSpinnerStyle]}
+              />
+            )}
 
             <View style={styles.securityNote}>
               <FontAwesome5 name="lock" size={12} color={COLORS.textLight} />
@@ -705,5 +709,28 @@ const styles = StyleSheet.create({
   modalOptionText: {
     fontSize: 16,
     color: COLORS.text,
+  },
+  messageText: {
+    color: COLORS.secondary,
+    fontSize: 13,
+    marginBottom: 20,
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+  spinner: {
+    width: 40,
+    height: 40,
+    borderWidth: 4,
+    borderColor: COLORS.secondary,
+    borderTopColor: 'transparent',
+    borderRadius: 20,
+    alignSelf: 'center',
+    marginBottom: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    shadowColor: COLORS.secondary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
   },
 });

@@ -72,7 +72,7 @@ export default function VerifyCodepw() {
   const handleResend = async ():Promise<void> => {
     setMsg("") ;
     setLoading1(true) ;
-    fetch("http://192.168.143.250:5000/logs/resend_code",{
+    fetch("http://10.89.124.250:5000/logs/resend_code",{
         method:"PUT",
         headers:{"content-type":"application/json"},
         body:JSON.stringify({email})
@@ -113,7 +113,7 @@ export default function VerifyCodepw() {
   setMsg("");
   setLoading2(true);
 
-  fetch("http://192.168.143.250:5000/logs/addactor", {
+  fetch("http://10.89.124.250:5000/logs/addactor", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
@@ -138,7 +138,6 @@ export default function VerifyCodepw() {
         //STORE TOKENS (same as login)
         await SecureStore.setItemAsync("accessToken", data.accessToken);
         await SecureStore.setItemAsync("refreshToken", data.refreshToken);
-        await SecureStore.setItemAsync("role", data.role);
         
         //NAVIGATION
         if (data.role === "teacher") {

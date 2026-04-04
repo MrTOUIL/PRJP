@@ -60,7 +60,7 @@ export default function ForgetPassword() {
 
   const handleSend = ():void => {
     setMsg("") ; setLoading(true) ; 
-    fetch("http://192.168.143.250:5000/logs/forgetpw_mail",{
+    fetch("http://10.89.124.250:5000/logs/forgetpw_mail",{
       method:"POST",
       headers:{"Content-Type": "application/json"},
       body:JSON.stringify({email})

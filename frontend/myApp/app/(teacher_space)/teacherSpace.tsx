@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { use, useEffect, useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -25,6 +25,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { FontAwesome5, Ionicons, MaterialIcons, Feather, AntDesign } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 
 // Define theme colors based on the image and existing project style
 const COLORS = {
@@ -94,18 +95,105 @@ export default function TeacherSpace() {
     transform: [{ scale: pulseAnim.value }],
   }));
 
-  // Mock Data
-  const stats = [
-    { id: 1, value: '18', label: 'SESSIONS', icon: 'calendar-alt', color: '#FF6B6B' },
-    { id: 2, value: '9', label: 'STUDENTS', icon: 'user-graduate', color: '#FFD700' },
-    { id: 3, value: '4.9', label: 'RATING', icon: 'star', color: '#FFD700' },
-  ];
 
-  const requests = [
-    { id: 1, name: 'Boutagga W.', school: 'Terminale S', subject: 'Maths', type: 'Online', price: '800 DZD', initial: 'B', color: '#00C853' },
-    { id: 2, name: 'Amira D.', school: 'Lycée 2AS', subject: 'Maths', type: 'Hybrid', price: '700 DZD', initial: 'A', color: '#FF9800' },
-    { id: 3, name: 'Yacine K.', school: 'Terminale M', subject: 'Physics', type: 'Online', price: '800 DZD', initial: 'Y', color: '#2962FF' },
+  
+  const [teacher , setTeacher] = useState({}) ;
+  const [teacherSessions , setTeacherSessions] = useState([]) ;
+  const [sortedSessions , setSortedSessions] = useState([]) ;
+  const [upcomingSession , setUpcomingSession] = useState({}) ;
+  const [parentRequests , setParentRequests] = useState([]) ;
+  const [studentRequests , setStudentRequests] = useState([]) ;
+  const [reqs,setreqs] = useState([]) ;
+  const [teacherServices , setTeacherServices] = useState([]) ;
+  const [evaluationsStudents , setEvaluationsStudents] = useState([]) ;
+  const [evaluationsParents , setEvaluationsParents] = useState([]) ;
+  const [evst,setevst] = useState([]) ;
+  useEffect(() => {
+  const getTeacherInfo = async (): Promise<void> => {
+    try {
+      const accessToken = await SecureStore.getItemAsync("accessToken");
+      const refreshToken = await SecureStore.getItemAsync("refreshToken");
+
+      fetch("http://10.89.124.250:5000/teacher/getProfile", {
+        method: "GET",
+        headers: { "content-type": "application/json", "authorization": `Bearer ${accessToken}` }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.succ) {
+          setTeacher(data.teacher);
+          setTeacherSessions(data.sessions) ;
+          setSortedSessions(data.sortedSessions) ;
+          setUpcomingSession(data.upcomingSession) ;
+          setParentRequests(data.parentRequests) ;
+          setStudentRequests(data.studentRequests) ;
+          setreqs(data.reqs) ;
+          setTeacherServices(data.teacherServices) ;
+          setEvaluationsStudents(data.evaluationsFromStudents) ;
+          setEvaluationsParents(data.evaluationsFromParents) ;
+          setevst(data.evs) ;
+
+        } else if (data.error === "Token expired!") {
+          fetch("http://10.89.124.250:5000/teacher/refresh", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ refreshToken })
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (data.accessToken) {
+              SecureStore.setItemAsync("accessToken", data.accessToken);
+              fetch("http://10.89.124.250:5000/teacher/getProfile", {
+                method: "GET",
+                headers: { "content-type": "application/json", "authorization": `Bearer ${data.accessToken}` }
+              })
+              .then(res => res.json())
+              .then(data => {
+                if (data.succ) {
+                  setTeacher(data.teacher);
+                  setTeacherSessions(data.sessions) ;
+                  setSortedSessions(data.sortedSessions) ;
+                  setUpcomingSession(data.upcomingSession) ;
+                  setParentRequests(data.parentRequests) ;
+                  setStudentRequests(data.studentRequests) ;
+                  setreqs(data.reqs) ;
+                  setTeacherServices(data.teacherServices) ;
+                  setEvaluationsStudents(data.evaluationsFromStudents) ;
+                  setEvaluationsParents(data.evaluationsFromParents) ;
+                  setevst(data.evs) ;
+                } else {
+                  router.replace("/sign_in");
+                }
+              });
+            } else {
+              // refresh token expired → force login
+              router.replace("/sign_in");
+            }
+          });
+        } else {
+          // "No token found!" or "Invalid token!" → force login
+          router.replace("/sign_in");
+        }
+      });
+    } catch (err) {
+      console.error(err);
+      router.replace("/sign_in");
+    }
+  };
+
+  getTeacherInfo();
+}, []); 
+
+
+//useEffect (() => {
+  //if (teacher && teacherSessions) {
+    const stats = [
+    { id: 1, value: `${teacherSessions.length}`, label: 'SESSIONS', icon: 'calendar-alt', color: '#FF6B6B' },
+    //{ id: 2, value: '9', label: 'STUDENTS', icon: 'user-graduate', color: '#FFD700' },
+    { id: 3, value: `${teacher.rating || 0}`, label: 'RATING', icon: 'star', color: '#FFD700' },
   ];
+  //}
+//},[teacher,teacherSessions]) ;
 
   return (
     <View style={styles.container}>
@@ -129,37 +217,28 @@ export default function TeacherSpace() {
           <View style={styles.headerContent}>
             <View style={styles.profileRow}>
               <View style={styles.avatarContainer}>
-                <Text style={styles.avatarText}>K</Text>
+                <Text style={styles.avatarText}>M</Text>
                 <View style={styles.onlineBadge} />
               </View>
               <View style={styles.profileInfo}>
-                <Text style={styles.profileName}>Karim Hadj</Text>
+                <Text style={styles.profileName}>{teacher.first_name}</Text>
+                <Text style={styles.profileName}>{teacher.last_name}</Text>
                 <View style={styles.roleTag}>
                   <FontAwesome5 name="chalkboard-teacher" size={12} color="#FFD700" style={{ marginRight: 5 }} />
-                  <Text style={styles.roleText}>Teacher • <Text style={{color: '#FFD700'}}>Mathematics & Physics</Text></Text>
+                  <Text style={styles.roleText}>Teacher • <Text style={{color: '#FFD700'}}>{teacher.subject}</Text></Text>
                 </View>
               </View>
             </View>
 
-            <View style={styles.searchContainer}>
-              <Feather name="search" size={20} color="#999" style={styles.searchIcon} />
-              <TextInput 
-                placeholder="Search students, subjects, files..." 
-                placeholderTextColor="#999"
-                style={styles.searchInput}
-              />
-              <TouchableOpacity style={styles.filterButton}>
-                <Ionicons name="options" size={20} color="#fff" />
-              </TouchableOpacity>
-            </View>
+            
 
             {/* Horizontal Tabs */}
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabsScroll} contentContainerStyle={{ paddingRight: 20 }}>
               {[
-                { label: 'All', route: null, icon: 'appstore-o', active: true },
-                { label: 'My Sessions', route: '/(teacher_space)/teacherSessions', icon: null },
-                { label: 'Requests', route: '/(teacher_space)/teacherRequests', icon: null },
-                { label: 'Services', route: '/(teacher_space)/servicePdg', icon: null }
+                { label: 'All', route: null, icon: null, active: true },
+                { label: 'My Documents', route: '/(teacher_space)/AllDocuments', icon: null },
+                //{ label: 'Requests', route: '/(teacher_space)/teacherRequests', icon: null },
+                { label: 'Create Services', route: '/(teacher_space)/servicePdg', icon: null }
               ].map((tab, index) => (
                 <TouchableOpacity 
                   key={index} 
@@ -192,172 +271,146 @@ export default function TeacherSpace() {
         </Animated.View>
 
         {/* Upcoming Session */}
+        
         <Animated.View entering={FadeInDown.delay(200).springify()} style={styles.sectionContainer}>
-          <SectionHeader title="Upcoming Session" actionText="View all" />
+          <SectionHeader title="Upcoming Session" actionText="View all" onAction={() => router.push({pathname:'/(teacher_space)/AllSessions' , params:{sortedSessions: JSON.stringify(sortedSessions)}})} />
+
+          {!upcomingSession && <Text style={{color: '#999', fontStyle: 'italic'}}>No upcoming sessions scheduled.</Text>}
+
+          {upcomingSession &&
           <View style={styles.upcomingCard}>
             <View style={styles.upcomingHeader}>
               <View style={styles.upcomingBadge}>
                 <MaterialIcons name="alarm" size={14} color="#FFD700" />
-                <Text style={styles.upcomingBadgeText}>IN 2 HOURS</Text>
+                {/*<Text style={styles.upcomingBadgeText}>IN 2 HOURS</Text>*/}
               </View>
             </View>
-            <Text style={styles.upcomingTitle}>Advanced Mathematics</Text>
-            <Text style={styles.upcomingSubtitle}>with Boutagga Wafa • Online</Text>
-            
+            <Text style={styles.upcomingTitle}>{upcomingSession.service?.title}</Text>
+            <Text style={styles.upcomingSubtitle}>with {teacher.first_name} {teacher.last_name}</Text>
+             <Text style={styles.upcomingSubtitle}>location: {upcomingSession.location}</Text>
             <View style={styles.upcomingFooter}>
               <View style={styles.dateTimeRow}>
                 <Feather name="calendar" size={14} color="#A0A0E0" />
-                <Text style={styles.dateTimeText}>Fri 27 Feb</Text>
+                <Text style={styles.dateTimeText}>{upcomingSession.Date}</Text>
                 <Feather name="clock" size={14} color="#A0A0E0" style={{ marginLeft: 10 }} />
-                <Text style={styles.dateTimeText}>14:00 - 15:30</Text>
+                <Text style={styles.dateTimeText}>{upcomingSession.start_time} - {upcomingSession.end_time}</Text>
+                <Text style={styles.dateTimeText}>| {upcomingSession.status}</Text>
               </View>
-              <AnimatedTouchableOpacity style={[styles.startButton, animatedPulseStyle]}>
+              {/*<AnimatedTouchableOpacity style={[styles.startButton, animatedPulseStyle]}>
                 <Text style={styles.startButtonText}>Start</Text>
                 <AntDesign name="arrowright" size={16} color={COLORS.primary} />
-              </AnimatedTouchableOpacity>
+              </AnimatedTouchableOpacity>*/}
             </View>
             
             {/* Abstract Background Decoration */}
             <View style={styles.cardDecorationCircle} />
-          </View>
+          </View> }
         </Animated.View>
 
         {/* Student Requests */}
-        <Animated.View entering={FadeInDown.delay(300).springify()} style={styles.sectionContainer}>
-           <SectionHeader title="Student Requests" actionText="See all" />
-           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -20, paddingHorizontal: 20 }}>
-             {requests.map((req, idx) => (
-               <View key={req.id} style={styles.requestCard}>
-                 <View style={[styles.requestAvatar, { backgroundColor: req.color }]}>
-                   <Text style={styles.requestAvatarText}>{req.initial}</Text>
+        {reqs.length == 0 && (
+          <View style={styles.sectionContainer}>
+            <SectionHeader title="Requests" actionText="See all" onAction={() => router.push({pathname:'/(teacher_space)/AllRequests' , params:{studentRequests: JSON.stringify(studentRequests), parentRequests: JSON.stringify(parentRequests)}})} />
+            <Text style={{color: '#999', fontStyle: 'italic'}}>No student requests available.</Text>
+          </View>
+        )}
+        {reqs.length > 0 && 
+          <Animated.View entering={FadeInDown.delay(300).springify()} style={styles.sectionContainer}>
+            <SectionHeader title="Requests" actionText="See all" onAction={() => router.push({pathname:'/(teacher_space)/AllRequests' , params:{studentRequests: JSON.stringify(studentRequests), parentRequests: JSON.stringify(parentRequests)}})} />
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -20, paddingHorizontal: 20 }}>
+              {reqs.map((req, idx) => (
+                req && req.requester ? (
+                  <View key={req._id} style={styles.requestCard}>
+                 <View style={[styles.requestAvatar, { backgroundColor: "green" }]}>
+                   <Text style={styles.requestAvatarText}>{req.requester.first_name.charAt(0)}</Text>
                  </View>
-                 <Text style={styles.reqName}>{req.name}</Text>
-                 <Text style={styles.reqSchool}>{req.school}</Text>
+                 <Text style={styles.reqName}>{req.requester.first_name} {req.requester.last_name}</Text>
+                 <Text style={styles.reqSchool}>{req.niveau}</Text>
                  
                  <View style={styles.reqTags}>
                    <View style={styles.reqTag}>
-                      <Text style={styles.reqTagText}>{req.subject}</Text>
+                      <Text style={styles.reqTagText}>{req.matiere}</Text>
                    </View>
-                   <View style={[styles.reqTag, {marginLeft: 5, backgroundColor: req.type === 'Online' ? '#E3F2FD' : '#FFF3E0'}]}>
-                      <Text style={[styles.reqTagText, {color: req.type === 'Online' ? '#2196F3' : '#FF9800'}]}>{req.type}</Text>
+                   <View style={[styles.reqTag, {marginLeft: 5, backgroundColor: req.mode === 'Online' ? '#E3F2FD' : '#FFF3E0'}]}>
+                      <Text style={[styles.reqTagText, {color: req.mode === 'online' ? '#2196F3' : '#FF9800'}]}>{req.mode}</Text>
                    </View>
                  </View>
 
                  <Text style={styles.reqPrice}>{req.price}<Text style={styles.reqPriceUnit}>/session</Text></Text>
 
-                 <View style={styles.reqActions}>
-                   <TouchableOpacity style={styles.acceptBtn}>
-                     <Text style={styles.acceptBtnText}>Accept</Text>
-                   </TouchableOpacity>
-                   <TouchableOpacity style={styles.declineBtn}>
-                     <Text style={styles.declineBtnText}>Decline</Text>
-                   </TouchableOpacity>
-                 </View>
-               </View>
+                 
+               </View>) : null
              ))}
            </ScrollView>
-        </Animated.View>
+        </Animated.View>}
+        
 
         {/* My Active Services */}
          <Animated.View entering={FadeInDown.delay(400).springify()} style={styles.sectionContainer}>
-           <SectionHeader title="My Active Services" actionText="Browse all" />
+           <SectionHeader title="My Active Services" actionText="Browse all" onAction={() => router.push({pathname:'/(teacher_space)/AllServices' , params:{teacherServices: JSON.stringify(teacherServices), teacher: JSON.stringify(teacher)}})} />
 
-
-           <View style={styles.serviceCard}>
+          {(teacherServices?.length ?? 0) == 0 && <Text style={{color: '#999', fontStyle: 'italic'}}>No active services.</Text>}
+          {teacherServices?.length > 0 && 
+          teacherServices.map((service:any) =>(
+           <View style={styles.serviceCard} key={service._id}>
               <View style={styles.serviceHeader}>
-                <View style={[styles.serviceIcon, { backgroundColor: '#1A237E' }]}>
-                  <Text style={styles.serviceIconText}>M</Text>
-                </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.serviceTitle}>Advanced Mathematics</Text>
-                  <Text style={styles.serviceSubtitle}>Karim Hadj • Terminale S</Text>
+                  <Text style={styles.serviceTitle}>{service.title}</Text>
+                  <Text style={styles.serviceSubtitle}>{teacher.first_name} {teacher.last_name} • {service.target_audiance}</Text>
                 </View>
                 <View>
-                  <Text style={styles.servicePrice}>800 DZD</Text>
+                  <Text style={styles.servicePrice}>{service.cost} DZD</Text>
                   <Text style={styles.servicePriceUnit}>/session</Text>
                 </View>
               </View>
               
               <View style={styles.serviceTags}>
-                <View style={styles.smallTag}><Feather name="clock" size={12} color="#666"/><Text style={styles.smallTagText}>90 min</Text></View>
-                <View style={styles.smallTag}><Feather name="video" size={12} color="#666"/><Text style={styles.smallTagText}>Online</Text></View>
-                <View style={styles.smallTag}><Feather name="user" size={12} color="#666"/><Text style={styles.smallTagText}>Individual</Text></View>
+                
+                <View style={styles.smallTag}><Feather name="video" size={12} color="#666"/><Text style={styles.smallTagText}>{service.mode}</Text></View>
+                <View style={styles.smallTag}><Feather name="user" size={12} color="#666"/><Text style={styles.smallTagText}>{service.type}</Text></View>
               </View>
 
-              <Text style={styles.serviceStatus}>
-                <Text style={{color: COLORS.green}}>● Active</Text> • 12 sessions done • Next: Fri 27 Feb
-              </Text>
-           </View>
-
-           <View style={styles.serviceCard}>
-              <View style={styles.serviceHeader}>
-                <View style={[styles.serviceIcon, { backgroundColor: '#009688' }]}>
-                  <Text style={styles.serviceIconText}>G</Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.serviceTitle}>Maths Group Sessions</Text>
-                  <Text style={styles.serviceSubtitle}>Karim Hadj • Lycée</Text>
-                </View>
-                <View>
-                  <Text style={styles.servicePrice}>400 DZD</Text>
-                  <Text style={styles.servicePriceUnit}>/session</Text>
-                </View>
-              </View>
               
-              <View style={styles.serviceTags}>
-                <View style={styles.smallTag}><Feather name="clock" size={12} color="#666"/><Text style={styles.smallTagText}>60 min</Text></View>
-                <View style={styles.smallTag}><FontAwesome5 name="chalkboard-teacher" size={10} color="#666"/><Text style={styles.smallTagText}>In-person</Text></View>
-                <View style={styles.smallTag}><Feather name="users" size={12} color="#666"/><Text style={styles.smallTagText}>Group (max 4)</Text></View>
-              </View>
-
-              <Text style={styles.serviceStatus}>
-                <Text style={{color: COLORS.green}}>● Active</Text> • 5 sessions done • Next: Sat 28 Feb
-              </Text>
-           </View>
+                
+              
+           </View> ))}
          </Animated.View>
 
          {/* Recent Reviews */}
          <Animated.View entering={FadeInDown.delay(500).springify()} style={styles.sectionContainer}>
-            <SectionHeader title="Recent Reviews" actionText="See all" />
+            <SectionHeader title="Recent Reviews" actionText="See all" onAction={() => router.push({pathname:'/(teacher_space)/AllReviews' , params:{evaluationsStudents: JSON.stringify(evaluationsStudents), evaluationsParents: JSON.stringify(evaluationsParents)}})} />
             
-            <View style={styles.reviewCard}>
-              <View style={styles.reviewHeader}>
-                 <View style={[styles.reviewAvatar, { backgroundColor: '#00C853' }]}>
-                   <Text style={styles.reviewAvatarText}>B</Text>
-                 </View>
-                 <View style={{ flex: 1 }}>
-                   <Text style={styles.reviewName}>Boutagga Wafa</Text>
-                   <Text style={styles.reviewDate}>28 Feb 2026</Text>
-                 </View>
-                 <View style={styles.starsRow}>
-                   {[1,2,3,4,5].map(i => <FontAwesome5 key={i} name="star" solid size={12} color="#FFD700" style={{marginLeft: 2}} />)}
-                 </View>
-              </View>
-              <Text style={styles.reviewText}>
-                Excellent teacher! Very clear explanations and always on time. Highly recommended for maths preparation.
-              </Text>
-              <Text style={styles.reviewFooter}>Advanced Mathematics • Individual session</Text>
-            </View>
+             {(evst?.length ?? 0) == 0 && <Text style={{color: '#999', fontStyle: 'italic'}}>No reviews yet.</Text>}
 
-            <View style={styles.reviewCard}>
-              <View style={styles.reviewHeader}>
-                 <View style={[styles.reviewAvatar, { backgroundColor: '#FF9800' }]}>
-                   <Text style={styles.reviewAvatarText}>A</Text>
-                 </View>
-                 <View style={{ flex: 1 }}>
-                   <Text style={styles.reviewName}>Amira Darsi</Text>
-                   <Text style={styles.reviewDate}>25 Feb 2026</Text>
-                 </View>
-                 <View style={styles.starsRow}>
-                   {[1,2,3,4].map(i => <FontAwesome5 key={i} name="star" solid size={12} color="#FFD700" style={{marginLeft: 2}} />)}
-                   <FontAwesome5 name="star" solid size={12} color="#E0E0E0" style={{marginLeft: 2}} />
-                 </View>
-              </View>
-              <Text style={styles.reviewText}>
-                Great group sessions, very well organized. Methods are adapted and effective for exam preparation.
-              </Text>
-              <Text style={styles.reviewFooter}>Maths Group Sessions • Group session</Text>
-            </View>
+            { (evst?.length ?? 0) > 0 && evst.map((evaluation:any) => (
+              evaluation && evaluation.evaluator ? (
+                <View style={styles.reviewCard} key={evaluation._id ?? evaluation.date}>
+                  <View style={styles.reviewHeader}>
+                    <View style={[styles.reviewAvatar, { backgroundColor: '#00C853' }]}>
+                      <Text style={styles.reviewAvatarText}>{evaluation.evaluator.first_name?.charAt(0) ?? 'U'}</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.reviewName}>{`${evaluation.evaluator.first_name || ''} ${evaluation.evaluator.last_name || ''}`.trim() || 'Unknown Reviewer'}</Text>
+                      <Text style={styles.reviewDate}>{evaluation.date || 'No date'}</Text>
+                    </View>
+                    <View style={styles.starsRow}>
+                      {[1,2,3,4,5].map(i => (
+                        <FontAwesome5
+                          key={i}
+                          name="star"
+                          solid
+                          size={12}
+                          color={i <= (evaluation.note ?? 0) ? '#FFD700' : '#E0E0E0'}
+                          style={{ marginLeft: 2 }}
+                        />
+                      ))}
+                    </View>
+                  </View>
+                  <Text style={styles.reviewText}>{evaluation.comment || 'No comment provided.'}</Text>
+                  <Text style={styles.reviewFooter}>{`${evaluation.note ?? '-'} / 5`}</Text>
+                </View>
+              ) : null
+            ))}
 
          </Animated.View>
 

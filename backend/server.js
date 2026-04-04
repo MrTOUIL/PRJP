@@ -60,7 +60,7 @@ const mongoSanitize = require('express-mongo-sanitize');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const dns = require('dns');
-
+const { protect , authorize } = require('./middleware') ;
 app.use(express.json());
 
 app.use(cors({
@@ -86,8 +86,21 @@ async function run() {
       res.send("Welcome to Alemni API");
     });
 
+    //this route will check the accessToken sent in the header , if valid the app will take the user to its account page (teacher or student or parent or admin)
+    app.get("/switchAccount" , protect , async(req,res) => {
+       try{
+           //if all is right , let's check the role (token decoding already done in middleware)
+           const role = req.user.role ; 
+           res.json({ succ:"Token is valid!" , role}) ; 
+       }catch(err){
+         console.log(err) ;
+         res.status(500).json({ error: "Something went wrong" }); 
+       }
+    })  ;
+
     app.use('/logs', require('./authServer'));
-    app.use('/service', require('./serviceServer'));
+    app.use('/document', require('./DocumentServer'));
+    app.use('/teacher', require('./teacherServer'));
 
     // ✅ HTTP SERVER (NO HTTPS)
     app.listen(5000, () => {

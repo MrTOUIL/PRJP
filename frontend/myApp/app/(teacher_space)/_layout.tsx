@@ -27,13 +27,13 @@ const BOTTOM_NAV_ITEMS = [
 		activeIcon: 'mail' as const,
 		route: '/(teacher_space)/teacherMessages',
 	},
-	{
-		key: 'notifications',
-		label: 'NOTIFICATIONS',
-		icon: 'notifications-outline' as const,
-		activeIcon: 'notifications' as const,
-		route: '/(teacher_space)/teacherNotifications',
-	},
+	// {
+	// 	key: 'notifications',
+	// 	label: 'NOTIFICATIONS',
+	// 	icon: 'notifications-outline' as const,
+	// 	activeIcon: 'notifications' as const,
+	// 	route: '/(teacher_space)/teacherNotifications',
+	// },
 	{
 		key: 'profile',
 		label: 'PROFILE',
@@ -58,7 +58,7 @@ export default function TeacherSpaceLayout() {
 	].map((path) => normalizePath(path));
 
 	const messagesPath = normalizePath('/(teacher_space)/teacherMessages');
-	const notificationsPath = normalizePath('/(teacher_space)/teacherNotifications');
+	// const notificationsPath = normalizePath('/(teacher_space)/teacherNotifications');
 	const profilePath = normalizePath('/(teacher_space)/teacherProfile');
 
 	const getIsActive = (key: string) => {
@@ -69,9 +69,9 @@ export default function TeacherSpaceLayout() {
 		if (key === 'messages') {
 			return currentPath === messagesPath;
 		}
-		if (key === 'notifications') {
-			return currentPath === notificationsPath;
-		}
+		// if (key === 'notifications') {
+		// 	return currentPath === notificationsPath;
+		// }
 		if (key === 'profile') {
 			return currentPath === profilePath;
 		}

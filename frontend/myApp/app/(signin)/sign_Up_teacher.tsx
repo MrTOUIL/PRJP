@@ -158,7 +158,7 @@ export default function SignUpTeacher() {
 
   const handleRegister = ():void => {
      setLoading(true) ; setMsg("") ; 
-     fetch("http://192.168.143.250:5000/logs/register_teacher",{
+     fetch("http://10.89.124.250:5000/logs/register_teacher",{
       method:"POST",
       headers:{"content-type":"application/json"},
       body:JSON.stringify({

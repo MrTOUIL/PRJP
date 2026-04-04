@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -11,6 +11,7 @@ import {
   SafeAreaView,
   StatusBar,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import Animated, {
   FadeInDown,
@@ -24,6 +25,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { FontAwesome5, Ionicons, MaterialIcons, Feather, AntDesign, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 
 // Reusing theme colors from Teacher Space
 const COLORS = {
@@ -85,6 +87,77 @@ const DocumentRow = ({ title, subtitle, icon, color }: { title: string, subtitle
 
 export default function TeacherProfile() {
   const router = useRouter();
+
+
+  const [teacher , setTeacher] = useState({}) ;
+  const [loading , setLoading ] = useState(false) ;
+  const [msg , setMsg] = useState("") ;
+
+  useEffect(() => {
+    const getTeacherInfo = async (): Promise<void> => {
+        setLoading(true);
+        setMsg('Loading profile...');
+        try {
+          const accessToken = await SecureStore.getItemAsync("accessToken");
+          const refreshToken = await SecureStore.getItemAsync("refreshToken");
+    
+          fetch("http://10.89.124.250:5000/teacher/getProfile", {
+            method: "GET",
+            headers: { "content-type": "application/json", "authorization": `Bearer ${accessToken}` }
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (data.succ) {
+              setTeacher(data.teacher);
+              setLoading(false);
+              setMsg('Profile loaded successfully.');
+            } else if (data.error === "Token expired!") {
+              fetch("http://10.89.124.250:5000/teacher/refresh", {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ refreshToken })
+              })
+              .then(res => res.json())
+              .then(data => {
+                if (data.accessToken) {
+                  SecureStore.setItemAsync("accessToken", data.accessToken);
+                  fetch("http://10.89.124.250:5000/teacher/getProfile", {
+                    method: "GET",
+                    headers: { "content-type": "application/json", "authorization": `Bearer ${data.accessToken}` }
+                  })
+                  .then(res => res.json())
+                  .then(data => {
+                    if (data.succ) {
+                      setTeacher(data.teacher);
+                      setLoading(false);
+                      setMsg('Profile loaded successfully.');
+                    } else {
+                      setLoading(false);
+                      router.replace("/sign_in");
+                    }
+                  });
+                } else {
+                  // refresh token expired → force login
+                  setLoading(false);
+                  router.replace("/sign_in");
+                }
+              });
+            } else {
+              // "No token found!" or "Invalid token!" → force login
+              setLoading(false);
+              router.replace("/sign_in");
+            }
+          });
+        } catch (err) {
+          console.error(err);
+          setLoading(false);
+          setMsg('Unable to load profile.');
+          router.replace("/sign_in");
+        }
+      };
+    
+      getTeacherInfo();
+  },[]) ;
   
   // Animation for the avatar pulse
   const pulseAnim = useSharedValue(1);
@@ -104,23 +177,31 @@ export default function TeacherProfile() {
     transform: [{ scale: pulseAnim.value }],
   }));
 
-  // Mock Data
-  const stats = [
+  const handleLogout = async():Promise<void> => {
+  setLoading(true) ;
+  setMsg("") ;
+   try{
+    await SecureStore.deleteItemAsync("accessToken") ; 
+    await SecureStore.deleteItemAsync("refreshToken") ;
+    setLoading(false) ; setMsg("") ;
+    router.replace("/(welcome page)/welcomePage") ;
+   }catch(e){
+    setLoading(false) ; setMsg("Error in loging out!") ; 
+   } 
+    
+  }
+
+  // Mock Data - Update with real data from API if available
+  /*const stats = [
     { id: 1, value: '18', label: 'SESSIONS', borderRight: true },
     { id: 2, value: '9', label: 'STUDENTS', borderRight: true },
     { id: 3, value: '3', label: 'SERVICES', borderRight: true },
-    { id: 4, value: '4.9', label: 'RATING', borderRight: false },
-  ];
+    { id: 4, value: teacher?.rating || '0', label: 'RATING', borderRight: false },
+  ];*/
 
-  const availability = [
-    { day: 'M', status: 'PM' },
-    { day: 'T', status: '-' },
-    { day: 'W', status: 'AM' },
-    { day: 'T', status: 'PM' },
-    { day: 'F', status: 'All' },
-    { day: 'S', status: '-' },
-    { day: 'S', status: '-' },
-  ];
+  const availableDaysText = teacher?.available_days?.length
+    ? teacher.available_days.join(' · ')
+    : 'No availability set';
 
   return (
     <View style={styles.container}>
@@ -134,43 +215,58 @@ export default function TeacherProfile() {
              <View style={styles.headerContent}>
                 <Animated.View style={[styles.avatarWrapper, animatedPulseStyle]}>
                    <View style={styles.avatarContainer}>
-                      <Text style={styles.avatarText}>K</Text>
+                      <Text style={styles.avatarText}>{teacher?.first_name?.[0]?.toUpperCase()}</Text>
                    </View>
                    <View style={styles.onlineBadge}>
                       <Feather name="check" size={10} color="#FFF" />
                    </View>
                 </Animated.View>
                 
-                <Text style={styles.nameText}>Karim Hadj</Text>
-                <Text style={styles.subtitleText}>Mathematics Teacher · Online / Hybrid · Alger</Text>
+                <Text style={styles.nameText}>{teacher?.first_name} {teacher?.last_name}</Text>
+                <Text style={styles.subtitleText}>{teacher?.role} · {teacher?.mode} · {teacher?.postal_adress}</Text>
                 
                 <View style={styles.tagsRow}>
+                   {teacher?.school_levels_taught?.map((level, index) => (
+                      <View key={index} style={styles.headerTag}>
+                         <Text style={styles.headerTagText}>{level}</Text>
+                      </View>
+                   ))}
+                   {teacher?.subject?.map((subj, index) => (
+                      <View key={`subj-${index}`} style={styles.headerTag}>
+                         <Text style={styles.headerTagText}>{subj}</Text>
+                      </View>
+                   ))}
                    <View style={styles.headerTag}>
-                      <Text style={styles.headerTagText}>Terminale S</Text>
-                   </View>
-                   <View style={styles.headerTag}>
-                      <Text style={styles.headerTagText}>Maths</Text>
-                   </View>
-                   <View style={styles.headerTag}>
-                      <Text style={styles.headerTagText}>Physics</Text>
-                   </View>
+                         <Text style={styles.headerTagText}>{teacher.status}</Text>
+                    </View>
                 </View>
              </View>
            </SafeAreaView>
         </View>
 
-        {/* Stats Bar */}
-        <Animated.View entering={FadeInUp.delay(200).springify()} style={styles.statsContainer}>
-           {stats.map((stat) => (
-               <View key={stat.id} style={[styles.statItem, stat.borderRight && styles.statBorder]}>
-                  <Text style={styles.statValue}>{stat.value}</Text>
-                  <Text style={styles.statLabel}>{stat.label}</Text>
-               </View>
-           ))}
-        </Animated.View>
+        
 
         {/* Content Sections */}
         <View style={styles.contentContainer}>
+            {loading && (
+              <Animated.View entering={FadeInDown.delay(100).springify()} style={styles.sectionContainer}>
+                <SectionHeader title="Loading" />
+                <View style={styles.card}>
+                  <View style={styles.loadingRow}>
+                    <ActivityIndicator size="small" color={COLORS.primary} />
+                    <Text style={styles.loadingText}>Loading profile...</Text>
+                  </View>
+                </View>
+              </Animated.View>
+            )}
+            <Animated.View entering={FadeInDown.delay(200).springify()} style={styles.sectionContainer}>
+                <SectionHeader title="Message" />
+                <View style={styles.card}>
+                  <Text style={styles.messageText}>
+                    {msg || 'No messages at the moment.'}
+                  </Text>
+                </View>
+            </Animated.View>
             
             {/* Personal Information */}
             <Animated.View entering={FadeInDown.delay(300).springify()} style={styles.sectionContainer}>
@@ -179,25 +275,25 @@ export default function TeacherProfile() {
                    <InfoRow 
                      icon={<Feather name="user" size={20} color={COLORS.primary} />}
                      label="FULL NAME"
-                     value="Karim Hadj"
+                     value={`${teacher?.first_name || ''} ${teacher?.last_name || ''}`}
                    />
                    <View style={styles.divider} />
                    <InfoRow 
                      icon={<Feather name="mail" size={20} color={COLORS.primary} />}
                      label="EMAIL"
-                     value="k.hadj@alemni.dz"
+                     value={teacher?.email || 'N/A'}
                    />
                    <View style={styles.divider} />
                    <InfoRow 
                      icon={<Feather name="phone" size={20} color={COLORS.primary} />}
                      label="PHONE"
-                     value="+213 550 123 456"
+                     value={teacher?.phone || 'N/A'}
                    />
                    <View style={styles.divider} />
                    <InfoRow 
                      icon={<Feather name="map-pin" size={20} color={COLORS.primary} />}
                      label="ADDRESS / GEOLOCATION"
-                     value="Alger, Bab Ezzouar"
+                     value={teacher?.postal_adress || 'N/A'}
                    />
                 </View>
             </Animated.View>
@@ -209,31 +305,43 @@ export default function TeacherProfile() {
                    <InfoRow 
                      icon={<Feather name="book-open" size={20} color={COLORS.primary} />}
                      label="EXPERTISE / SUBJECTS"
-                     value="Mathematics, Physics"
+                     value={teacher?.subject?.join(', ') || 'N/A'}
                    />
                    <View style={styles.divider} />
                    <InfoRow 
                      icon={<FontAwesome5 name="graduation-cap" size={16} color={COLORS.primary} />}
                      label="LEVELS TAUGHT"
-                     value="Terminale S · Bac · 2AS"
+                     value={teacher?.school_levels_taught?.join(' · ') || 'N/A'}
                    />
                    <View style={styles.divider} />
                    <InfoRow 
                      icon={<Feather name="monitor" size={20} color={COLORS.primary} />}
                      label="TEACHING MODE"
-                     value="Online · Hybrid"
+                     value={teacher?.mode || 'N/A'}
+                   />
+                   <View style={styles.divider} />
+                   <InfoRow 
+                     icon={<Feather name="clock" size={20} color={COLORS.primary} />}
+                     label="START TIME"
+                     value={teacher?.start_time || 'N/A'}
+                   />
+                   <View style={styles.divider} />
+                   <InfoRow 
+                     icon={<Feather name="clock" size={20} color={COLORS.primary} />}
+                     label="END TIME"
+                     value={teacher?.end_time || 'N/A'}
                    />
                    <View style={styles.divider} />
                    <InfoRow 
                      icon={<Feather name="home" size={20} color={COLORS.primary} />}
                      label="NATURE"
-                     value="Independent"
+                     value={teacher?.role || 'N/A'}
                    />
                    <View style={styles.divider} />
                    <InfoRow 
                      icon={<Feather name="clock" size={20} color={COLORS.primary} />}
                      label="HOME VISITS / DISPLACEMENT"
-                     value="Yes – within Alger"
+                     value={teacher?.home_visits ? `Yes – within ${teacher?.postal_adress}` : 'No'}
                    />
                 </View>
             </Animated.View>
@@ -243,69 +351,27 @@ export default function TeacherProfile() {
                 <SectionHeader title="Pedagogical Description" />
                 <View style={[styles.card, {padding: 20}]}>
                     <Text style={styles.descriptionText}>
-                      Experienced math teacher with 8+ years helping Terminale S students achieve their best results. My approach focuses on building deep understanding rather than memorization, with tailored exercises and regular progress evaluation.
+                      {teacher?.bio || 'No bio provided yet.'}
                     </Text>
                 </View>
             </Animated.View>
 
-            {/* Weekly Availability */}
+            {/* Availability Summary */}
             <Animated.View entering={FadeInDown.delay(600).springify()} style={styles.sectionContainer}>
-                <SectionHeader title="Weekly Availability" />
-                <View style={[styles.card, styles.availabilityCard]}>
-                    <View style={styles.weekRow}>
-                       {availability.map((day, index) => (
-                           <View key={index} style={styles.dayColumn}>
-                               <Text style={styles.dayLabel}>{day.day}</Text>
-                               <View style={[
-                                 styles.dayStatus, 
-                                 { backgroundColor: day.status === '-' ? '#F5F5F5' : COLORS.primary }
-                               ]}>
-                                  {day.status !== '-' && (
-                                    <Text style={styles.dayStatusText}>{day.status}</Text>
-                                  )}
-                               </View>
-                           </View>
-                       ))}
-                    </View>
-                </View>
-            </Animated.View>
-
-            {/* My Documents */}
-            <Animated.View entering={FadeInDown.delay(700).springify()} style={styles.sectionContainer}>
-                <View style={styles.sectionHeaderRow}>
-                   <Text style={styles.sectionTitle}>My Documents</Text>
-                   <TouchableOpacity>
-                      <Text style={styles.uploadLink}>Upload</Text>
-                   </TouchableOpacity>
-                </View>
-                
+                <SectionHeader title="Availability Summary" />
                 <View style={styles.card}>
-                   <DocumentRow 
-                     title="Algebra_Chapter3.pdf"
-                     subtitle="Course · Added 25 Feb 2026"
-                     icon={<FontAwesome5 name="file-pdf" size={20} color="#5C6078" />}
-                     color="#5C6078"
-                   />
-                   <View style={styles.divider} />
-                   <DocumentRow 
-                     title="Exam_Exercises_Set2.pdf"
-                     subtitle="Exercise · Added 20 Feb 2026"
-                     icon={<FontAwesome5 name="file-contract" size={20} color="#FFB74D" />}
-                     color="#FFB74D"
-                   />
-                   <View style={styles.divider} />
-                   <DocumentRow 
-                     title="Student_Progress_Feb.pdf"
-                     subtitle="Progress Report · Added 28 Feb 2026"
-                     icon={<FontAwesome5 name="chart-bar" size={20} color="#4CAF50" />}
-                     color="#4CAF50"
+                   <InfoRow
+                     icon={<Feather name="calendar" size={20} color={COLORS.primary} />}
+                     label="AVAILABLE DAYS"
+                     value={availableDaysText}
+                     showArrow={false}
                    />
                 </View>
             </Animated.View>
-
+           
             {/* Log Out Button */}
             <Animated.View entering={FadeInDown.delay(800).springify()}>
-              <TouchableOpacity style={styles.logoutButton} onPress={() => {/* Handle Logout */}}>
+              <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
                   <Feather name="log-out" size={20} color="#FF3D00" style={{marginRight: 10}} />
                   <Text style={styles.logoutText}>Log Out</Text>
               </TouchableOpacity>
@@ -372,6 +438,23 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#FFFFFF',
     marginBottom: 4,
+  },
+  loadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+  },
+  loadingText: {
+    marginLeft: 10,
+    fontSize: 14,
+    color: COLORS.textDark,
+  },
+  messageText: {
+    fontSize: 14,
+    color: COLORS.textDark,
+    lineHeight: 20,
+    paddingVertical: 10,
   },
   subtitleText: {
     fontSize: 12,

@@ -132,7 +132,7 @@ export default function SignIn() {
 
   const BASE_URL = "https://localhost:5000";
 
-  fetch(`http://192.168.143.250:5000/logs/login`, {
+  fetch(`http://10.89.124.250:5000/logs/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password })
@@ -150,7 +150,6 @@ export default function SignIn() {
         //SAVE TOKENS DIRECTLY HERE
         await SecureStore.setItemAsync("accessToken", data.accessToken);
         await SecureStore.setItemAsync("refreshToken", data.refreshToken);
-        await SecureStore.setItemAsync("role", data.role);
 
         //NAVIGATION (no id needed anymore)
         if (data.role === "student" || data.role === "parent") {

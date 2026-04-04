@@ -396,7 +396,7 @@ router.post("/addactor",
             password:pending_tc.password, subject:pending_tc.subject, school_levels_taught:pending_tc.school_levels_taught,
             mode:pending_tc.mode, available_days:pending_tc.available_days, start_time:pending_tc.start_time,
             end_time:pending_tc.end_time, home_visits:pending_tc.home_visits, bio:pending_tc.bio,
-            role:"teacher" , status:"not verified"
+            role:"teacher" , status:"not verified" , rating:0
         });
 
         await teacher_pendings.deleteOne({email:email});

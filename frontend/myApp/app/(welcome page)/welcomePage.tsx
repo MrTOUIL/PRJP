@@ -454,30 +454,85 @@ export default function WelcomePage() {
     router.push('/signup');
    }
 
-   useEffect(() => {
-  const checkAuth = async () => {
+   //useEffect(() => {
+  //const checkAuth = async () => {
+    //try {
+      //const token = await SecureStore.getItemAsync("accessToken");
+      
+
+      //if (!token) {
+        /*router.replace("/signin");*/
+        //return;
+      //}
+      //if (role === "teacher") {
+        //router.replace("/(teacher_space)/teacherSpace");
+      //} else {
+        //router.replace("/(student_space)/studentSpace");
+      //}
+
+    //} catch (err) {
+      /*router.replace("/signin") */
+      //console.error("error!!!") ; 
+    //}
+  //};
+
+  //checkAuth();
+//}, []);*/
+
+useEffect(() => {
+  const checkAuth = async (): Promise<void> => {
     try {
       const token = await SecureStore.getItemAsync("accessToken");
-      const role = await SecureStore.getItemAsync("role");
+      const refreshToken = await SecureStore.getItemAsync("refreshToken");
 
-      if (!token) {
-        /*router.replace("/signin");*/
-        return;
-      }
-      if (role === "teacher") {
-        router.replace("/(teacher_space)/teacherSpace");
-      } else {
-        router.replace("/(student_space)/studentSpace");
-      }
-
+      fetch("http://10.89.124.250:5000/switchAccount", {
+        method: "GET",
+        headers: { "content-type": "application/json", "authorization": `Bearer ${token}` }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.succ) {
+          if (data.role === "teacher") router.replace("/(teacher_space)/teacherSpace");
+          if (data.role === "student") router.replace("/(student_space)/studentSpace");
+        } else if (data.error === "Token expired!") {
+          fetch("http://10.89.124.250:5000/teacher/refresh", { 
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ refreshToken })
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (data.accessToken) {
+              SecureStore.setItemAsync("accessToken", data.accessToken);
+              fetch("http://10.89.124.250:5000/switchAccount", {
+                method: "GET",
+                headers: { "content-type": "application/json", "authorization": `Bearer ${data.accessToken}` }
+              })
+              .then(res => res.json())
+              .then(data => {
+                if (data.succ) {
+                  if (data.role === "teacher") router.replace("/(teacher_space)/teacherSpace");
+                  if (data.role === "student") router.replace("/(student_space)/studentSpace");
+                } else {
+                  //router.replace("/signin");
+                }
+              });
+            } else {
+              //router.replace("/signin");
+            }
+          });
+        } else {
+          //router.replace("/signin");
+        }
+      });
     } catch (err) {
-      /*router.replace("/signin") */
-      console.error("error!!!") ; 
+      //router.replace("/signin");
     }
   };
 
   checkAuth();
-}, []);
+}, []); 
+
 
   return (
     <View style={styles.mainContainer}>
