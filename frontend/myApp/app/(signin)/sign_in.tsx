@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { BASE_URL } from '../../constants/api';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, SafeAreaView, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { FontAwesome5, MaterialCommunityIcons, AntDesign } from '@expo/vector-icons';
@@ -130,9 +131,7 @@ export default function SignIn() {
   setLoading(true);
   setMsg("");
 
-  const BASE_URL = "https://localhost:5000";
-
-  fetch(`http://10.89.124.250:5000/logs/login`, {
+  fetch(`${BASE_URL}/logs/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password })

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { BASE_URL } from '../../constants/api';
 import {
   StyleSheet,
   Text,
@@ -29,12 +30,12 @@ export default function AllDocuments() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
 
-  useEffect(() => {
+  /*useEffect(() => {
     const fetchDocuments = async () => {
       try {
         const accessToken = await SecureStore.getItemAsync("accessToken");
 
-        const response = await fetch('http://10.89.124.250:5000/teacher/getalldocuments', {
+        const response = await fetch(`${BASE_URL}/teacher/getalldocuments`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -60,10 +61,77 @@ export default function AllDocuments() {
       } finally {
         setLoading(false);
       }
-    };
+    };<
 
     fetchDocuments();
-  }, []);
+  }, []);*/
+
+  useEffect(() => {
+    const fetchDocuments = async():Promise<void> => {
+      try{
+        const accessToken = await SecureStore.getItemAsync("accessToken") ; 
+        const refreshToken = await SecureStore.getItemAsync("refreshToken") ;
+         
+        fetch(`${BASE_URL}/teacher/getalldocuments`,{
+          method:"GET" , 
+          headers: {
+            'Content-Type': 'application/json',
+            'authorization': `Bearer ${accessToken}`,
+          },
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.documents){
+            setDocuments(data.documents) ; 
+            if (data.documents.length == 0){
+              setMessage("no documents uploaded yet!") ;
+            }
+          }else if (data.error = "Token expired!"){
+            fetch(`${BASE_URL}/teacher/refresh`, {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ refreshToken })
+            })
+
+            .then(res => res.json())
+            .then(data => {
+              if (data.accessToken){
+                SecureStore.setItemAsync("accessToken",data.accessToken) ;
+                fetch(`${BASE_URL}/teacher/getalldocuments`,{
+                  method:"GET",
+                  headers: {
+                   'Content-Type': 'application/json',
+                   'authorization': `Bearer ${accessToken}`,
+                  },
+                })
+                .then(res => res.json())
+                .then(data =>{
+                  if (data.documents){
+                    setDocuments(data.documents) ;
+                    if (data.documents.length == 0){
+                     setMessage("no documents uploaded yet!") ;
+                    } 
+                  }else{
+                    router.replace("/sign_in");
+                  }
+                });
+              }else{
+                setLoading(false);
+                router.replace("/sign_in");
+              }
+            }) ;
+          }
+        });
+      }catch(e){
+        router.replace("/sign_in");
+      }finally{
+        setLoading(false) ; 
+      }
+    }
+
+    fetchDocuments() ; 
+  },[]) ; 
+
 
   const openUrl = async (url: string) => {
     try {
@@ -78,6 +146,65 @@ export default function AllDocuments() {
       setMessage('Cannot open document URL');
     }
   };
+
+
+  /*const delete_document = async (docid:String):Promise<void> => {
+    try{
+      const accessToken = await SecureStore.getItemAsync("accessToken") ; 
+      const refreshToken = await SecureStore.getItemAsync("refreshToken") ;
+      fetch(`${BASE_URL}/document/deletedocument`,{
+        method:"DELETE",
+        headers: {
+          'Content-Type': 'application/json',
+          'authorization': `Bearer ${accessToken}`,
+        },
+        body:JSON.stringify({id:docid})
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.succ){
+          router.reload() ;
+        }
+        else if (data.error == "Token expired!"){
+          fetch(`${BASE_URL}/teacher/refresh`, {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ refreshToken })
+            })
+
+            .then(res => res.json())
+            .then(data => {
+              if (data.accessToken){
+                SecureStore.setItemAsync("accessToken",data.accessToken) ;
+                fetch(`${BASE_URL}/document/deletedocument`,{
+                  method:"DELETE",
+                  headers: {
+                   'Content-Type': 'application/json',
+                   'authorization': `Bearer ${accessToken}`,
+                  },
+                  body:JSON.stringify({id:docid})
+                })
+                .then(res => res.json())
+                .then(data =>{
+                  if (data.succ){router.reload()}
+                  if (data.error){
+                    router.replace("/sign_in") ;
+                  }
+                });
+              }else{
+                router.replace("/sign_in");
+              }
+            }) ;
+        }else{
+          router.replace("/sign_in") ;
+        }
+      }) ;
+    }catch(e){
+      router.replace("/sign_in");
+    }finally{
+
+    }
+  }*/
 
   return (
     <View style={styles.container}>
@@ -97,7 +224,8 @@ export default function AllDocuments() {
         {!loading && message && (
           <Text style={styles.infoText}>{message}</Text>
         )}
-
+ 
+        {/*display section*/}
         {documents && documents.length > 0 && (
           documents.map((doc) => (
             <View key={doc._id ?? doc.fileId} style={styles.documentCard}>
@@ -112,6 +240,9 @@ export default function AllDocuments() {
                   {doc.url}
                 </Text>
               </TouchableOpacity>
+
+              
+
               <Text style={styles.docHint}>(tap to open)</Text>
             </View>
           ))
@@ -198,6 +329,24 @@ const styles = StyleSheet.create({
     borderColor: COLORS.primary,
     padding: 10,
     backgroundColor: 'rgba(26, 26, 94, 0.05)',
+  },
+  deleteBtn: {
+    marginTop: 10,
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#F3B4BF',
+    backgroundColor: '#FFF1F4',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  deleteBtnText: {
+    color: '#B00020',
+    fontSize: 13,
+    fontWeight: '700',
   },
   linkText: {
     color: COLORS.primary,

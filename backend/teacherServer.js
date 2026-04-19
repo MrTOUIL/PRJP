@@ -208,4 +208,282 @@ router.get("/getalldocuments",protect,authorize("teacher"),async(req,res) => {
     }
 }) ;
 
+router.put("/editname",protect,authorize("teacher"),
+body("first").isString().isLength({min:2}),
+body("last").isString().isLength({min:2}),
+async(req,res) => {
+   const errors = validationResult(req) ; 
+    if (!errors.isEmpty()){
+        return res.status(400).json({errors:errors.array()})
+    }
+
+    try{
+        const {first , last} = req.body ; 
+        const teacherId = req.user.id ;
+        const tea = await teachers.findById(teacherId) ;
+        if (!tea){
+            return res.json({error:"error"}) ; 
+        } 
+        tea.first_name = first ;
+        tea.last_name = last ; 
+        await tea.save() ; 
+        res.json({succ:"succ"}) ; 
+    }catch(e){
+        console.error(e) ;
+        res.json({error:"error"}) ; 
+    }
+}) ;
+
+
+
+router.put("/editadress",protect,authorize("teacher"),
+body("adress").isString().isLength({min:2}),
+async(req,res) => {
+   const errors = validationResult(req) ; 
+    if (!errors.isEmpty()){
+        return res.status(400).json({errors:errors.array()})
+    }
+
+    try{
+        const {adress} = req.body ; 
+        const teacherId = req.user.id ;
+        const tea = await teachers.findById(teacherId) ;
+        if (!tea){
+            return res.json({error:"error"}) ; 
+        } 
+        tea.postal_adress = adress ;  
+        await tea.save() ; 
+        res.json({succ:"succ"}) ; 
+    }catch(e){
+        console.error(e) ;
+        res.json({error:"error"}) ; 
+    }
+}) ;
+
+router.put("/editsubject",protect,authorize("teacher"),
+body("subject").isString().isLength({min:2}),
+async(req,res) => {
+   const errors = validationResult(req) ; 
+    if (!errors.isEmpty()){
+        return res.status(400).json({errors:errors.array()})
+    }
+
+    try{
+        const {subject} = req.body ; 
+        const teacherId = req.user.id ;
+        const tea = await teachers.findById(teacherId) ;
+        if (!tea){
+            return res.json({error:"error"}) ; 
+        } 
+        tea.subject = [subject] ;  
+        await tea.save() ; 
+        res.json({succ:"succ"}) ; 
+    }catch(e){
+        console.error(e) ;
+        res.json({error:"error"}) ; 
+    }
+}) ;
+
+router.put("/editlevel",protect,authorize("teacher"),
+body("levels").isString().isLength({min:2}),
+async(req,res) => {
+   const errors = validationResult(req) ; 
+    if (!errors.isEmpty()){
+        return res.status(400).json({errors:errors.array()})
+    }
+
+    try{
+        const {levels} = req.body ; 
+        const teacherId = req.user.id ;
+        const tea = await teachers.findById(teacherId) ;
+        if (!tea){
+            return res.json({error:"error"}) ; 
+        } 
+        tea.school_levels_taught = [levels] ;   
+        await tea.save() ; 
+        res.json({succ:"succ"}) ; 
+    }catch(e){
+        console.error(e) ;
+        res.json({error:"error"}) ; 
+    }
+}) ;
+
+router.put("/editmode",protect,authorize("teacher"),
+body("mode").isString().isLength({min:2}),
+async(req,res) => {
+   const errors = validationResult(req) ; 
+    if (!errors.isEmpty()){
+        return res.status(400).json({errors:errors.array()})
+    }
+
+    try{
+        const {mode} = req.body ; 
+        const teacherId = req.user.id ;
+        const tea = await teachers.findById(teacherId) ;
+        if (!tea){
+            return res.json({error:"error"}) ; 
+        } 
+        tea.mode = mode ;   
+        await tea.save() ; 
+        res.json({succ:"succ"}) ; 
+    }catch(e){
+        console.error(e) ;
+        res.json({error:"error"}) ; 
+    }
+}) ;
+
+router.put("/editstart",protect,authorize("teacher"),
+body("start").isString().isLength({min:2}),
+async(req,res) => {
+   const errors = validationResult(req) ; 
+    if (!errors.isEmpty()){
+        return res.status(400).json({errors:errors.array()})
+    }
+
+    try{
+        const {start} = req.body ; 
+        const teacherId = req.user.id ;
+        const tea = await teachers.findById(teacherId) ;
+        if (!tea){
+            return res.json({error:"error"}) ; 
+        } 
+        tea.start_time = start ;   
+        await tea.save() ; 
+        res.json({succ:"succ"}) ; 
+    }catch(e){
+        console.error(e) ;
+        res.json({error:"error"}) ; 
+    }
+}) ;
+
+
+router.put("/editend",protect,authorize("teacher"),
+body("end").isString().isLength({min:2}),
+async(req,res) => {
+   const errors = validationResult(req) ; 
+    if (!errors.isEmpty()){
+        return res.status(400).json({errors:errors.array()})
+    }
+
+    try{
+        const {end} = req.body ; 
+        const teacherId = req.user.id ;
+        const tea = await teachers.findById(teacherId) ;
+        if (!tea){
+            return res.json({error:"error"}) ; 
+        } 
+        tea.end_time = end ;   
+        await tea.save() ; 
+        res.json({succ:"succ"}) ; 
+    }catch(e){
+        console.error(e) ;
+        res.json({error:"error"}) ; 
+    }
+}) ;
+
+router.put("/editvisit",protect,authorize("teacher"),
+body("visit").isString().isLength({min:2}),
+async(req,res) => {
+   const errors = validationResult(req) ; 
+    if (!errors.isEmpty()){
+        return res.status(400).json({errors:errors.array()})
+    }
+
+    try{
+        const {visit} = req.body ; 
+        const teacherId = req.user.id ;
+        const tea = await teachers.findById(teacherId) ;
+        if (!tea){
+            return res.json({error:"error"}) ; 
+        } 
+        if (visit == "NO"){
+            tea.home_visits = false ; 
+        }else{
+            tea.home_visits = true ; 
+        }   
+        await tea.save() ; 
+        res.json({succ:"succ"}) ; 
+    }catch(e){
+        console.error(e) ;
+        res.json({error:"error"}) ; 
+    }
+}) ;
+
+
+router.put("/editvisit",protect,authorize("teacher"),
+body("visit").isString().isLength({min:2}),
+async(req,res) => {
+   const errors = validationResult(req) ; 
+    if (!errors.isEmpty()){
+        return res.status(400).json({errors:errors.array()})
+    }
+
+    try{
+        const {visit} = req.body ; 
+        const teacherId = req.user.id ;
+        const tea = await teachers.findById(teacherId) ;
+        if (!tea){
+            return res.json({error:"error"}) ; 
+        } 
+        if (visit == "NO"){
+            tea.home_visits = false ; 
+        }else{
+            tea.home_visits = true ; 
+        }   
+        await tea.save() ; 
+        res.json({succ:"succ"}) ; 
+    }catch(e){
+        console.error(e) ;
+        res.json({error:"error"}) ; 
+    }
+}) ;
+
+router.put("/editdescription",protect,authorize("teacher"),
+body("description").isString().isLength({min:1}),
+async(req,res) => {
+   const errors = validationResult(req) ; 
+    if (!errors.isEmpty()){
+        return res.status(400).json({errors:errors.array()})
+    }
+
+    try{
+        const {description} = req.body ; 
+        const teacherId = req.user.id ;
+        const tea = await teachers.findById(teacherId) ;
+        if (!tea){
+            return res.json({error:"error"}) ; 
+        } 
+        tea.bio = description ;
+        await tea.save() ; 
+        res.json({succ:"succ"}) ; 
+    }catch(e){
+        console.error(e) ;
+        res.json({error:"error"}) ; 
+    }
+}) ;
+
+router.put("/editdays",protect,authorize("teacher"),
+body("days").isArray().isLength({min:1}),
+async(req,res) => {
+   const errors = validationResult(req) ; 
+    if (!errors.isEmpty()){
+        return res.status(400).json({errors:errors.array()})
+    }
+
+    try{
+        const {days} = req.body ; 
+        const teacherId = req.user.id ;
+        const tea = await teachers.findById(teacherId) ;
+        if (!tea){
+            return res.json({error:"error"}) ; 
+        } 
+        tea.available_days = days ;
+        await tea.save() ; 
+        res.json({succ:"succ"}) ; 
+    }catch(e){
+        console.error(e) ;
+        res.json({error:"error"}) ; 
+    }
+}) ;
+
 module.exports = router ;

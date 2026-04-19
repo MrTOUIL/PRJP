@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { BASE_URL } from '../../constants/api';
 import {
   StyleSheet,
   Text,
@@ -118,7 +119,7 @@ export default function ServicePedagogique() {
     const refreshToken = await SecureStore.getItemAsync("refreshToken");
     setMsg(""); setLoading(true);
 
-    fetch("http://10.89.124.250:5000/teacher/create_service", {
+    fetch(`${BASE_URL}/teacher/create_service`, {
       method: "POST",
       headers: { "content-type": "application/json", "authorization": `Bearer ${accessToken}` },
       body: JSON.stringify({
@@ -140,7 +141,7 @@ export default function ServicePedagogique() {
       }
       
         else if (data.error === "Token expired!") {
-        fetch("http://10.89.124.250:5000/teacher/refresh", {
+        fetch(`${BASE_URL}/teacher/refresh`, {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ refreshToken })
@@ -149,7 +150,7 @@ export default function ServicePedagogique() {
         .then(data => {
           if (data.accessToken) {
             SecureStore.setItemAsync("accessToken", data.accessToken);
-            fetch("http://10.89.124.250:5000/teacher/create_service", {
+            fetch(`${BASE_URL}/teacher/create_service`, {
               method: "POST",
               headers: { "content-type": "application/json", "authorization": `Bearer ${data.accessToken}` },
               body: JSON.stringify({

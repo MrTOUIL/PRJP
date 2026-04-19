@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { BASE_URL } from '../../constants/api';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -485,7 +486,7 @@ useEffect(() => {
       const token = await SecureStore.getItemAsync("accessToken");
       const refreshToken = await SecureStore.getItemAsync("refreshToken");
 
-      fetch("http://10.89.124.250:5000/switchAccount", {
+      fetch(`${BASE_URL}/switchAccount`, {
         method: "GET",
         headers: { "content-type": "application/json", "authorization": `Bearer ${token}` }
       })
@@ -495,7 +496,7 @@ useEffect(() => {
           if (data.role === "teacher") router.replace("/(teacher_space)/teacherSpace");
           if (data.role === "student") router.replace("/(student_space)/studentSpace");
         } else if (data.error === "Token expired!") {
-          fetch("http://10.89.124.250:5000/teacher/refresh", { 
+          fetch(`${BASE_URL}/teacher/refresh`, { 
             method: "POST",
             headers: { "content-type": "application/json" },
             body: JSON.stringify({ refreshToken })
@@ -504,7 +505,7 @@ useEffect(() => {
           .then(data => {
             if (data.accessToken) {
               SecureStore.setItemAsync("accessToken", data.accessToken);
-              fetch("http://10.89.124.250:5000/switchAccount", {
+              fetch(`${BASE_URL}/switchAccount`, {
                 method: "GET",
                 headers: { "content-type": "application/json", "authorization": `Bearer ${data.accessToken}` }
               })

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { BASE_URL } from '../../constants/api';
 import {
   StyleSheet,
   Text,
@@ -63,7 +64,7 @@ export default function ResetPassword() {
   
   const handleReset = ():void => {
     setMsg("") ; setLoading(true) ; 
-    fetch("http://10.89.124.250:5000/logs/reset_pw",{
+    fetch(`${BASE_URL}/logs/reset_pw`,{
       method:"POST",
       headers:{"content-type":"application/json"} , 
       body:JSON.stringify({newpassword:password , confirmpassword:confirmPassword , email})

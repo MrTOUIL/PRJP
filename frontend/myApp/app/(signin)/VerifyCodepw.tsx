@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { BASE_URL } from '../../constants/api';
 import { 
   StyleSheet, 
   Text, 
@@ -70,7 +71,7 @@ export default function VerifyCodepw() {
   const handleResend = async ():Promise<void> => {
      setMsg("") ;
      setLoading1(true) ;
-     fetch("http://10.89.124.250:5000/logs/resend_code_forgetpw",{
+     fetch(`${BASE_URL}/logs/resend_code_forgetpw`,{
         method:"PUT",
         headers:{"content-type":"application/json"},
         body:JSON.stringify({email})
@@ -89,7 +90,7 @@ export default function VerifyCodepw() {
   const handleVerify = async():Promise<void> => {
     setMsg("") ; 
     setLoading2(true) ;
-    fetch("http://10.89.124.250:5000/logs/verify_code_forgetpw",{
+    fetch(`${BASE_URL}/logs/verify_code_forgetpw`,{
         method:"POST",
         headers:{"content-type":"application/json"},
         body:JSON.stringify({code:Number(otp.join(""))})

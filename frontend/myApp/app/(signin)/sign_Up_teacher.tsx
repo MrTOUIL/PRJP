@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { BASE_URL } from '../../constants/api';
 import {
   SafeAreaView,
   StyleSheet,
@@ -34,6 +35,19 @@ const COLORS = {
   pillSelected: '#E0E7FF',
   pillTextSelected: '#1E1B6B',
 };
+
+const WILAYAS = [
+  'ADRAR', 'CHLEF', 'LAGHOUAT', 'OUM EL BOUAGHI', 'BATNA', 'BEJAIA', 'BISKRA',
+  'BECHAR', 'BLIDA', 'BOUIRA', 'TAMANRASSET', 'TEBESSA', 'TLEMCEN', 'TIARET',
+  'TIZI OUZOU', 'ALGER', 'DJELFA', 'JIJEL', 'SETIF', 'SAIDA', 'SKIKDA',
+  'SIDI BEL ABBES', 'ANNABA', 'GUELMA', 'CONSTANTINE', 'MEDEA', 'MOSTAGANEM',
+  'MSILA', 'MASCARA', 'OUARGLA', 'ORAN', 'EL BAYADH', 'ILLIZI',
+  'BORDJ BOU ARRERIDJ', 'BOUMERDES', 'EL TARF', 'TINDOUF', 'TISSEMSILT',
+  'EL OUED', 'KHENCHELA', 'SOUK AHRAS', 'TIPAZA', 'MILA', 'AIN DEFLA', 'NAAMA',
+  'AIN TEMOUCHENT', 'GHARDAIA', 'RELIZANE', "EL M'GHAIR", 'EL MENIA',
+  'OULED DJELLAL', 'BORDJ BADJI MOKHTAR', 'BENI ABBES', 'TIMIMOUN', 'TOUGGOURT',
+  'DJANET', 'IN SALAH', 'IN GUEZZAM'
+];
 
 function FieldLabel({ label, required }: { label: string; required?: boolean }) {
   return (
@@ -128,6 +142,7 @@ export default function SignUpTeacher() {
   const [endTime, setEndTime] = useState('');
   const [homeVisitsEnabled, setHomeVisitsEnabled] = useState(false);
   const [bio, setBio] = useState('');
+  const [showWilayaList, setShowWilayaList] = useState(false);
 
   const toggleLevel = (level: string) => {
     if (selectedLevels.includes(level)) {
@@ -158,7 +173,7 @@ export default function SignUpTeacher() {
 
   const handleRegister = ():void => {
      setLoading(true) ; setMsg("") ; 
-     fetch("http://10.89.124.250:5000/logs/register_teacher",{
+     fetch(`${BASE_URL}/logs/register_teacher`,{
       method:"POST",
       headers:{"content-type":"application/json"},
       body:JSON.stringify({
@@ -304,13 +319,41 @@ export default function SignUpTeacher() {
             </View>
 
             <View>
-                <FieldLabel label="Postal Address" />
-                <InputRow
-                  icon="map-marker-outline"
-                  placeholder="City, Wilaya"
-                  value={postalAddress}
-                  onChangeText={(text: string) => setPostalAddress(text)}
-                />
+                <FieldLabel label="Postal Address (Wilaya)" />
+                <TouchableOpacity
+                  style={styles.selectWrapper}
+                  activeOpacity={0.8}
+                  onPress={() => setShowWilayaList(!showWilayaList)}
+                >
+                  <View style={styles.inputIconWrap}>
+                    <MaterialCommunityIcons name="map-marker-outline" size={20} color={COLORS.primary} />
+                  </View>
+                  <Text style={[styles.selectText, !postalAddress && styles.selectPlaceholder]}>
+                    {postalAddress || 'Select Wilaya'}
+                  </Text>
+                  <Ionicons name={showWilayaList ? 'chevron-up' : 'chevron-down'} size={18} color={COLORS.mutedText} />
+                </TouchableOpacity>
+
+                {showWilayaList && (
+                  <View style={styles.wilayaListContainer}>
+                    <ScrollView nestedScrollEnabled style={styles.wilayaList}>
+                      {WILAYAS.map((wilaya) => (
+                        <TouchableOpacity
+                          key={wilaya}
+                          style={[styles.wilayaItem, postalAddress === wilaya && styles.wilayaItemActive]}
+                          onPress={() => {
+                            setPostalAddress(wilaya);
+                            setShowWilayaList(false);
+                          }}
+                        >
+                          <Text style={[styles.wilayaItemText, postalAddress === wilaya && styles.wilayaItemTextActive]}>
+                            {wilaya}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
             </View>
           </View>
         </Animated.View>
@@ -693,6 +736,50 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.text,
     height: '100%',
+  },
+  selectWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.inputBg,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    paddingHorizontal: 12,
+    height: 50,
+  },
+  selectText: {
+    flex: 1,
+    fontSize: 14,
+    color: COLORS.text,
+  },
+  selectPlaceholder: {
+    color: COLORS.mutedText,
+  },
+  wilayaListContainer: {
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    overflow: 'hidden',
+  },
+  wilayaList: {
+    maxHeight: 220,
+  },
+  wilayaItem: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+  wilayaItemActive: {
+    backgroundColor: COLORS.pillSelected,
+  },
+  wilayaItemText: {
+    fontSize: 13,
+    color: '#334155',
+  },
+  wilayaItemTextActive: {
+    color: COLORS.primary,
+    fontWeight: '700',
   },
   switchRow: {
     flexDirection: 'row',

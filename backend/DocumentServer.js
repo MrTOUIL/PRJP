@@ -74,5 +74,49 @@ router.post("/getdocuments" , protect , authorize("teacher") , async(req,res) =>
     }
 })
 
+/*router.delete("/deletedocument",protect,authorize("teacher") , async(req,res) => {
+    try{
+        const {id} = req.body ; 
+        const media = await documents.findOne({_id:id}) ;
+        if (!media){
+            return res.json({error:"not found!"}) ;
+        }
+        await b2.authorize() ;
+        await b2.deleteFileVersion({
+            fileId:media.fileId
+        }) ; 
+        await media.deleteOne() ;
+        res.json({succ:"succ"}) ; 
+    }catch(e){
+        console.error(e) ; 
+        res.json({error:"error"}) ; 
+    }
+}) ; */
+
+/*router.delete("/deletedocument", protect, authorize("teacher"), async (req, res) => {
+    try {
+        const { id } = req.body;
+        const media = await documents.findOne({ _id: id });
+        if (!media) {
+            return res.json({ error: "not found!" });
+        }
+        await b2.authorize();
+
+        // Extract fileName from the stored URL
+        const urlPath = new URL(media.url).pathname; // e.g. /file/bucketname/1234567890-myfile.pdf
+        const fileName = urlPath.split('/').pop().split('?')[0]; // e.g. 1234567890-myfile.pdf
+
+        await b2.deleteFileVersion({
+            fileId: media.fileId,
+            fileName: fileName,   // ← this was missing
+        });
+
+        await media.deleteOne();
+        res.json({ succ: "succ" });
+    } catch (e) {
+        console.error(e);
+        res.json({ error: "error" });
+    }
+});*/
 
 module.exports = router ;

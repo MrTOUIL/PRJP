@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { BASE_URL } from '../../constants/api';
 import {
   StyleSheet,
   Text,
@@ -9,9 +10,6 @@ import {
   StatusBar,
   KeyboardAvoidingView,
   Platform,
-  Modal,
-  FlatList,
-  TouchableWithoutFeedback,
   TextInput
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -60,8 +58,7 @@ export default function DocumentService() {
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState("");
 
-  // Modal state for type selection
-  const [modalVisible, setModalVisible] = useState(false);
+  const [showTypeList, setShowTypeList] = useState(false);
 
   // Spinner rotation animation
   const spinnerRotate = useSharedValue(0);
@@ -122,7 +119,7 @@ export default function DocumentService() {
         name: selectedFile.name,
       } as any);
 
-      const response = await fetch("http://10.89.124.250:5000/document/create_document", {
+      const response = await fetch(`${BASE_URL}/document/create_document`, {
         method: "POST",
         headers: {
           "authorization": `Bearer ${accessToken}`,
@@ -137,7 +134,7 @@ export default function DocumentService() {
         router.back();
       } else if (data.error === "Token expired!") {
         // Refresh token
-        const refreshResponse = await fetch("http://10.89.124.250:5000/teacher/refresh", {
+        const refreshResponse = await fetch(`${BASE_URL}/teacher/refresh`, {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ refreshToken }),
@@ -158,7 +155,7 @@ export default function DocumentService() {
             name: selectedFile.name,
           } as any);
 
-          const retryResponse = await fetch("http://10.89.124.250:5000/document/create_document", {
+          const retryResponse = await fetch(`${BASE_URL}/document/create_document`, {
             method: "POST",
             headers: {
               "authorization": `Bearer ${refreshData.accessToken}`,
@@ -246,16 +243,53 @@ export default function DocumentService() {
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Document Type <Text style={styles.required}>*</Text></Text>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.inputContainer}
-                onPress={() => setModalVisible(true)}
+                onPress={() => setShowTypeList(!showTypeList)}
               >
                 <FontAwesome5 name="folder-open" size={16} color={COLORS.primary} />
                 <Text style={typeDoc ? styles.inputText : styles.placeholderText}>
                   {typeDoc || 'Select document type'}
                 </Text>
-                <MaterialIcons name="keyboard-arrow-down" size={24} color={COLORS.textLight} style={styles.chevron} />
+                <MaterialIcons
+                  name={showTypeList ? 'keyboard-arrow-up' : 'keyboard-arrow-down'}
+                  size={24}
+                  color={COLORS.textLight}
+                  style={styles.chevron}
+                />
               </TouchableOpacity>
+
+              {showTypeList && (
+                <View style={styles.dropdownListContainer}>
+                  <ScrollView nestedScrollEnabled style={styles.dropdownList}>
+                    {DOCUMENT_TYPES.map((item) => (
+                      <TouchableOpacity
+                        key={item}
+                        style={[
+                          styles.dropdownItem,
+                          typeDoc === item && styles.dropdownItemActive,
+                        ]}
+                        onPress={() => {
+                          setTypeDoc(item);
+                          setShowTypeList(false);
+                        }}
+                      >
+                        <Text
+                          style={[
+                            styles.dropdownItemText,
+                            typeDoc === item && styles.dropdownItemTextActive,
+                          ]}
+                        >
+                          {item}
+                        </Text>
+                        {typeDoc === item && (
+                          <FontAwesome5 name="check" size={14} color={COLORS.primary} />
+                        )}
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
             </View>
           </Animated.View>
 
@@ -316,47 +350,6 @@ export default function DocumentService() {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Type Selection Modal */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <TouchableWithoutFeedback onPress={() => setModalVisible(false)}>
-          <View style={styles.modalOverlay}>
-            <TouchableWithoutFeedback>
-              <View style={styles.modalContent}>
-                <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>Select Document Type</Text>
-                  <TouchableOpacity onPress={() => setModalVisible(false)}>
-                    <MaterialIcons name="close" size={24} color={COLORS.text} />
-                  </TouchableOpacity>
-                </View>
-                <FlatList
-                  data={DOCUMENT_TYPES}
-                  keyExtractor={(item) => item}
-                  contentContainerStyle={styles.modalList}
-                  renderItem={({ item }) => (
-                    <TouchableOpacity 
-                      style={styles.modalOption}
-                      onPress={() => {
-                        setTypeDoc(item);
-                        setModalVisible(false);
-                      }}
-                    >
-                      <Text style={styles.modalOptionText}>{item}</Text>
-                      {typeDoc === item && (
-                        <FontAwesome5 name="check" size={16} color={COLORS.primary} />
-                      )}
-                    </TouchableOpacity>
-                  )}
-                />
-              </View>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal>
     </View>
   );
 }
@@ -444,6 +437,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#EFEFEF',
   },
+  input: {
+    flex: 1,
+    fontSize: 15,
+    color: COLORS.text,
+    marginLeft: 10,
+  },
   inputText: {
     flex: 1,
     fontSize: 15,
@@ -458,6 +457,35 @@ const styles = StyleSheet.create({
   },
   chevron: {
     marginLeft: 'auto',
+  },
+  dropdownListContainer: {
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    overflow: 'hidden',
+  },
+  dropdownList: {
+    maxHeight: 220,
+  },
+  dropdownItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  dropdownItemActive: {
+    backgroundColor: '#E0E7FF',
+  },
+  dropdownItemText: {
+    fontSize: 14,
+    color: COLORS.text,
+  },
+  dropdownItemTextActive: {
+    color: COLORS.primary,
+    fontWeight: '700',
   },
   filePicker: {
     borderWidth: 2,
@@ -554,45 +582,5 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 3,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: COLORS.background,
-    borderTopLeftRadius: 25,
-    borderTopRightRadius: 25,
-    maxHeight: '70%',
-    paddingBottom: 30,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EAEAEA',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.primary,
-  },
-  modalList: {
-    paddingHorizontal: 20,
-  },
-  modalOption: {
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  modalOptionText: {
-    fontSize: 16,
-    color: COLORS.text,
   },
 });

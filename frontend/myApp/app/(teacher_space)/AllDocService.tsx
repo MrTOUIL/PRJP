@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { BASE_URL } from '../../constants/api';
 import {
   StyleSheet,
   Text,
@@ -42,7 +43,7 @@ export default function AllDocService() {
         const accessToken = await SecureStore.getItemAsync("accessToken");
         const refreshToken = await SecureStore.getItemAsync("refreshToken");
 
-        fetch(`http://10.89.124.250:5000/document/getdocuments`, {
+        fetch(`${BASE_URL}/document/getdocuments`, {
           method: "POST",
           headers: { "content-type": "application/json", "authorization": `Bearer ${accessToken}` },
           body:JSON.stringify({sessionid})
@@ -54,7 +55,7 @@ export default function AllDocService() {
             setDocuments(data.documents);
             if (data.documents.length === 0) setMessage("No documents for this session.");
           } else if (data.error === "Token expired!") {
-            fetch("http://10.89.124.250:5000/teacher/refresh", {
+            fetch(`${BASE_URL}/teacher/refresh`, {
               method: "POST",
               headers: { "content-type": "application/json" },
               body: JSON.stringify({ refreshToken })
@@ -63,7 +64,7 @@ export default function AllDocService() {
             .then(data => {
               if (data.accessToken) {
                 SecureStore.setItemAsync("accessToken", data.accessToken);
-                fetch(`http://10.89.124.250:5000/document/getdocuments`, {
+                fetch(`${BASE_URL}/document/getdocuments`, {
                   method: "POST",
                   headers: { "content-type": "application/json", "authorization": `Bearer ${data.accessToken}` },
                   body:JSON.stringify({sessionid})

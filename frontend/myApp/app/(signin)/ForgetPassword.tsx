@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { BASE_URL } from '../../constants/api';
 import { 
   StyleSheet, 
   Text, 
@@ -60,7 +61,7 @@ export default function ForgetPassword() {
 
   const handleSend = ():void => {
     setMsg("") ; setLoading(true) ; 
-    fetch("http://10.89.124.250:5000/logs/forgetpw_mail",{
+    fetch(`${BASE_URL}/logs/forgetpw_mail`,{
       method:"POST",
       headers:{"Content-Type": "application/json"},
       body:JSON.stringify({email})

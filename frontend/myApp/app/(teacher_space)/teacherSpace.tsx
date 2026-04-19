@@ -1,4 +1,5 @@
 import React, { use, useEffect, useState } from 'react';
+import { BASE_URL } from '../../constants/api';
 import {
   StyleSheet,
   Text,
@@ -114,7 +115,7 @@ export default function TeacherSpace() {
       const accessToken = await SecureStore.getItemAsync("accessToken");
       const refreshToken = await SecureStore.getItemAsync("refreshToken");
 
-      fetch("http://10.89.124.250:5000/teacher/getProfile", {
+      fetch(`${BASE_URL}/teacher/getProfile`, {
         method: "GET",
         headers: { "content-type": "application/json", "authorization": `Bearer ${accessToken}` }
       })
@@ -134,7 +135,7 @@ export default function TeacherSpace() {
           setevst(data.evs) ;
 
         } else if (data.error === "Token expired!") {
-          fetch("http://10.89.124.250:5000/teacher/refresh", {
+          fetch(`${BASE_URL}/teacher/refresh`, {
             method: "POST",
             headers: { "content-type": "application/json" },
             body: JSON.stringify({ refreshToken })
@@ -143,7 +144,7 @@ export default function TeacherSpace() {
           .then(data => {
             if (data.accessToken) {
               SecureStore.setItemAsync("accessToken", data.accessToken);
-              fetch("http://10.89.124.250:5000/teacher/getProfile", {
+              fetch(`${BASE_URL}/teacher/getProfile`, {
                 method: "GET",
                 headers: { "content-type": "application/json", "authorization": `Bearer ${data.accessToken}` }
               })
