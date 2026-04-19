@@ -1,94 +1,308 @@
-import { View, FlatList, StyleSheet, Alert, TouchableOpacity } from 'react-native';
+import { View, FlatList, StyleSheet, TouchableOpacity, TextInput, Alert, Animated, Platform, Modal } from 'react-native';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { useState } from 'react';
-import { Colors } from '@/constants/theme';
+import { useEffect, useRef, useState } from 'react';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { AdminTheme } from '@/constants/adminTheme';
+import { apiJson } from '@/constants/api';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 
-type Report = {
+type ActionReport = {
   id: string;
-  reporter: string;
-  targetType: 'Post' | 'User';
-  targetContent: string; // Preview of post or name of user
-  reason: string;
+  action: string;
+  actor: string;
+  note?: string;
   date: string;
-  status: 'Pending' | 'Resolved';
+  targetType?: string;
+  targetId?: string;
+  detail?: string;
 };
 
-const initialReports: Report[] = [
-  { id: '1', reporter: 'Parent A', targetType: 'Post', targetContent: 'I hate this school...', reason: 'Hate speech', date: '2023-10-27', status: 'Pending' },
-  { id: '2', reporter: 'Student B', targetType: 'User', targetContent: 'Teacher X', reason: 'Harassment', date: '2023-10-26', status: 'Pending' },
-  { id: '3', reporter: 'Teacher C', targetType: 'Post', targetContent: 'Exam answers leaked here...', reason: 'Cheating', date: '2023-10-25', status: 'Resolved' },
-];
+const headingFont = Platform.select({ ios: 'Georgia', android: 'serif', default: 'Georgia' });
 
 export default function ReportsScreen() {
-  const [reports, setReports] = useState<Report[]>(initialReports);
+  const [reports, setReports] = useState<ActionReport[]>([]);
+  const [adminId, setAdminId] = useState('69c7be8db683e869ef8d3c92');
+  const [loading, setLoading] = useState(false);
+  const [pdfModalOpen, setPdfModalOpen] = useState(false);
+  const [pdfNote, setPdfNote] = useState('');
+  const [activeReport, setActiveReport] = useState<ActionReport | null>(null);
   const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  const handleAction = (id: string, action: 'Dismiss' | 'Ban' | 'Delete') => {
-    Alert.alert(
-      `Confirm ${action}`,
-      `Are you sure you want to ${action.toLowerCase()} this report target?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        { 
-          text: "Confirm", 
-          style: action === 'Dismiss' ? 'default' : 'destructive',
-          onPress: () => {
-             setReports(prev => prev.filter(r => r.id !== id));
-          }
-        }
-      ]
-    );
+  const fetchReports = async () => {
+    const trimmed = adminId.trim();
+    if (!trimmed) {
+      Alert.alert('Admin ID requis', 'Veuillez saisir un Admin ID.');
+      return;
+    }
+    setLoading(true);
+    try {
+      const data = await apiJson(`/api/admin/logs?adminId=${encodeURIComponent(trimmed)}`);
+      const actions = Array.isArray(data?.actions) ? data.actions : [];
+      const mapped = actions.map((item: any) => ({
+        id: item._id || `${item.createdAt ?? Date.now()}-${Math.random().toString(16).slice(2)}`,
+        action: item.action || 'action',
+        target: item.target || 'Unknown',
+        actor: trimmed,
+        note: item.detail,
+        date: item.createdAt ? new Date(item.createdAt).toLocaleString() : new Date().toLocaleString(),
+        targetType: item.targetType,
+        targetId: item.targetId,
+        detail: item.detail,
+      }));
+      setReports(mapped);
+    } catch (error: any) {
+      Alert.alert('Chargement echoue', error?.message || 'Impossible de charger les rapports.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const renderItem = ({ item }: { item: Report }) => (
-    <View style={[styles.card, { backgroundColor: colorScheme === 'dark' ? '#1E1E1E' : '#FFFFFF' }]}>
+  useEffect(() => {
+    fetchReports();
+  }, []);
+  const formatValue = (value: unknown) => {
+    if (Array.isArray(value)) return value.join(', ');
+    if (typeof value === 'boolean') return value ? 'Oui' : 'Non';
+    if (typeof value === 'string' && /T\d{2}:\d{2}:\d{2}/.test(value)) {
+      const parsed = new Date(value);
+      if (!Number.isNaN(parsed.getTime())) return parsed.toLocaleString();
+    }
+    if (value && typeof value === 'object' && 'first_name' in (value as any)) {
+      const doneBy = value as { first_name?: string; last_name?: string; email?: string };
+      return `${doneBy.first_name ?? ''} ${doneBy.last_name ?? ''}`.trim() || doneBy.email || '---';
+    }
+    return String(value);
+  };
+
+  const getAvatarLetter = (report: ActionReport, details: Record<string, unknown>) => {
+    const fullName = details?.first_name
+      ? `${details?.first_name ?? ''} ${details?.last_name ?? ''}`.trim()
+      : report.target;
+    const trimmed = fullName.trim();
+    return trimmed ? trimmed.charAt(0).toUpperCase() : 'A';
+  };
+
+  const buildHtml = (report: ActionReport, details: Record<string, unknown>, note: string) => {
+    const avatarLetter = getAvatarLetter(report, details);
+    const rows = Object.entries(details)
+      .filter(([key, value]) => value !== undefined && value !== null && key !== '__v' && key !== '_id')
+      .map(([key, value]) => {
+        const label = key.replace(/_/g, ' ');
+        return `<tr><td style="padding:6px 10px;color:#64748b;font-weight:600">${label}</td><td style="padding:6px 10px;color:#0f172a">${formatValue(value)}</td></tr>`;
+      })
+      .join('');
+
+    return `
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <style>
+            body { font-family: "Times New Roman", serif; background: #f8fafc; padding: 24px; color: #0f172a; }
+            .card { background: #ffffff; border: 2px solid #0f172a; border-radius: 10px; overflow: hidden; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08); }
+            .banner { background: #b91c1c; color: #ffffff; font-weight: 700; letter-spacing: 2px; padding: 10px 16px; text-transform: uppercase; font-size: 14px; }
+            .title { padding: 12px 16px; font-size: 20px; border-bottom: 1px solid #e2e8f0; }
+            .row { display: flex; gap: 16px; padding: 16px; }
+            .photo { width: 110px; height: 140px; border: 2px solid #0f172a; display: flex; align-items: center; justify-content: center; font-size: 48px; font-weight: 700; background: #0f172a; color: #ffffff; }
+            .info { flex: 1; }
+            .info h2 { font-size: 14px; margin: 0 0 8px 0; color: #334155; text-transform: uppercase; letter-spacing: 1px; }
+            .kv { display: grid; grid-template-columns: 140px 1fr; row-gap: 6px; column-gap: 12px; font-size: 12px; }
+            .label { color: #64748b; font-weight: 700; text-transform: uppercase; }
+            .value { color: #0f172a; }
+            table { width: 100%; border-collapse: collapse; margin: 0 16px 16px 16px; font-size: 12px; }
+            tr { border-bottom: 1px solid #e2e8f0; }
+            td { padding: 6px 8px; }
+            .note { margin: 0 16px 16px 16px; padding: 12px; border: 1px solid #0f172a; background: #f8fafc; border-radius: 6px; font-size: 12px; }
+            .footer { padding: 10px 16px; font-size: 11px; color: #64748b; border-top: 1px solid #e2e8f0; }
+          </style>
+        </head>
+        <body>
+          <div class="card">
+            <div class="banner">Rapport officiel</div>
+            <div class="title">${report.action} • ${report.date}</div>
+            <div class="row">
+              <div class="photo">${avatarLetter}</div>
+              <div class="info">
+                <h2>Identification</h2>
+                <div class="kv">
+                  <div class="label">Target</div><div class="value">${report.target}</div>
+                  <div class="label">Actor</div><div class="value">${report.actor}</div>
+                  ${report.note ? `<div class="label">Note</div><div class="value">${report.note}</div>` : ''}
+                </div>
+              </div>
+            </div>
+            <div class="title">Details complets</div>
+            <table>${rows}</table>
+            ${note ? `<div class="note"><strong>Commentaire admin:</strong><br/>${note}</div>` : ''}
+            <div class="footer">Generation automatique • Alemni Admin</div>
+          </div>
+        </body>
+      </html>
+    `;
+  };
+
+  const openPdfModal = (report: ActionReport) => {
+    setActiveReport(report);
+    setPdfNote('');
+    setPdfModalOpen(true);
+  };
+
+  const generatePdf = async (report: ActionReport, note: string) => {
+    try {
+      let details: Record<string, unknown> = {
+        action: report.action,
+        target: report.target,
+        actor: report.actor,
+        note: report.note,
+        date: report.date,
+      };
+
+      if (report.targetType === 'member' && report.targetId) {
+        details = await apiJson(`/api/admin/member/${report.targetId}`);
+      } else if (report.targetType === 'service' && report.targetId) {
+        details = await apiJson(`/api/admin/service/${report.targetId}`);
+      } else if (report.targetType === 'devis' && report.targetId) {
+        details = await apiJson(`/api/admin/devis/${report.targetId}`);
+      }
+
+      const html = buildHtml(report, details, note);
+
+      if (Platform.OS === 'web') {
+        const win = window.open('', '_blank');
+        if (!win) {
+          Alert.alert('PDF genere', 'La fenetre a ete bloquee par le navigateur.');
+          return;
+        }
+        win.document.open();
+        win.document.write(html);
+        win.document.close();
+        win.focus();
+        win.print();
+        return;
+      }
+
+      const { uri } = await Print.printToFileAsync({ html });
+      const canShare = await Sharing.isAvailableAsync();
+      if (canShare) {
+        await Sharing.shareAsync(uri, { dialogTitle: 'Generer le PDF' });
+      } else {
+        Alert.alert('PDF genere', uri);
+      }
+    } catch (err: any) {
+      Alert.alert('PDF echoue', err?.message || 'Impossible de generer le PDF.');
+    }
+  };
+
+  const confirmGenerate = async () => {
+    if (!activeReport) return;
+    const note = pdfNote.trim();
+    setPdfModalOpen(false);
+    await generatePdf(activeReport, note);
+  };
+
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 420,
+      useNativeDriver: true,
+    }).start();
+  }, [fadeAnim]);
+
+  const renderItem = ({ item }: { item: ActionReport }) => (
+    <View style={[styles.card, { backgroundColor: isDark ? '#101827' : '#FFFFFF' }]}>
       <View style={styles.header}>
-        <View style={[styles.badge, { backgroundColor: item.targetType === 'Post' ? '#E3F2FD' : '#E8F5E9' }]}>
-            <ThemedText style={{fontSize: 10, color: '#333'}}>{item.targetType}</ThemedText>
-        </View>
+        <ThemedText type="defaultSemiBold">{item.action}</ThemedText>
         <ThemedText style={styles.date}>{item.date}</ThemedText>
       </View>
-      
-      <ThemedText type="defaultSemiBold" style={styles.reason}>{item.reason}</ThemedText>
-      <ThemedText style={styles.content}>Target: "{item.targetContent}"</ThemedText>
-      <ThemedText style={styles.reporter}>Reported by: {item.reporter}</ThemedText>
-
-      <View style={styles.actions}>
-        <TouchableOpacity 
-            style={[styles.btn, styles.dismissBtn]} 
-            onPress={() => handleAction(item.id, 'Dismiss')}>
-            <ThemedText style={{color: 'gray'}}>Dismiss</ThemedText>
-        </TouchableOpacity>
-        
-        {item.targetType === 'Post' ? (
-           <TouchableOpacity 
-             style={[styles.btn, styles.deleteBtn]} 
-             onPress={() => handleAction(item.id, 'Delete')}>
-             <ThemedText style={{color: 'white'}}>Delete Post</ThemedText>
-           </TouchableOpacity>
-        ) : (
-           <TouchableOpacity 
-             style={[styles.btn, styles.banBtn]} 
-             onPress={() => handleAction(item.id, 'Ban')}>
-             <ThemedText style={{color: 'white'}}>Ban User</ThemedText>
-           </TouchableOpacity>
-        )}
+      <ThemedText style={styles.content}>Target: {item.target}</ThemedText>
+      <View style={styles.metaRow}>
+        <ThemedText style={styles.meta}>Actor: {item.actor}</ThemedText>
+        <ThemedText style={styles.badge}>log</ThemedText>
       </View>
+      {item.note ? <ThemedText style={styles.note}>Note: {item.note}</ThemedText> : null}
+      <TouchableOpacity onPress={() => openPdfModal(item)} style={styles.pdfBtn}>
+        <ThemedText style={styles.pdfBtnText}>Generer le PDF</ThemedText>
+      </TouchableOpacity>
     </View>
   );
 
   return (
     <ThemedView style={styles.container}>
-      <FlatList
-        data={reports}
-        keyExtractor={item => item.id}
-        renderItem={renderItem}
-        contentContainerStyle={styles.list}
-        ListEmptyComponent={<ThemedText style={styles.empty}>No pending reports.</ThemedText>}
-      />
+      <View pointerEvents="none" style={styles.backgroundLayer}>
+        <View style={[styles.blob, styles.blobOne]} />
+        <View style={[styles.blob, styles.blobTwo]} />
+      </View>
+      <Animated.View
+        style={[
+          styles.content,
+          {
+            opacity: fadeAnim,
+            transform: [
+              {
+                translateY: fadeAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [12, 0],
+                }),
+              },
+            ],
+          },
+        ]}
+      >
+        <View style={[styles.hero, { backgroundColor: isDark ? '#0F172A' : '#F3F4F6' }]}
+        >
+          <View style={styles.heroAccent} />
+          <ThemedText type="title" style={styles.heroTitle}>Rapports d actions</ThemedText>
+          <ThemedText style={styles.heroSub}>Chaque action est tracée, rien ne se perd.</ThemedText>
+        </View>
+
+        <View style={styles.toolbar}>
+          <TextInput
+            value={adminId}
+            onChangeText={setAdminId}
+            placeholder="Admin ID"
+            placeholderTextColor="#9CA3AF"
+            style={styles.adminInput}
+          />
+          <TouchableOpacity onPress={fetchReports} style={styles.toolbarBtn}>
+            <ThemedText style={styles.toolbarText}>{loading ? '...' : 'Actualiser'}</ThemedText>
+          </TouchableOpacity>
+        </View>
+
+        <FlatList
+          data={reports}
+          keyExtractor={item => item.id}
+          renderItem={renderItem}
+          contentContainerStyle={styles.list}
+          ListEmptyComponent={<ThemedText style={styles.empty}>No reports found.</ThemedText>}
+        />
+      </Animated.View>
+      <Modal visible={pdfModalOpen} transparent animationType="fade" onRequestClose={() => setPdfModalOpen(false)}>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <ThemedText type="subtitle">Commentaire admin</ThemedText>
+            <ThemedText style={styles.modalSub}>Ce texte apparaitra en bas du PDF.</ThemedText>
+            <TextInput
+              value={pdfNote}
+              onChangeText={setPdfNote}
+              placeholder="Ecrire un paragraphe descriptif..."
+              placeholderTextColor="#9CA3AF"
+              multiline
+              style={styles.modalInput}
+            />
+            <View style={styles.modalActions}>
+              <TouchableOpacity onPress={() => setPdfModalOpen(false)} style={styles.modalBtn}>
+                <ThemedText>Annuler</ThemedText>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={confirmGenerate} style={[styles.modalBtn, styles.modalPrimary]}>
+                <ThemedText style={{ color: '#FFFFFF' }}>Generer</ThemedText>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ThemedView>
   );
 }
@@ -96,6 +310,86 @@ export default function ReportsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  backgroundLayer: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    left: 0,
+    bottom: 0,
+  },
+  blob: {
+    position: 'absolute',
+    borderRadius: 999,
+    opacity: 0.18,
+  },
+  blobOne: {
+    width: 210,
+    height: 210,
+    backgroundColor: '#4B5BD7',
+    top: -70,
+    right: -40,
+  },
+  blobTwo: {
+    width: 230,
+    height: 230,
+    backgroundColor: '#F2C14E',
+    bottom: -70,
+    left: -60,
+  },
+  content: {
+    paddingBottom: 16,
+  },
+  hero: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 18,
+    padding: 18,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(148, 163, 184, 0.2)',
+  },
+  heroAccent: {
+    width: 48,
+    height: 6,
+    borderRadius: 999,
+    backgroundColor: '#111827',
+  },
+  heroTitle: {
+    marginTop: 6,
+    letterSpacing: 0.4,
+    fontFamily: headingFont,
+  },
+  heroSub: {
+    opacity: 0.7,
+  },
+  toolbar: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+  },
+  adminInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: '#111827',
+    backgroundColor: '#FFFFFF',
+  },
+  toolbarBtn: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: '#111827',
+  },
+  toolbarText: {
+    color: '#FFFFFF',
+    fontSize: 12,
   },
   list: {
     padding: 16,
@@ -108,59 +402,98 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
-    gap: 8,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(148, 163, 184, 0.2)',
   },
   header: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-  },
-  badge: {
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: 4,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   date: {
-      fontSize: 12,
-      opacity: 0.5,
-  },
-  reason: {
-      fontSize: 16,
+    fontSize: 12,
+    opacity: 0.5,
   },
   content: {
-      fontStyle: 'italic',
-      opacity: 0.8,
+    fontSize: 14,
   },
-  reporter: {
-      fontSize: 12,
-      opacity: 0.5,
+  meta: {
+    fontSize: 12,
+    opacity: 0.6,
   },
-  actions: {
-      flexDirection: 'row',
-      justifyContent: 'flex-end',
-      gap: 12,
-      marginTop: 8,
-      borderTopWidth: StyleSheet.hairlineWidth,
-      borderTopColor: '#ccc',
-      paddingTop: 12,
+  metaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  btn: {
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-      borderRadius: 8,
+  badge: {
+    fontSize: 10,
+    color: '#1E3A8A',
+    backgroundColor: '#DBEAFE',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    overflow: 'hidden',
   },
-  dismissBtn: {
-      backgroundColor: '#f0f0f0',
+  pdfBtn: {
+    alignSelf: 'flex-start',
+    marginTop: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: '#111827',
   },
-  deleteBtn: {
-      backgroundColor: '#ff4444',
+  pdfBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12,
   },
-  banBtn: {
-      backgroundColor: '#ff9800', // Orange for ban
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  modalCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+  },
+  modalSub: {
+    marginTop: 6,
+    opacity: 0.7,
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 10,
+    padding: 10,
+    marginTop: 12,
+    minHeight: 90,
+    textAlignVertical: 'top',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 12,
+    marginTop: 16,
+  },
+  modalBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#E5E7EB',
+  },
+  modalPrimary: {
+    backgroundColor: '#111827',
+  },
+  note: {
+    fontSize: 12,
+    opacity: 0.7,
   },
   empty: {
-      textAlign: 'center',
-      marginTop: 20,
-      opacity: 0.5,
+    textAlign: 'center',
+    marginTop: 20,
+    opacity: 0.5,
   }
 });

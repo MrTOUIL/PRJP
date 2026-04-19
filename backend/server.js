@@ -101,6 +101,8 @@ async function run() {
     app.use('/logs', require('./authServer'));
     app.use('/document', require('./DocumentServer'));
     app.use('/teacher', require('./teacherServer'));
+    app.use('/service', require('./serviceServer'));
+    app.use('/api/admin', require('./admingame'));
 
     // ✅ HTTP SERVER (NO HTTPS)
     app.listen(5000, () => {
