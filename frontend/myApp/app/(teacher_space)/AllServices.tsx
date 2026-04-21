@@ -107,6 +107,13 @@ export default function AllServices() {
               >
                 <Text style={styles.createSessionButtonText}>Create Session</Text>
               </TouchableOpacity>
+
+              <TouchableOpacity style={styles.viewRelatedSessionsButton} onPress={() => router.push({
+                pathname:"/(teacher_space)/ServiceSessions",
+                params:{id_service:service._id}
+              })}>
+                <Text style={styles.viewRelatedSessionsButtonText}>View Related Sessions</Text>
+              </TouchableOpacity>
             </View>
           ))}
         </Animated.View>
@@ -238,6 +245,19 @@ const styles = StyleSheet.create({
   },
   createSessionButtonText: {
     color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
+  viewRelatedSessionsButton: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+  },
+  viewRelatedSessionsButtonText: {
+    color: COLORS.primary,
     fontWeight: 'bold',
   },
 });

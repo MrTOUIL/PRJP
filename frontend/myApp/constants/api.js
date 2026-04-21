@@ -1,8 +1,19 @@
-import Constants from "expo-constants" ; 
+import Constants from "expo-constants";
 
 const getBaseUrl = () => {
-    const host = Constants.expoConfig?.hostUri?.split(':')[0] ;
-    return `http://${host}:5000` ; 
-}
+    const configuredUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
+    if (configuredUrl) {
+        return configuredUrl.replace(/\/$/, "");
+    }
 
-export const BASE_URL = getBaseUrl() ; 
+    const hostUri = Constants.expoConfig?.hostUri;
+    const host = hostUri?.split(":")[0];
+
+    if (host) {
+        return `http://${host}:5000`;
+    }
+
+    return "http://localhost:5000";
+};
+
+export const BASE_URL = getBaseUrl();

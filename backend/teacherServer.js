@@ -166,7 +166,7 @@ async(req,res) => {
     if (!errors.isEmpty()){
         return res.status(400).json({error:errors.array()})
     }
-
+ 
     try{
         const {serviceid , Date , start_time , end_time , location , status} = req.body ; 
         
@@ -485,5 +485,62 @@ async(req,res) => {
         res.json({error:"error"}) ; 
     }
 }) ;
+
+router.post("/servicesession",protect,authorize("teacher"),async(req,res) => {
+   try{
+       const {serviceid} = req.body ;
+       const serviceSessions = await sessions.find({service:serviceid}).populate("service") ; 
+       res.json({succ:"succ" , sessions:serviceSessions}) ; 
+   }catch(e){
+       res.json({error:"error"}) ; 
+   }
+}) ;
+
+router.put("/editsession",protect,authorize("teacher"),
+body("newstat").isString().isLength({min:1}),
+body("Date").custom((value, { req }) => {
+    const status = String(req.body.newstat || "").toLowerCase();
+    if (status === "confirmed" && !isValidDate(value)) throw new Error("invalid date!")
+    return true ;    
+}),
+body("location").trim().isLength({min:1}) , 
+body("start_time").trim().isLength({min:1}) ,
+body("end_time").trim().isLength({min:1}) ,
+async(req,res) => {
+    const errors = validationResult(req) ; 
+    if (!errors.isEmpty()){
+        return res.status(400).json({error:errors.array()})
+    }
+
+    try{
+        const {sessionid, newstat, Date, location, start_time, end_time} = req.body ; 
+        const newDate = Date ; 
+        const ss = await sessions.findById(sessionid) ;
+        if (!ss){
+            return res.json({error:"error"}) ; 
+        }
+
+        
+        
+        if (String(newstat).toLowerCase() == "confirmed"){
+        ss.Date = newDate ;
+        ss.status = newstat ; 
+        ss.location = location ;
+        ss.start_time = start_time ;
+        ss.end_time = end_time ;
+        await ss.save() ; 
+        res.json({succ:"succ"}) ;
+        }else{
+            ss.status = newstat ;
+            await ss.save() ; 
+            res.json({succ:"succ"}) ;
+        }
+    }catch(e){
+        console.error(e) ;
+        res.json({error:"error"}) ; 
+    }
+}
+)
+
 
 module.exports = router ;
