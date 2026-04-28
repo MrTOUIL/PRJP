@@ -593,7 +593,7 @@ useEffect(() => {
                 </TouchableOpacity>
               </Animated.View>
               <Animated.View entering={FadeInUp.delay(320).duration(650)}>
-                <TouchableOpacity style={styles.secondaryButton}>
+                <TouchableOpacity style={styles.secondaryButton} onPress={() => router.push('/(welcome page)/LearnMorePage')}>
                   <Animated.View pointerEvents="none" style={[styles.buttonShimmer, animatedSecondaryShimmer]} />
                   <Text style={styles.secondaryButtonText}>Learn More</Text>
                 </TouchableOpacity>

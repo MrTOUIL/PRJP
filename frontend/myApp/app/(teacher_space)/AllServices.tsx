@@ -114,6 +114,20 @@ export default function AllServices() {
               })}>
                 <Text style={styles.viewRelatedSessionsButtonText}>View Related Sessions</Text>
               </TouchableOpacity>
+
+              <TouchableOpacity style={styles.addStudentButton} onPress={() => router.push({
+                pathname:"/(teacher_space)/AddStudent",
+                params:{serviceid:service._id, serviceTitle:service.title}
+              })}>
+                <Text style={styles.addStudentButtonText}>add student to this service</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.createSessionButton} onPress={() => router.push({
+                pathname: "/(teacher_space)/ViewStudent",
+                params: { serviceid: service._id, serviceTitle: service.title }
+              })}>
+                <Text style={styles.createSessionButtonText}>view my students for this service</Text>
+              </TouchableOpacity>
             </View>
           ))}
         </Animated.View>
@@ -257,6 +271,32 @@ const styles = StyleSheet.create({
     borderColor: COLORS.primary,
   },
   viewRelatedSessionsButtonText: {
+    color: COLORS.primary,
+    fontWeight: 'bold',
+  },
+  addStudentButton: {
+    backgroundColor: '#F5F5F5',
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#D9D9D9',
+  },
+  addStudentButtonText: {
+    color: COLORS.textDark,
+    fontWeight: 'bold',
+  },
+  viewStudentsButton: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+  },
+  viewStudentsButtonText: {
     color: COLORS.primary,
     fontWeight: 'bold',
   },

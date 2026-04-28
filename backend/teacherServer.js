@@ -14,6 +14,11 @@ const services = require('./schemas/service') ;
 const evaluations_students = require('./schemas/evaluation_student') ;
 const evaluation_parents = require('./schemas/evaluation_parents') ;
 const documents = require('./schemas/document') ;
+const students = require('./schemas/Student') ;
+const parents = require('./schemas/parent') ;
+
+const teacherParents = require('./schemas/teacherParent') ;
+const teacherStudents = require('./schemas/teacherStudent') ;
 //const services = require('./schemas/service') ; 
 
 const { protect, authorize } = require("./middleware");
@@ -542,5 +547,117 @@ async(req,res) => {
 }
 )
 
+//add a route that fetch the students and parents according to a search query(per name)
+router.post("/searchusers",protect,authorize("teacher"),async(req,res) => {
+    try{
+        const {query , serviceid} = req.body ; 
+        //if query is empty , return all the students and parents
+        if (!query || query.trim() === "") {   
+            const allParents = await parents.find() ;
+            //here we should also exclude those who are already related to the teacher in the teacherParents collection for this service
+            const teacherParentRelations = await teacherParents.find({teacher:req.user.id , service:serviceid}) ;
+            const relatedParentIds = teacherParentRelations.map(rel => String(rel.parent)) ;
+            const filteredAllParents = allParents.filter(parent => !relatedParentIds.includes(String(parent._id))) ;
+            const allStudents = await students.find() ;
+            //same for students : exclude those who are already related to the teacher in the teacherStudent collection for this service
+            const teacherStudentRelations = await teacherStudents.find({teacher:req.user.id , service:serviceid}) ;
+            const relatedStudentIds = teacherStudentRelations.map(rel => String(rel.student)) ;
+            const filteredAllStudents = allStudents.filter(student => !relatedStudentIds.includes(String(student._id))) ;
+            return res.json({succ:"succ" , students:filteredAllStudents , parents:filteredAllParents}) ;
+        }
 
+        //now if query not empty , fetch according to the name
+        const lowercasequery = query.toLowerCase() ; 
+        const matchedStudents = await students.find({$or:[
+            {first_name:{$regex:lowercasequery , $options:"i"}},
+            {last_name:{$regex:lowercasequery , $options:"i"}}
+        ]}) ; 
+        //in fact I need to fetch those who are not in the teacherStudent collection of this teacher 
+        //let's do it : 
+        const teacherStudentRelations = await teacherStudents.find({teacher:req.user.id , service:serviceid}) ;
+        //let's do intersection between matchedStudents and teacherStudentRelations to exclude those who are already related to the teacher(for this service) in the teacherStudent collection
+        const relatedStudentIds = teacherStudentRelations.map(rel => String(rel.student)) ;
+        const filteredMatchedStudents = matchedStudents.filter(student => !relatedStudentIds.includes(String(student._id))) ;
+        
+        const matchedParents = await parents.find({$or:[
+            {first_name:{$regex:lowercasequery , $options:"i"}},
+            {last_name:{$regex:lowercasequery , $options:"i"}}
+        ]}) ; 
+        //same for parents : exclude those who are already related to the teacher in the teacherParents collection
+        const teacherParentRelations = await teacherParents.find({teacher:req.user.id , service:serviceid}) ;
+        const relatedParentIds = teacherParentRelations.map(rel => String(rel.parent)) ;
+        const filteredMatchedParents = matchedParents.filter(parent => !relatedParentIds.includes(String(parent._id))) ;
+
+
+        res.json({succ:"succ" , students:filteredMatchedStudents , parents:filteredMatchedParents}) ;
+    }catch(e){
+        console.error(e) ;
+        res.json({error:"error"}) ; 
+    }
+}) ; 
+
+
+router.post("/addstudent",protect,authorize("teacher"),async(req,res) =>{
+    try{
+        const {serviceid , studentid} = req.body ; 
+        await teacherStudents.create({
+            teacher:req.user.id , 
+            student:studentid ,
+            service:serviceid
+        }) ;
+        res.json({succ:"succ"}) ;
+
+    }catch(e){
+        console.error(e) ;
+        res.json({error:"error"}) ;
+    }
+}) ; 
+
+
+router.post("/addparent",protect,authorize("teacher"),async(req,res) =>{
+    try{
+        const {serviceid , parentid} = req.body ;   
+        await teacherParents.create({
+            teacher:req.user.id , 
+            parent:parentid ,
+            service:serviceid
+        }) ;
+        res.json({succ:"succ"}) ;
+    }catch(e){
+        console.error(e) ;
+        res.json({error:"error"}) ;
+    }    
+}) ;
+
+
+router.post("/getstudents",protect,authorize("teacher"),async(req,res) => {
+    try{
+        const {serviceid} = req.body ; 
+        const teacherStudentRelations = await teacherStudents.find({teacher:req.user.id , service:serviceid}).populate("student") ;
+        const studentsList = teacherStudentRelations.map(rel => rel.student) ;
+
+        const teacherParentRelations = await teacherParents.find({teacher:req.user.id , service:serviceid}).populate("parent") ;
+        const parentsList = teacherParentRelations.map(rel => rel.parent) ;
+        res.json({succ:"succ" , students:studentsList , parents:parentsList}) ;
+    }catch(e){
+        console.error(e) ;
+        res.json({error:"error"}) ;
+    }
+})
+
+//get all students of a teacher for all his services :
+router.get("/getallstudents",protect,authorize("teacher"),async(req,res) => {
+    try{
+        const teacherStudentRelations = await teacherStudents.find({teacher:req.user.id}).populate("student") ;
+        const studentsList = teacherStudentRelations.map(rel => rel.student) ;
+
+        const teacherParentRelations = await teacherParents.find({teacher:req.user.id}).populate("parent") ;
+        const parentsList = teacherParentRelations.map(rel => rel.parent) ;
+
+        res.json({succ:"succ" , students:studentsList , parents:parentsList}) ;
+    }catch(e){
+        console.error(e) ;
+        res.json({error:"error"}) ;
+    }
+})
 module.exports = router ;

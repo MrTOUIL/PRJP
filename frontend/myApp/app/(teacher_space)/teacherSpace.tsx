@@ -239,7 +239,8 @@ export default function TeacherSpace() {
                 { label: 'All', route: null, icon: null, active: true },
                 { label: 'My Documents', route: '/(teacher_space)/AllDocuments', icon: null },
                 //{ label: 'Requests', route: '/(teacher_space)/teacherRequests', icon: null },
-                { label: 'Create Services', route: '/(teacher_space)/servicePdg', icon: null }
+                { label: 'Create Services', route: '/(teacher_space)/servicePdg', icon: null },
+                { label: 'All my students', route: '/(teacher_space)/SeeAllStudents', icon: null }
               ].map((tab, index) => (
                 <TouchableOpacity 
                   key={index} 
