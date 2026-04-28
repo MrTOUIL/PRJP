@@ -8,12 +8,15 @@ import {
   Dimensions,
   StatusBar,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import Animated, {
   FadeInDown,
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
+import { BASE_URL } from '../../constants/api';
 
 // Define theme colors based on the image and existing project style
 const COLORS = {
@@ -47,8 +50,10 @@ const SectionHeader = ({ title, actionText, onAction }: { title: string; actionT
 export default function AllRequests() {
   const router = useRouter();
   const { studentRequests: studentRequestsParam, parentRequests: parentRequestsParam } = useLocalSearchParams();
-  const [studentRequests, setStudentRequests] = useState([]);
-  const [parentRequests, setParentRequests] = useState([]);
+  const [studentRequests, setStudentRequests] = useState<any[]>([]);
+  const [parentRequests, setParentRequests] = useState<any[]>([]);
+  const [loadingRequestId, setLoadingRequestId] = useState<string | null>(null);
+  const [loadingAction, setLoadingAction] = useState<'accept' | 'reject' | null>(null);
 
   useEffect(() => {
     if (studentRequestsParam) {
@@ -58,6 +63,107 @@ export default function AllRequests() {
       setParentRequests(JSON.parse(parentRequestsParam as string));
     }
   }, [studentRequestsParam, parentRequestsParam]);
+
+  const handleRequest = async (requestId: string, route: 'acceptrequest' | 'rejectrequest', action: 'accept' | 'reject') => {
+    try {
+      setLoadingRequestId(requestId);
+      setLoadingAction(action);
+
+      const accessToken = await SecureStore.getItemAsync('accessToken');
+      const refreshToken = await SecureStore.getItemAsync('refreshToken');
+
+      fetch(`${BASE_URL}/teacher/${route}`, {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${accessToken}` },
+        body: JSON.stringify({ requestid: requestId }),
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.succ) {
+            router.replace('/(teacher_space)/teacherSpace') ; 
+          } else if (data.error === 'Token expired!') {
+            fetch(`${BASE_URL}/teacher/refresh`, {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({ refreshToken }),
+            })
+              .then(res => res.json())
+              .then(refreshData => {
+                if (refreshData.accessToken) {
+                  SecureStore.setItemAsync('accessToken', refreshData.accessToken);
+                  fetch(`${BASE_URL}/teacher/${route}`, {
+                    method: 'PUT',
+                    headers: { 'content-type': 'application/json', authorization: `Bearer ${refreshData.accessToken}` },
+                    body: JSON.stringify({ requestid: requestId }),
+                  })
+                    .then(res => res.json())
+                    .then(retryData => {
+                      if (retryData.succ) {
+                        router.replace('/(teacher_space)/teacherSpace') ;
+                      }
+                    })
+                    .finally(() => {
+                      setLoadingRequestId(null);
+                      setLoadingAction(null);
+                    });
+                } else {
+                  router.replace('/sign_in');
+                  setLoadingRequestId(null);
+                  setLoadingAction(null);
+                }
+              })
+              .catch(() => {
+                router.replace('/sign_in');
+                setLoadingRequestId(null);
+                setLoadingAction(null);
+              });
+          } else if (data.error === 'Invalid token!' || data.error === 'No token found!') {
+            router.replace('/sign_in');
+            setLoadingRequestId(null);
+            setLoadingAction(null);
+          } else {
+            setLoadingRequestId(null);
+            setLoadingAction(null);
+          }
+        })
+        .catch(() => {
+          setLoadingRequestId(null);
+          setLoadingAction(null);
+        });
+    } catch (error) {
+      setLoadingRequestId(null);
+      setLoadingAction(null);
+    }
+  }
+
+  const handleDecline = (requestId: string) => {
+    handleRequest(requestId, 'rejectrequest', 'reject');
+  }
+
+  const handleAccept = (requestId: string) => {
+    handleRequest(requestId, 'acceptrequest', 'accept');
+  }
+
+  const renderActionButton = (requestId: string, action: 'accept' | 'reject', label: string) => {
+    const isLoading = loadingRequestId === requestId && loadingAction === action;
+    const isDisabled = loadingRequestId !== null;
+
+    return (
+      <TouchableOpacity
+        style={[action === 'accept' ? styles.acceptBtn : styles.declineBtn, isDisabled && styles.buttonDisabled]}
+        onPress={() => action === 'accept' ? handleAccept(requestId) : handleDecline(requestId)}
+        disabled={isDisabled}
+      >
+        {isLoading ? (
+          <View style={styles.loadingRow}>
+            <ActivityIndicator size="small" color={action === 'accept' ? '#FFF' : '#666'} />
+          </View>
+        ) : (
+          <Text style={action === 'accept' ? styles.acceptBtnText : styles.declineBtnText}>{label}</Text>
+        )}
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -105,12 +211,8 @@ export default function AllRequests() {
                 <Text style={styles.reqPrice}>{req.price}.00DA<Text style={styles.reqPriceUnit}>/session</Text></Text>
 
                 <View style={styles.reqActions}>
-                  <TouchableOpacity style={styles.acceptBtn}>
-                    <Text style={styles.acceptBtnText}>Accept</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.declineBtn}>
-                    <Text style={styles.declineBtnText}>Decline</Text>
-                  </TouchableOpacity>
+                  {renderActionButton(req._id, 'accept', 'Accept')}
+                  {renderActionButton(req._id, 'reject', 'Decline')}
                 </View>
               </View>
             ) : null
@@ -146,12 +248,8 @@ export default function AllRequests() {
                 <Text style={styles.reqPrice}>{req.price}.00DA<Text style={styles.reqPriceUnit}>/session</Text></Text>
 
                 <View style={styles.reqActions}>
-                  <TouchableOpacity style={styles.acceptBtn}>
-                    <Text style={styles.acceptBtnText}>Accept</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.declineBtn}>
-                    <Text style={styles.declineBtnText}>Decline</Text>
-                  </TouchableOpacity>
+                  {renderActionButton(req._id, 'accept', 'Accept')}
+                  {renderActionButton(req._id, 'reject', 'Decline')}
                 </View>
               </View>
             ) : null
@@ -318,6 +416,13 @@ const styles = StyleSheet.create({
     color: '#666',
     fontWeight: 'bold',
     fontSize: 14,
+  },
+  loadingRow: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonDisabled: {
+    opacity: 0.75,
   },
   requestTypeHeader: {
     fontSize: 16,

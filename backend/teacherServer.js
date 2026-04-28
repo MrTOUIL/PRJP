@@ -22,6 +22,7 @@ const teacherStudents = require('./schemas/teacherStudent') ;
 //const services = require('./schemas/service') ; 
 
 const { protect, authorize } = require("./middleware");
+const request_parent = require("./schemas/request_parent");
 
 router.get("/getProfile" , protect , authorize("teacher") , async (req,res) => {
     try{
@@ -41,12 +42,19 @@ router.get("/getProfile" , protect , authorize("teacher") , async (req,res) => {
         
         //let's return the requests 
         const parentRequests = await request_parents.find({ res_by: teacherId }).populate("requester") ;
+        const parReq = parentRequests.filter((requ) => {
+            return requ.status === "pending"
+        }) ; 
         const studentRequests = await request_students.find({ res_by: teacherId }).populate("requester") ;
+        const stuReq = studentRequests.filter((requ) => {
+            return requ.status === "pending"
+        }) ;
+
         let reqs = [] ;
         if (studentRequests.length == 0 && parentRequests.length == 0){
             reqs = [] ;
         }
-        else reqs = [parentRequests[0],parentRequests[1],studentRequests[0],studentRequests[1]] ;
+        else reqs = [parReq[0],parReq[1],stuReq[0],stuReq[1]] ;
         //let's return the services of this teacher 
         const teacherServices = await services.find({ done_by: teacherId }) ;
           
@@ -65,7 +73,7 @@ router.get("/getProfile" , protect , authorize("teacher") , async (req,res) => {
             evs = [evaluationsFromStudents[0],evaluationsFromParents[0]] ;
         }
         res.json({succ:"profile fetched successfully" , teacher:teacherData , sessions:teacherSessions , sortedSessions , upcomingSession:sortedSessions[0]
-        , parentRequests , studentRequests , reqs , teacherServices , evaluationsFromStudents , evaluationsFromParents , evs }) ;
+        , parentRequests : parReq , studentRequests : stuReq , reqs , teacherServices , evaluationsFromStudents , evaluationsFromParents , evs }) ;
          
     }catch(err){
         console.error(err);
@@ -659,5 +667,33 @@ router.get("/getallstudents",protect,authorize("teacher"),async(req,res) => {
         console.error(e) ;
         res.json({error:"error"}) ;
     }
-})
+}) ; 
+
+//a route to reject a request from a parent or a student 
+router.put("/rejectrequest" , protect , authorize("teacher") , async(req,res) => {
+    try{
+        const {requestid} = req.body ; 
+        const request = await request_parents.findById(requestid) || await request_students.findById(requestid) ; 
+        request.status = "rejected" ; 
+        await request.save() ;
+        res.json({succ:"succ"}) ;
+    }catch(e){
+        console.error(e) ;
+        res.json({error:"error"}) ;
+    }
+}) ; 
+
+router.put("/acceptrequest" , protect , authorize("teacher") , async(req,res) => {
+    try{
+        const {requestid} = req.body ; 
+        const request = await request_parents.findById(requestid) || await request_students.findById(requestid) ; 
+        request.status = "accepted" ; 
+        await request.save() ;
+        res.json({succ:"succ"}) ;
+    }catch(e){
+        console.error(e) ;
+        res.json({error:"error"}) ;
+    }
+}) ;
+
 module.exports = router ;
