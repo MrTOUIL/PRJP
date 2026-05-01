@@ -18,8 +18,6 @@ export default function EditProfile() {
   const router = useRouter();
     const [profileImage, setProfileImage] = useState<string | null>(null);
   const [fullName, setFullName] = useState('Karima Benali');
-  const [email, setEmail] = useState('k.benali@eleve.dz');
-  const [phone, setPhone] = useState('+213 550 123 456');
   const [address, setAddress] = useState('Alger, Bab Ezzouar');
   const [level, setLevel] = useState('Terminale S');
   const [sessionMode, setSessionMode] = useState('Online · Hybrid');
@@ -58,8 +56,6 @@ export default function EditProfile() {
   const handleSave = () => {
     console.log('Saved:', {
       fullName,
-      email,
-      phone,
       address,
       level,
       sessionMode,
@@ -141,20 +137,6 @@ export default function EditProfile() {
               value={fullName}
               onChange={setFullName}
               icon="person-outline"
-            />
-
-            <FormRow
-              label="Email"
-              value={email}
-              onChange={setEmail}
-              icon="mail-outline"
-            />
-
-            <FormRow
-              label="Phone"
-              value={phone}
-              onChange={setPhone}
-              icon="call-outline"
             />
 
             <FormRow
