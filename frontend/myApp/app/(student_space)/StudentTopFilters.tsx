@@ -2,15 +2,13 @@ import React from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-export type StudentMenuFilter = 'all' | 'suggestions' | 'services' | 'requests' | 'subjects' | 'documents';
+export type StudentMenuFilter = 'all' | 'suggestions' | 'services' | 'requests';
 
 const FILTERS: Array<{ id: StudentMenuFilter; label: string; icon: keyof typeof Ionicons.glyphMap }> = [
   { id: 'all', label: 'All', icon: 'apps' },
   { id: 'suggestions', label: 'Suggestions', icon: 'search' },
   { id: 'services', label: 'Services', icon: 'grid' },
   { id: 'requests', label: 'My Requests', icon: 'document-text' },
-  { id: 'subjects', label: 'My Subjects', icon: 'school' },
-  { id: 'documents', label: 'Documents', icon: 'folder' },
 ];
 
 type StudentTopFiltersProps = {
@@ -33,15 +31,11 @@ export default function StudentTopFilters({ activeFilter, onSelect, style }: Stu
               key={item.id}
               style={[styles.filterChip, isActive && styles.filterChipActive]}
               onPress={() => {
-                     if (item.id === "documents") {
-                           router.push("/Documents");
-                      } else if (item.id === "requests") {
+                    if (item.id === "requests") {
                           router.push("/requests");
                       } else if (item.id === "services") {
                     router.push("/StServices");
-                     } else if (item.id === "subjects") {
-                    router.push("/Subjects");
-                     }else if (item.id === "suggestions") {
+                     } else if (item.id === "suggestions") {
                     router.push("/(student_space)/suggestions");
                      }else {
                         onSelect(item.id);
