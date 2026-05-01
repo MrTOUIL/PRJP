@@ -73,7 +73,6 @@ export default function DevisPedagogique() {
   const [frequency, setFrequency] = useState('');
   const [duration, setDuration] = useState('');
   const [budget, setBudget] = useState('');
-  const [notes, setNotes] = useState('');
 
   // Selection Modal State
   const [modalVisible, setModalVisible] = useState(false);
@@ -95,7 +94,7 @@ export default function DevisPedagogique() {
 
   const handleSend = () => {
     // Implement send logic
-    console.log('Sending quote...', { subject, level, objective, frequency, duration, budget, notes });
+    console.log('Sending quote...', { subject, level, objective, frequency, duration, budget });
   };
 
   const handleReset = () => {
@@ -105,7 +104,6 @@ export default function DevisPedagogique() {
     setFrequency('');
     setDuration('');
     setBudget('');
-    setNotes('');
   };
 
   const renderSectionHeader = (icon: string, title: string, color: string = COLORS.primary) => (
@@ -282,28 +280,6 @@ export default function DevisPedagogique() {
                   keyboardType="numeric"
                   value={budget}
                   onChangeText={setBudget}
-                />
-              </View>
-            </View>
-          </Animated.View>
-
-          {/* Additional Notes */}
-          <Animated.View entering={FadeInDown.delay(700).springify()}>
-            <View style={styles.divider} />
-            {renderSectionHeader('sticky-note', 'Additional Notes')}
-            
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Extra Information</Text>
-              <View style={[styles.inputContainer, styles.textAreaContainer]}>
-                <TextInput
-                  style={styles.textArea}
-                  placeholder="Add any extra details if necessary..."
-                  placeholderTextColor={COLORS.textLight}
-                  multiline
-                  numberOfLines={4}
-                  textAlignVertical="top"
-                  value={notes}
-                  onChangeText={setNotes}
                 />
               </View>
             </View>
