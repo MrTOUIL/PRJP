@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
 	SafeAreaView,
 	ScrollView,
@@ -7,9 +7,11 @@ import {
 	TextInput,
 	TouchableOpacity,
 	View,
+	Modal,
+	Pressable,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';	
+import { useRouter } from 'expo-router';
 
 type Tutor = {
 	id: number;
@@ -21,9 +23,6 @@ type Tutor = {
 	avatarInitial: string;
 	subjectColor: string;
 };
-
-const FILTERS = ['All', 'Maths', 'Physics', 'English', 'Chemistry'];
-
 const TUTORS: Tutor[] = [
 	{
 		id: 1,
@@ -79,6 +78,13 @@ const TUTORS: Tutor[] = [
 
 export default function SuggestionsScreen() {
 	const router = useRouter();
+	const [showFilterModal, setShowFilterModal] = useState(false);
+	const [selectedFilter, setSelectedFilter] = useState('Subject');
+
+	const handleFilterSelect = (filterType: string) => {
+		setSelectedFilter(filterType);
+		setShowFilterModal(false);
+	};
 
 	return (
 		<SafeAreaView style={styles.page}>
@@ -89,7 +95,7 @@ export default function SuggestionsScreen() {
 							<Ionicons name="chevron-back" size={20} color="#FFFFFF" />
 						</TouchableOpacity>
 						<Text style={styles.headerTitle}>Suggestions</Text>
-						<TouchableOpacity style={styles.iconButton} activeOpacity={0.85}>
+						<TouchableOpacity style={styles.iconButton} activeOpacity={0.85} onPress={() => setShowFilterModal(true)}>
 							<Ionicons name="search" size={20} color="#FFFFFF" />
 						</TouchableOpacity>
 					</View>
@@ -97,26 +103,45 @@ export default function SuggestionsScreen() {
 					<View style={styles.searchContainer}>
 						<Ionicons name="search" size={16} color="#94A3B8" style={styles.searchIcon} />
 						<TextInput
-							placeholder="Search by tutor name or subject..."
+						placeholder={`Search in ${selectedFilter}...`}
 							placeholderTextColor="#94A3B8"
 							style={styles.searchInput}
 						/>
+					<TouchableOpacity style={styles.filterButton} activeOpacity={0.85} onPress={() => setShowFilterModal(true)}>
+						<Ionicons name="options" size={14} color="#FFFFFF" />
+					</TouchableOpacity>
+
+					<Modal
+						visible={showFilterModal}
+						transparent={true}
+						animationType="fade"
+						onRequestClose={() => setShowFilterModal(false)}
+					>
+						<Pressable style={styles.modalOverlay} onPress={() => setShowFilterModal(false)}>
+							<View style={styles.modalContent}>
+								<Text style={styles.modalTitle}>Search By</Text>
+								<TouchableOpacity
+									style={[styles.modalOption, selectedFilter === 'Subject' && styles.modalOptionActive]}
+									onPress={() => handleFilterSelect('Subject')}
+								>
+									<Text style={[styles.modalOptionText, selectedFilter === 'Subject' && styles.modalOptionTextActive]}>Subject</Text>
+								</TouchableOpacity>
+								<TouchableOpacity
+									style={[styles.modalOption, selectedFilter === 'Educational Level' && styles.modalOptionActive]}
+									onPress={() => handleFilterSelect('Educational Level')}
+								>
+									<Text style={[styles.modalOptionText, selectedFilter === 'Educational Level' && styles.modalOptionTextActive]}>Educational Level</Text>
+								</TouchableOpacity>
+							</View>
+						</Pressable>
+					</Modal>
 					</View>
 				</View>
 
 				<View style={styles.mainContent}>
 					<ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.contentScroll}>
-						<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
-							{FILTERS.map((filter, index) => (
-								<TouchableOpacity key={filter} style={[styles.filterChip, index === 0 && styles.filterChipActive]} activeOpacity={0.85}>
-									<Text style={[styles.filterText, index === 0 && styles.filterTextActive]}>{filter}</Text>
-								</TouchableOpacity>
-							))}
-						</ScrollView>
-
 						<View style={styles.sectionHeader}>
 							<Text style={styles.sectionTitle}>Tutors for You</Text>
-							<Text style={styles.sectionHint}>12 available</Text>
 						</View>
 
 						<View style={styles.listWrap}>
@@ -204,10 +229,20 @@ const styles = StyleSheet.create({
 		backgroundColor: '#FFFFFF',
 		borderRadius: 12,
 		height: 38,
-		paddingHorizontal: 10,
+		paddingLeft: 10,
+		paddingRight: 6,
 	},
 	searchIcon: {
 		marginRight: 7,
+	},
+	filterButton: {
+		width: 28,
+		height: 28,
+		borderRadius: 8,
+		backgroundColor: '#1E1B6B',
+		alignItems: 'center',
+		justifyContent: 'center',
+		marginLeft: 8,
 	},
 	mainContent: {
 		flex: 1,
@@ -225,37 +260,14 @@ const styles = StyleSheet.create({
 		fontSize: 12,
 		fontWeight: '500',
 	},
-	filterRow: {
-		paddingTop: 10,
-		paddingBottom: 7,
-		gap: 8,
-	},
-	filterChip: {
-		backgroundColor: '#F4F5F9',
-		borderColor: '#DFE3EF',
-		borderWidth: 1,
-		paddingHorizontal: 14,
-		height: 28,
-		borderRadius: 14,
-		justifyContent: 'center',
-	},
-	filterChipActive: {
-		backgroundColor: '#19226D',
-		borderColor: '#19226D',
-	},
-	filterText: {
-		fontSize: 11,
-		color: '#9AA2B5',
-		fontWeight: '600',
-	},
-	filterTextActive: {
-		color: '#FFFFFF',
-	},
 	sectionHeader: {
-		paddingTop: 4,
+		paddingTop: 8,
+		paddingBottom: 4,
 		flexDirection: 'row',
 		justifyContent: 'space-between',
 		alignItems: 'center',
+		marginTop: 2,
+		marginBottom: 2,
 	},
 	sectionTitle: {
 		fontSize: 14,
@@ -362,5 +374,47 @@ const styles = StyleSheet.create({
 		color: '#2E3A75',
 		fontSize: 11,
 		fontWeight: '700',
+	},
+	modalOverlay: {
+		flex: 1,
+		backgroundColor: 'rgba(0, 0, 0, 0.5)',
+		justifyContent: 'center',
+		alignItems: 'center',
+	},
+	modalContent: {
+		backgroundColor: '#FFFFFF',
+		borderRadius: 16,
+		paddingHorizontal: 20,
+		paddingVertical: 16,
+		minWidth: 280,
+	},
+	modalTitle: {
+		fontSize: 16,
+		fontWeight: '700',
+		color: '#1E1B6B',
+		marginBottom: 14,
+		textAlign: 'center',
+	},
+	modalOption: {
+		paddingVertical: 12,
+		paddingHorizontal: 14,
+		borderRadius: 10,
+		backgroundColor: '#F4F6FC',
+		marginBottom: 10,
+		borderWidth: 1,
+		borderColor: '#E4EAF6',
+	},
+	modalOptionActive: {
+		backgroundColor: '#1E1B6B',
+		borderColor: '#1E1B6B',
+	},
+	modalOptionText: {
+		fontSize: 14,
+		fontWeight: '600',
+		color: '#1E293B',
+		textAlign: 'center',
+	},
+	modalOptionTextActive: {
+		color: '#FFFFFF',
 	},
 });
