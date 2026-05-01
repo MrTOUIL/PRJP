@@ -4,7 +4,6 @@ import {
 	ScrollView,
 	StyleSheet,
 	Text,
-	TextInput,
 	TouchableOpacity,
 	View,
 } from 'react-native';
@@ -153,7 +152,7 @@ const ServiceCard = ({ service, enrolled }: { service: Service; enrolled: boolea
 				</View>
 			) : (
 				<TouchableOpacity style={styles.bookButton} activeOpacity={0.9}>
-					<Text style={styles.bookButtonText}>Book This Service</Text>
+					<Text style={styles.bookButtonText}>Request This Service</Text>
 				</TouchableOpacity>
 			)}
 		</View>
@@ -171,19 +170,6 @@ export default function StServices() {
 						<Ionicons name="chevron-back" size={20} color="#FFFFFF" />
 					</TouchableOpacity>
 					<Text style={styles.headerTitle}>Services</Text>
-					<TouchableOpacity style={styles.iconBtn}>
-						<Ionicons name="search" size={20} color="#FFFFFF" />
-					</TouchableOpacity>
-				</View>
-
-				<View style={styles.searchBar}>
-					<Ionicons name="search" size={16} color="#94A3B8" style={styles.searchIcon} />
-					<TextInput
-						style={styles.searchInput}
-						placeholder="Search services..."
-						placeholderTextColor="#94A3B8"
-					/>
-					
 				</View>
 			</View>
 
@@ -193,9 +179,6 @@ export default function StServices() {
 						<Text style={styles.enrolledTitle}>My Enrolled Services</Text>
 						<Text style={styles.enrolledHint}>Services you are currently enrolled in</Text>
 					</View>
-					<TouchableOpacity>
-						<Text style={styles.enrolledSeeAll}>See all</Text>
-					</TouchableOpacity>
 				</View>
 
 				{enrolledServices.map((service) => (
@@ -239,38 +222,24 @@ const styles = StyleSheet.create({
 	},
 	headerTop: {
 		flexDirection: 'row',
-		justifyContent: 'space-between',
 		alignItems: 'center',
 		paddingHorizontal: 16,
 		marginBottom: 10,
+		justifyContent: 'center',
+		position: 'relative',
 	},
 	iconBtn: {
 		padding: 2,
+		position: 'absolute',
+		left: 16,
+		zIndex: 2,
 	},
 	headerTitle: {
 		color: '#FFFFFF',
-		fontSize: 16,
+		fontSize: 24,
 		fontWeight: '700',
 		letterSpacing: 0.2,
-	},
-	searchBar: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		backgroundColor: '#FFFFFF',
-		borderRadius: 12,
-		marginHorizontal: 16,
-		paddingHorizontal: 10,
-		height: 38,
-	},
-	searchIcon: {
-		marginRight: 7,
-	},
-	searchInput: {
-		flex: 1,
-		color: '#1E293B',
-		fontSize: 12,
-		fontWeight: '500',
-		height: '100%',
+		textAlign: 'center',
 	},
 	scrollBody: {
 		backgroundColor: '#F4F6FC',
@@ -301,11 +270,6 @@ const styles = StyleSheet.create({
 		color: '#5B6C9E',
 		fontSize: 11,
 		fontWeight: '600',
-	},
-	enrolledSeeAll: {
-		color: '#1A3199',
-		fontSize: 13,
-		fontWeight: '800',
 	},
 	sectionHeaderBlock: {
 		marginBottom: 10,
