@@ -27,13 +27,6 @@ const BOTTOM_NAV_ITEMS = [
 		route: '/(student_space)/Message',
 	},
 	{
-		key: 'alerts',
-		label: 'ALERTS',
-		icon: 'notifications-outline' as const,
-		activeIcon: 'notifications' as const,
-		route: '/(student_space)/notification',
-	},
-	{
 		key: 'profile',
 		label: 'PROFILE',
 		icon: 'person-outline' as const,
@@ -58,7 +51,6 @@ export default function StudentSpaceLayout() {
 ].map((path) => normalizePath(path));
 
 	const messagesPath = normalizePath('/(student_space)/Message');
-	const alertsPath = normalizePath('/(student_space)/notification');
 	const profilePath = normalizePath('/(student_space)/Sprofile');
     const isHomeRoute = homePath.some(path => currentPath === path); 
 	const getIsActive = (key: string) => {
@@ -67,9 +59,6 @@ export default function StudentSpaceLayout() {
 		}
 		if (key === 'messages') {
 			return currentPath === messagesPath;
-		}
-		if (key === 'alerts') {
-			return currentPath === alertsPath;
 		}
 		if (key === 'profile') {
 			return currentPath === profilePath;
