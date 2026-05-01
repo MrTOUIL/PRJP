@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, Dimensions, Platform, Image } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Dimensions, Platform, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, {
     Easing,
@@ -56,9 +56,7 @@ export default function StudentSpace({
 }: StudentSpaceProps) {
     const showSuggestions = activeFilter === 'all' || activeFilter === 'suggestions';
     const showServices = activeFilter === 'all' || activeFilter === 'services';
-    const showSubjects = activeFilter === 'all' || activeFilter === 'subjects';
     const showRequests = activeFilter === 'all' || activeFilter === 'requests';
-    const showDocuments = activeFilter === 'documents';
     const orbX = useSharedValue(-180);
     const orbY = useSharedValue(18);
     const orbOpacity = useSharedValue(0);
@@ -131,25 +129,8 @@ export default function StudentSpace({
              </View>
           </View>
         </View>
-
-                <View style={styles.searchRow}>
-                    <Animated.View entering={FadeInUp.delay(100).duration(600).springify()} style={styles.searchContainer}>
-                        <Ionicons name="search" size={16} color="#94A3B8" style={styles.searchIcon} />
-                        <TextInput
-                            placeholder="Search tutors, subjects, files..."
-                            placeholderTextColor="#94A3B8"
-                            style={styles.searchInput}
-                        />
-                        <TouchableOpacity style={styles.filterButton}>
-                            <Ionicons name="options" size={14} color="#FFFFFF" />
-                        </TouchableOpacity>
-                    </Animated.View>
-
-                    <TouchableOpacity style={styles.notificationButton}>
-                        <Ionicons name="notifications-outline" size={15} color="#FFFFFF" />
-                        <View style={styles.notificationBadge} />
-                    </TouchableOpacity>
-                </View>
+        
+                <Animated.View pointerEvents="none" style={[styles.headerOrb, orbStyle]} />
             </Animated.View>
 
       <ScrollView 
@@ -265,30 +246,8 @@ export default function StudentSpace({
                                                 </View>
                                             </View>
                                             <TouchableOpacity style={styles.serviceActionButton}>
-                                                <Text style={styles.serviceActionButtonText}>Book This Service</Text>
+                                                <Text style={styles.serviceActionButtonText}>Request This Service</Text>
                                             </TouchableOpacity>
-                    </View>
-                ))}
-            </View>
-        </Animated.View>
-        )}
-
-        {/* My Subjects */}
-        {showSubjects && (
-        <Animated.View entering={FadeInUp.delay(800).duration(600)}>
-            <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>My Subjects</Text>
-            </View>
-            <View style={styles.subjectsGrid}>
-                {MY_SUBJECTS.map((sub) => (
-                    <View key={sub.id} style={styles.subjectGridItem}>
-                        <View style={styles.circularProgress}>
-                            {/* Mock Circular Progress */}
-                            <View style={[styles.circleSvg, { borderColor: sub.color }]}>
-                                <Text style={[styles.circleText, { color: sub.color }]}>{Math.round(sub.progress * 100)}%</Text>
-                            </View>
-                        </View>
-                        <Text style={styles.gridSubjectName} numberOfLines={1}>{sub.name}</Text>
                     </View>
                 ))}
             </View>
@@ -300,6 +259,7 @@ export default function StudentSpace({
         <Animated.View entering={FadeInUp.delay(900).duration(600)}>
             <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>My Requests</Text>
+                <TouchableOpacity><Text style={styles.seeAllText}>See all</Text></TouchableOpacity>
             </View>
             <View style={styles.requestPreview}>
                 <View style={styles.requestPreviewHeader}>
@@ -316,26 +276,6 @@ export default function StudentSpace({
         </Animated.View>
                 )}
 
-                {showDocuments && (
-                    <Animated.View entering={FadeInUp.delay(750).duration(600)}>
-                        <View style={styles.sectionHeader}>
-                            <Text style={styles.sectionTitle}>Documents</Text>
-                        </View>
-                        <View style={styles.requestPreview}>
-                            <View style={styles.requestPreviewHeader}>
-                                <Ionicons name="document-text-outline" size={20} color="#666" />
-                                <View style={{ marginLeft: 10, flex: 1 }}>
-                                    <Text style={styles.reqPrevTitle}>Physics Chapter 03</Text>
-                                    <Text style={styles.reqPrevSub}>PDF · Uploaded 2 days ago</Text>
-                                </View>
-                                <TouchableOpacity style={styles.bookButton}>
-                                    <Text style={styles.bookButtonText}>Open</Text>
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-                    </Animated.View>
-                )}
-
                 <View style={{height: 24}} />
       </ScrollView>
     </View>
@@ -349,11 +289,12 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: '#1E1B6B', // Deep Blue (Logo Primary)
-        borderBottomLeftRadius: 28,
-        borderBottomRightRadius: 28,
-        paddingTop: Platform.OS === 'android' ? 44 : 54,
-        paddingBottom: 18,
+        borderBottomLeftRadius: 30,
+        borderBottomRightRadius: 30,
+        paddingTop: Platform.OS === 'android' ? 50 : 60,
+        paddingBottom: 20,
         paddingHorizontal: 16,
+        minHeight: 120,
     shadowColor: '#1E1B6B',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
@@ -400,51 +341,25 @@ const styles = StyleSheet.create({
       flexDirection: 'row',
       alignItems: 'center',
   },
-  avatarContainer: {
-            width: 18,
-            height: 18,
-            borderRadius: 9,
-            backgroundColor: '#FFD700',
-      justifyContent: 'center',
-      alignItems: 'center',
-            marginRight: 6,
-  },
-  avatarText: {
-            fontWeight: '800',
-            color: '#1E1B6B',
-            fontSize: 10,
-  },
-  userName: {
-      color: '#fff',
-            fontWeight: '700',
-      fontSize: 14,
-  },
-    searchRow: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            marginTop: 22,
-            zIndex: 3,
+    avatarContainer: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: '#FFD700',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 10,
     },
-  notificationButton: {
-            marginLeft: 8,
-      width: 28,
-      height: 28,
-      borderRadius: 14,
-      backgroundColor: 'rgba(255,255,255,0.14)',
-            justifyContent: 'center',
-            alignItems: 'center',
-  },
-  notificationBadge: {
-      position: 'absolute',
-            top: 5,
-            right: 5,
-            width: 6,
-            height: 6,
-            borderRadius: 3,
-      backgroundColor: '#FFD700', // Gold notification dot
-      borderWidth: 1,
-      borderColor: '#1E1B6B',
-  },
+    avatarText: {
+        fontWeight: '800',
+        color: '#1E1B6B',
+        fontSize: 16,
+    },
+    userName: {
+        color: '#fff',
+        fontWeight: '800',
+        fontSize: 16,
+    },
   content: {
     flex: 1,
   },
@@ -452,40 +367,6 @@ const styles = StyleSheet.create({
       padding: 20,
             paddingTop: 12,
   },
-  searchContainer: {
-        flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-        borderRadius: 18,
-        paddingHorizontal: 12,
-        height: 34,
-        marginTop: 0,
-        marginBottom: 0,
-    shadowColor: '#000',
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.08,
-        shadowRadius: 6,
-        elevation: 4,
-        zIndex: 20,
-  },
-  searchIcon: {
-        marginRight: 8,
-  },
-    searchInput: {
-        flex: 1,
-        height: '100%',
-        color: '#333',
-                fontSize: 10,
-    },
-    filterButton: {
-            width: 20,
-            height: 20,
-            borderRadius: 6,
-            backgroundColor: '#2C2E83',
-            justifyContent: 'center',
-            alignItems: 'center',
-    },
   statsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -545,6 +426,22 @@ const styles = StyleSheet.create({
       shadowOpacity: 0.42,
       shadowRadius: 22,
       shadowOffset: { width: 0, height: 0 },
+  },
+  headerOrb: {
+      position: 'absolute',
+      top: 12,
+      left: -60,
+      width: 160,
+      height: 160,
+      borderRadius: 80,
+      backgroundColor: 'rgba(255, 244, 190, 0.16)',
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.22)',
+      shadowColor: '#FFF6D2',
+      shadowOpacity: 0.3,
+      shadowRadius: 18,
+      shadowOffset: { width: 0, height: 0 },
+      zIndex: 1,
   },
   promoContent: {
       width: '100%',
