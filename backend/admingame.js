@@ -3,7 +3,7 @@ const router = express.Router();
 
 // Importation des schemas
 const Admin = require('./schemas/admin');
-const students = require('./schemas/student');
+const students = require('./schemas/Student');
 const parents = require('./schemas/parent');
 const teachers = require('./schemas/teacher');
 const services = require('./schemas/service');
