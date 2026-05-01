@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Dimensions, TextInput } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown, FadeInUp, Layout } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
@@ -84,14 +84,7 @@ export default function StudentRequests({ onSelectFilter }: StudentRequestsProps
              </TouchableOpacity>
         </View>
 
-        <View style={styles.searchContainer}>
-          <Ionicons name="search" size={16} color="#94A3B8" style={styles.searchIcon} />
-          <TextInput
-            placeholder="Search requests..."
-            placeholderTextColor="#94A3B8"
-            style={styles.searchInput}
-          />
-        </View>
+
       </Animated.View>
 
       <ScrollView 
@@ -256,25 +249,7 @@ const styles = StyleSheet.create({
   iconButton: {
       padding: 2,
   },
-  searchContainer: {
-    marginHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    height: 38,
-    paddingHorizontal: 10,
-  },
-  searchIcon: {
-    marginRight: 7,
-  },
-  searchInput: {
-    flex: 1,
-    height: '100%',
-    color: '#1E293B',
-    fontSize: 12,
-    fontWeight: '500',
-  },
+
   tabsContainer: {
     marginTop: 8,
     marginBottom: 16,
