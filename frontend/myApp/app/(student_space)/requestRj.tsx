@@ -20,12 +20,6 @@ const DETAIL_ROWS = [
 	{ label: 'Reviewed teacher', value: 'Sara Belhadj' },
 ];
 
-const GOALS = [
-	'Work on exam simulations every week',
-	'Master key concepts in Mathematics and Physics',
-	'Build confidence before final tests',
-];
-
 export default function RequestRejectedDetails() {
 	const router = useRouter();
 
@@ -130,23 +124,6 @@ export default function RequestRejectedDetails() {
 
 				<View style={styles.sectionCard}>
 					<View style={styles.sectionHeader}>
-						<View style={[styles.sectionIcon, { backgroundColor: '#FFF7E6' }]}>
-							<Ionicons name="star" size={14} color="#D97706" />
-						</View>
-						<Text style={styles.sectionTitle}>Learning goals</Text>
-					</View>
-
-					<View style={styles.goalsStack}>
-						{GOALS.map(goal => (
-							<View key={goal} style={styles.goalItem}>
-								<Text style={styles.goalText}>{goal}</Text>
-							</View>
-						))}
-					</View>
-				</View>
-
-				<View style={styles.sectionCard}>
-					<View style={styles.sectionHeader}>
 						<View style={[styles.sectionIcon, { backgroundColor: '#FEE2E2' }]}>
 							<FontAwesome5 name="wallet" size={13} color="#DC2626" />
 						</View>
@@ -165,18 +142,6 @@ export default function RequestRejectedDetails() {
 					<Text style={styles.paragraphText}>
 						Improve understanding of equations and prepare for the Baccalaureat exam. Focus on
 						problem-solving speed and accuracy.
-					</Text>
-				</View>
-
-				<View style={styles.sectionCard}>
-					<View style={styles.sectionHeader}>
-						<View style={[styles.sectionIcon, { backgroundColor: '#FCE7F3' }]}>
-							<Feather name="mail" size={14} color="#BE185D" />
-						</View>
-						<Text style={styles.sectionTitle}>Additional notes</Text>
-					</View>
-					<Text style={styles.paragraphText}>
-						Student prefers evening sessions after 5PM. Needs a patient and structured teaching approach.
 					</Text>
 				</View>
 
