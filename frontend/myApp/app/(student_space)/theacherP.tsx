@@ -199,7 +199,7 @@ export default function TeacherProfileStudentView() {
 					</View>
 
 					<View style={styles.actionsRowTop}>
-						<TouchableOpacity activeOpacity={0.9} style={styles.quoteButton}>
+						<TouchableOpacity activeOpacity={0.9} style={styles.quoteButton} onPress={() => router.push('/(student_space)/Qoute')}>
 							<Animated.View style={[styles.quoteShine, { transform: [{ translateX: shineAnim }, { rotate: '24deg' }] }]} />
 							<Text style={styles.quoteButtonText}>Send Quote</Text>
 						</TouchableOpacity>

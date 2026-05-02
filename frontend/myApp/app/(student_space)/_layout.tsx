@@ -44,6 +44,7 @@ export default function StudentSpaceLayout() {
   '/(student_space)/Documents',
   '/(student_space)/requests',
   '/(student_space)/StServices',
+	'/(student_space)/ServiceStd',
   '/(student_space)/Subjects',
   '/(student_space)/suggestions',
   '/(student_space)/Qoute',

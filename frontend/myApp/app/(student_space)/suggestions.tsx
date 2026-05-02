@@ -163,7 +163,7 @@ export default function SuggestionsScreen() {
 									</View>
 
 									<View style={styles.actionsRow}>
-										<TouchableOpacity style={styles.requestButton} activeOpacity={0.9}>
+										<TouchableOpacity style={styles.requestButton} activeOpacity={0.9} onPress={() => router.push('/(student_space)/Qoute')}>
 											<Text style={styles.requestButtonText}>Send Request</Text>
 										</TouchableOpacity>
 										<TouchableOpacity style={styles.messageButton} activeOpacity={0.9}>

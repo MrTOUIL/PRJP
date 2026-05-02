@@ -79,9 +79,6 @@ export default function StudentRequests({ onSelectFilter }: StudentRequestsProps
                 <Ionicons name="chevron-back" size={20} color="#fff" />
              </TouchableOpacity>
              <Text style={styles.headerTitle}>My Requests</Text>
-             <TouchableOpacity style={styles.iconButton}>
-                <Ionicons name="search" size={20} color="#fff" />
-             </TouchableOpacity>
         </View>
 
 
@@ -151,8 +148,37 @@ function RequestCard({ req }: { req: any }) {
   
   const config = statusConfig[req.status];
 
+  const handlePress = () => {
+    const params = {
+      tutorName: req.tutorName,
+      subject: req.subject,
+      status: req.status,
+      price: req.price,
+      service: req.service,
+      date: req.date,
+      duration: req.duration,
+    };
+    
+    if (req.status === 'Accepted') {
+      router.push({
+        pathname: '/(student_space)/requestAc',
+        params,
+      } as any);
+    } else if (req.status === 'Pending') {
+      router.push({
+        pathname: '/(student_space)/requestPnd',
+        params,
+      } as any);
+    } else if (req.status === 'Rejected') {
+      router.push({
+        pathname: '/(student_space)/requestRj',
+        params,
+      } as any);
+    }
+  };
+
   return (
-    <View style={styles.card}>
+    <TouchableOpacity style={styles.card} onPress={handlePress} activeOpacity={0.8}>
       <View style={styles.cardHeader}>
         <View style={styles.userInfo}>
             <View style={[styles.avatar, { backgroundColor: req.avatarColor }]}>
@@ -188,29 +214,7 @@ function RequestCard({ req }: { req: any }) {
             </View>
         </View>
       </View>
-
-      <View style={styles.cardFooter}>
-        {req.status === 'Accepted' && (
-          <TouchableOpacity
-            style={[styles.actionButton, styles.primaryButton]}
-            onPress={() => router.push('/(student_space)/requestAc')}
-          >
-                <Text style={styles.primaryButtonText}>View Details</Text>
-            </TouchableOpacity>
-        )}
-         {req.status === 'Pending' && (
-            <TouchableOpacity style={[styles.actionButton, styles.secondaryButton]}>
-                <Text style={styles.secondaryButtonText}>Cancel</Text>
-            </TouchableOpacity>
-        )}
-         {req.status === 'Rejected' && (
-            <TouchableOpacity style={[styles.actionButton, styles.secondaryButton]}>
-                <Text style={styles.secondaryButtonText}>Delete</Text>
-            </TouchableOpacity>
-        )}
-      </View>
-
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -235,10 +239,11 @@ const styles = StyleSheet.create({
   },
   headerTop: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 16,
     marginBottom: 10,
+    position: 'relative',
   },
   headerTitle: {
     fontSize: 16,
@@ -248,6 +253,8 @@ const styles = StyleSheet.create({
   },
   iconButton: {
       padding: 2,
+      position: 'absolute',
+      left: 16,
   },
 
   tabsContainer: {

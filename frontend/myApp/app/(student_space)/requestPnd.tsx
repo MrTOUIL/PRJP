@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons, MaterialIcons, FontAwesome5, Feather } from '@expo/vector-icons';
 import Animated, {
 	Easing,
@@ -11,15 +11,30 @@ import Animated, {
 	withTiming,
 } from 'react-native-reanimated';
 
-const DETAIL_ROWS = [
-	{ label: 'Subject', value: 'Mathematics' },
-	{ label: 'School level', value: 'Terminale S' },
-	{ label: 'Frequency', value: '3x per week' },
-	{ label: 'Session duration', value: '1h 30min' },
-	{ label: 'Date submitted', value: '12 Mar 2025' },
-	{ label: 'Assigned teacher', value: 'Pending assignment' },
-];
+const pickFirst = (value: string | string[] | undefined, fallback: string) => {
+	if (Array.isArray(value)) {
+		return value[0] ?? fallback;
+	}
+	return value ?? fallback;
+};
 
+	const params = useLocalSearchParams();
+
+	const tutorName = pickFirst(params.tutorName, 'Pending assignment');
+	const subject = pickFirst(params.subject, 'Mathematics');
+	const service = pickFirst(params.service, 'English Conversation');
+	const date = pickFirst(params.date, 'Feb 28');
+	const duration = pickFirst(params.duration, '1 hour');
+	const price = pickFirst(params.price, '650');
+
+	const DETAIL_ROWS = [
+		{ label: 'Subject', value: subject },
+		{ label: 'School level', value: 'Terminale S' },
+		{ label: 'Frequency', value: '3x per week' },
+		{ label: 'Session duration', value: duration },
+		{ label: 'Date submitted', value: date },
+		{ label: 'Assigned teacher', value: tutorName },
+	];
 export default function RequestPendingDetails() {
 	const router = useRouter();
 
@@ -129,6 +144,7 @@ export default function RequestPendingDetails() {
 						<Text style={styles.sectionTitle}>Estimated budget</Text>
 					</View>
 					<Text style={styles.budgetValue}>2,000 <Text style={styles.budgetSub}>DA / session</Text></Text>
+								<Text style={styles.budgetValue}>{price} <Text style={styles.budgetSub}>DA / session</Text></Text>
 				</View>
 
 				<View style={styles.sectionCard}>
@@ -138,9 +154,9 @@ export default function RequestPendingDetails() {
 						</View>
 						<Text style={styles.sectionTitle}>Learning objective</Text>
 					</View>
+				
 					<Text style={styles.paragraphText}>
-						Improve understanding of equations and prepare for the Baccalaureat exam. Focus on
-						problem-solving speed and accuracy.
+						{service}
 					</Text>
 				</View>
 

@@ -108,53 +108,90 @@ const discoverServices: Service[] = [
 ];
 
 const ServiceCard = ({ service, enrolled }: { service: Service; enrolled: boolean }) => {
-	return (
-		<View style={styles.card}>
-			<View style={styles.cardTopRow}>
-				<View style={[styles.avatar, { backgroundColor: service.avatarBg }]}>
-					<Text style={styles.avatarText}>{service.avatarLetter}</Text>
+	const router = useRouter();
+
+	const routeParams = {
+		title: service.title,
+		type: service.subject,
+		target_audiance: service.level,
+		mode: service.mode,
+		cost: service.price.replace(/\s*DZD/i, '').trim(),
+		comment: `Focused ${service.subject.toLowerCase()} support with practical exercises and guided feedback.`,
+		tutor: service.tutor,
+		level: service.level,
+		duration: service.duration,
+		status: service.status ?? 'Open for request',
+		nextDate: service.nextDate ?? 'Schedule to be confirmed',
+	} as any;
+
+	const goToDetails = () => {
+		router.push({
+			pathname: '/(student_space)/ServiceStd',
+			params: routeParams,
+		} as any);
+	};
+
+	const goToRequest = () => {
+		router.push({
+			pathname: '/(student_space)/servicREq',
+			params: routeParams,
+		} as any);
+	};
+
+	const mainContent = (
+		<View style={styles.cardTopRow}>
+			<View style={[styles.avatar, { backgroundColor: service.avatarBg }]}>
+				<Text style={styles.avatarText}>{service.avatarLetter}</Text>
+			</View>
+
+			<View style={styles.cardInfo}>
+				<View style={styles.titlePriceRow}>
+					<Text style={styles.cardTitle} numberOfLines={1}>
+						{service.title}
+					</Text>
+					<Text style={styles.price}>{service.price}</Text>
 				</View>
+				<Text style={styles.cardSubtitle}>{service.tutor}</Text>
 
-				<View style={styles.cardInfo}>
-					<View style={styles.titlePriceRow}>
-						<Text style={styles.cardTitle} numberOfLines={1}>
-							{service.title}
-						</Text>
-						<Text style={styles.price}>{service.price}</Text>
+				<View style={styles.tagsRow}>
+					<View style={styles.tagChip}>
+						<Ionicons name="time-outline" size={12} color="#7F8AA5" />
+						<Text style={styles.tagText}>{service.duration}</Text>
 					</View>
-					<Text style={styles.cardSubtitle}>{service.tutor}</Text>
-
-					<View style={styles.tagsRow}>
-						<View style={styles.tagChip}>
-							<Ionicons name="time-outline" size={12} color="#7F8AA5" />
-							<Text style={styles.tagText}>{service.duration}</Text>
-						</View>
-						<View style={styles.tagChip}>
-							<Ionicons name="globe-outline" size={12} color="#7F8AA5" />
-							<Text style={styles.tagText}>{service.mode}</Text>
-						</View>
-						<View style={styles.tagChip}>
-							<Ionicons name="person-outline" size={12} color="#7F8AA5" />
-							<Text style={styles.tagText}>{service.level}</Text>
-						</View>
-						<View style={styles.tagChip}>
-							<Ionicons name="school-outline" size={12} color="#7F8AA5" />
-							<Text style={styles.tagText}>{service.subject}</Text>
-						</View>
+					<View style={styles.tagChip}>
+						<Ionicons name="globe-outline" size={12} color="#7F8AA5" />
+						<Text style={styles.tagText}>{service.mode}</Text>
+					</View>
+					<View style={styles.tagChip}>
+						<Ionicons name="person-outline" size={12} color="#7F8AA5" />
+						<Text style={styles.tagText}>{service.level}</Text>
+					</View>
+					<View style={styles.tagChip}>
+						<Ionicons name="school-outline" size={12} color="#7F8AA5" />
+						<Text style={styles.tagText}>{service.subject}</Text>
 					</View>
 				</View>
 			</View>
+		</View>
+	);
 
-			{enrolled ? (
-				<View style={styles.enrolledFooter}>
-					<Text style={styles.activeText}>{service.status}</Text>
-					<Text style={styles.nextDateText}>{service.nextDate}</Text>
-				</View>
-			) : (
-				<TouchableOpacity style={styles.bookButton} activeOpacity={0.9}>
-					<Text style={styles.bookButtonText}>Request This Service</Text>
-				</TouchableOpacity>
-			)}
+	const footer = enrolled ? (
+		<View style={styles.enrolledFooter}>
+			<Text style={styles.activeText}>{service.status}</Text>
+			<Text style={styles.nextDateText}>{service.nextDate}</Text>
+		</View>
+	) : (
+		<View style={styles.bookButton}>
+			<Text style={styles.bookButtonText}>Request this service</Text>
+		</View>
+	);
+
+	return (
+		<View style={styles.card}>
+			<TouchableOpacity activeOpacity={0.92} onPress={enrolled ? goToDetails : goToRequest}>
+				{mainContent}
+			</TouchableOpacity>
+			{footer}
 		</View>
 	);
 };
