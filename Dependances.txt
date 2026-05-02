@@ -1,0 +1,97 @@
+================================================================================
+                    DÉPENDANCES DU PROJET APK ADMIN PRJP
+================================================================================
+
+FRONTEND (React Native + Expo)
+================================================================================
+
+Installation: npm install (dans le dossier /frontend)
+
+Dependencies:
+- expo@~54.0.33
+- expo-print@~15.0.8
+- expo-sharing@~14.0.8
+- expo-status-bar@~3.0.9
+- react@19.1.0
+- react-dom@19.1.0
+- react-native@0.81.5
+- react-native-web@^0.21.0
+
+DevDependencies:
+- @types/react@~19.1.0
+- typescript@~5.9.2
+
+
+BACKEND (Node.js + Express)
+================================================================================
+
+Installation: npm install (dans le dossier /backend)
+
+Dependencies:
+- backblaze-b2@^1.7.1
+- bcrypt@^6.0.0
+- cookie-parser@^1.4.7
+- cors@^2.8.6
+- dotenv@^17.4.2
+- express@^5.2.1
+- express-mongo-sanitize@^2.2.0
+- express-validator@^7.3.2
+- jsonwebtoken@^9.0.3
+- mongoose@^9.6.1
+- multer@^2.1.1
+- nodemailer@^8.0.7
+
+
+RÉSUMÉ PAR CATÉGORIE
+================================================================================
+
+Framework & CLI:
+- expo (gestion du projet React Native)
+- express (serveur backend)
+- react & react-native (frameworks UI)
+
+Base de données:
+- mongoose (ODM MongoDB)
+
+Authentification & Sécurité:
+- bcrypt (hashing des mots de passe)
+- jsonwebtoken (JWT tokens)
+- express-mongo-sanitize (protection NoSQL injection)
+
+Validation & Middleware:
+- express-validator (validation des données)
+- cookie-parser (gestion des cookies)
+- cors (partage de ressources cross-origin)
+
+Fichiers & Upload:
+- multer (upload de fichiers)
+- backblaze-b2 (stockage cloud B2)
+
+Utilitaires:
+- dotenv (variables d'environnement)
+- nodemailer (envoi d'emails)
+- expo-print (impression de documents PDF)
+- expo-sharing (partage de fichiers)
+- react-dom (rendu React pour le web)
+- react-native-web (React Native pour le web)
+
+TypeScript:
+- typescript (compilation TypeScript)
+- @types/react (types TypeScript pour React)
+
+
+COMMANDES D'INSTALLATION RAPIDE
+================================================================================
+
+Frontend:
+cd frontend && npm install
+
+Backend:
+cd backend && npm install
+
+Les deux:
+cd frontend && npm install && cd ../backend && npm install
+
+================================================================================
+Dernière mise à jour: 02 Mai 2026
+================================================================================
