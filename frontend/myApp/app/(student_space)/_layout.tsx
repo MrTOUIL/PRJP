@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, usePathname, useRouter } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 
 function normalizePath(path: string) {
 	return path
@@ -24,7 +25,7 @@ const BOTTOM_NAV_ITEMS = [
 		label: 'MESSAGES',
 		icon: 'chatbubble-ellipses-outline' as const,
 		activeIcon: 'chatbubble-ellipses' as const,
-		route: '/(student_space)/Message',
+		route: '/(student_space)/Messages',
 	},
 	{
 		key: 'profile',
@@ -51,9 +52,25 @@ export default function StudentSpaceLayout() {
 
 ].map((path) => normalizePath(path));
 
-	const messagesPath = normalizePath('/(student_space)/Message');
+	const messagesPath = normalizePath('/(student_space)/Messages');
 	const profilePath = normalizePath('/(student_space)/Sprofile');
     const isHomeRoute = homePath.some(path => currentPath === path); 
+
+	const handleNavPress = async (route: string, key: string) => {
+		if (key === 'profile') {
+			const profileData = await SecureStore.getItemAsync('studentProfileData');
+			if (profileData) {
+				router.replace({
+					pathname: route as any,
+					params: { profileData },
+				} as any);
+				return;
+			}
+		}
+
+		router.replace(route as any);
+	};
+
 	const getIsActive = (key: string) => {
 		if (key === 'home') {
 			return !!isHomeRoute;
@@ -83,7 +100,7 @@ export default function StudentSpaceLayout() {
 							key={item.key}
 							style={styles.navItem}
 							activeOpacity={0.85}
-							onPress={() => router.replace(item.route as any)}
+							onPress={() => void handleNavPress(item.route, item.key)}
 						>
 							<View
 								style={[
@@ -114,55 +131,47 @@ const styles = StyleSheet.create({
 	},
 	contentWrap: {
 		flex: 1,
-		paddingBottom: 54,
 	},
 	bottomNav: {
-		position: 'absolute',
-		left: 0,
-		right: 0,
-		bottom: 0,
-		height: 78,
-		borderColor: '#D6DAE6',
-		borderTopWidth: 1,
-		borderLeftWidth: 1,
-		borderRightWidth: 1,
-		backgroundColor: '#FFFFFF',
-		borderTopLeftRadius: 24,
-		borderTopRightRadius: 24,
 		flexDirection: 'row',
-		justifyContent: 'space-between',
-		alignItems: 'stretch',
-		paddingHorizontal: 0,
+		backgroundColor: '#FFFFFF',
+		height: 80,
+		paddingBottom: 20,
+		paddingTop: 10,
+		borderTopWidth: 1,
+		borderTopColor: '#F0F0F0',
+		elevation: 10,
+		shadowColor: '#000',
+		shadowOffset: { width: 0, height: -2 },
+		shadowOpacity: 0.05,
+		shadowRadius: 5,
 	},
 	navItem: {
-		position: 'relative',
 		flex: 1,
 		alignItems: 'center',
 		justifyContent: 'center',
-		minWidth: 0,
-		gap: 4,
-		paddingTop: 14,
-		paddingBottom: 4,
+		position: 'relative',
 	},
 	activeIndicator: {
 		position: 'absolute',
-		top: 0,
-		width: 34,
+		top: -10,
+		width: 40,
 		height: 3,
-		borderTopLeftRadius: 2,
-		borderTopRightRadius: 2,
 		backgroundColor: 'transparent',
+		borderRadius: 2,
 	},
 	activeIndicatorActive: {
 		backgroundColor: '#2E337F',
 	},
 	navLabel: {
-		fontSize: 11,
-		fontWeight: '700',
+		fontSize: 10,
+		marginTop: 4,
 		color: '#B5BCCF',
-		letterSpacing: 0.2,
+		fontWeight: '600',
+		letterSpacing: 0.5,
 	},
 	navLabelActive: {
 		color: '#2E337F',
+		fontWeight: '700',
 	},
 });

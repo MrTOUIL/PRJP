@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as SecureStore from 'expo-secure-store';
 import {
+	ActivityIndicator,
 	Animated,
 	Easing,
 	Image,
@@ -15,6 +17,8 @@ import {
 	TouchableOpacity,
 	View,
 } from 'react-native';
+import { BASE_URL } from '../../constants/api';
+import { getStudentOrParentRole } from '../../constants/roleApi';
 
 const DAYS = [
 	{ label: 'Mon', slot: 'PM' },
@@ -100,34 +104,152 @@ const Section = ({
 
 export default function TeacherProfileStudentView() {
 	const router = useRouter();
+	const { teacherId } = useLocalSearchParams();
 	const pageAnim = useRef(new Animated.Value(0)).current;
 	const shineAnim = useRef(new Animated.Value(-160)).current;
 	const [commentInput, setCommentInput] = useState('');
 	const [selectedStars, setSelectedStars] = useState(0);
 	const [showAddComment, setShowAddComment] = useState(false);
-	const [comments, setComments] = useState(TEACHER_COMMENTS);
 	const [showAllComments, setShowAllComments] = useState(false);
+	const [teacher, setTeacher] = useState<any>(null);
+	const [submittingEvaluation, setSubmittingEvaluation] = useState(false);
+	const [evaluationMessage, setEvaluationMessage] = useState('');
+	const [loading, setLoading] = useState(true);
+	const [message, setMessage] = useState('');
 
-	const handleAddComment = () => {
+	const fetchTeacher = async (): Promise<void> => {
+		try {
+			setLoading(true);
+			setMessage('');
+
+			if (!teacherId) {
+				setMessage('No teacher selected');
+				setLoading(false);
+				return;
+			}
+
+			const accessToken = await SecureStore.getItemAsync('accessToken');
+			const refreshToken = await SecureStore.getItemAsync('refreshToken');
+			const apiRole = await getStudentOrParentRole();
+
+			const loadTeacher = (token: string | null) => {
+				fetch(`${BASE_URL}/${apiRole}/getTeacher/${teacherId}`, {
+					method: 'GET',
+					headers: { authorization: `Bearer ${token}` },
+				})
+					.then(res => res.json())
+					.then(data => {
+						if (data.succ && data.teacher) {
+							setTeacher(data.teacher);
+						} else if (data.error === 'Token expired!') {
+							fetch(`${BASE_URL}/${apiRole}/refresh`, {
+								method: 'POST',
+								headers: { 'content-type': 'application/json' },
+								body: JSON.stringify({ refreshToken }),
+							})
+								.then(res => res.json())
+								.then(refreshData => {
+									if (refreshData.accessToken) {
+										SecureStore.setItemAsync('accessToken', refreshData.accessToken);
+										loadTeacher(refreshData.accessToken);
+									} else {
+										router.replace('/sign_in');
+										setLoading(false);
+									}
+								})
+								.catch(() => {
+									router.replace('/sign_in');
+									setLoading(false);
+								});
+						} else if (data.error === 'Invalid token!' || data.error === 'No token found!') {
+							router.replace('/sign_in');
+						} else {
+							setMessage('Unable to load teacher profile.');
+						}
+					})
+					.catch(() => {
+						setMessage('Unable to load teacher profile.');
+					})
+					.finally(() => {
+						setLoading(false);
+					});
+			};
+
+			loadTeacher(accessToken);
+		} catch (error) {
+			setMessage('Unable to load teacher profile.');
+			setLoading(false);
+		}
+	};
+
+	const handleAddComment = async (): Promise<void> => {
 		const cleanValue = commentInput.trim();
 		if (!cleanValue || selectedStars === 0) {
 			return;
 		}
 
-		setComments((prev) => [
-			{
-				id: String(Date.now()),
-				student: 'You',
-				avatar: 'https://i.pravatar.cc/120?img=15',
-				rating: selectedStars.toFixed(1),
-				message: cleanValue,
-				time: 'Now',
-			},
-			...prev,
-		]);
-		setCommentInput('');
-		setSelectedStars(0);
-		setShowAddComment(false);
+		try {
+			setSubmittingEvaluation(true);
+			setEvaluationMessage('');
+
+			const accessToken = await SecureStore.getItemAsync('accessToken');
+			const refreshToken = await SecureStore.getItemAsync('refreshToken');
+			const apiRole = await getStudentOrParentRole();
+
+			const submitEvaluation = (token: string | null) => {
+				fetch(`${BASE_URL}/${apiRole}/evaluate`, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						authorization: `Bearer ${token}`,
+					},
+					body: JSON.stringify({
+						teacherId,
+						note: selectedStars,
+						comment: cleanValue,
+					}),
+				})
+					.then(res => res.json())
+					.then(data => {
+						if (data.succ) {
+							setCommentInput('');
+							setSelectedStars(0);
+							setShowAddComment(false);
+							setEvaluationMessage('Evaluation sent successfully.');
+							fetchTeacher();
+						} else if (data.error === 'Token expired!') {
+							fetch(`${BASE_URL}/${apiRole}/refresh`, {
+								method: 'POST',
+								headers: { 'content-type': 'application/json' },
+								body: JSON.stringify({ refreshToken }),
+							})
+								.then(res => res.json())
+								.then(refreshData => {
+									if (refreshData.accessToken) {
+										SecureStore.setItemAsync('accessToken', refreshData.accessToken);
+										submitEvaluation(refreshData.accessToken);
+									} else {
+										router.replace('/sign_in');
+									}
+								})
+								.catch(() => {
+									setEvaluationMessage('Unable to submit evaluation.');
+								});
+						} else if (data.error === 'Invalid token!' || data.error === 'No token found!') {
+							router.replace('/sign_in');
+						} else {
+							setEvaluationMessage('Unable to submit evaluation.');
+						}
+					})
+					.catch(() => {
+						setEvaluationMessage('Unable to submit evaluation.');
+					});
+			};
+
+			submitEvaluation(accessToken);
+		} finally {
+			setSubmittingEvaluation(false);
+		}
 	};
 
 	const handleCancelComment = () => {
@@ -135,6 +257,15 @@ export default function TeacherProfileStudentView() {
 		setSelectedStars(0);
 		setShowAddComment(false);
 	};
+
+	useEffect(() => {
+		if (teacherId) {
+			fetchTeacher();
+		}
+	}, [teacherId]);
+
+
+	
 
 	useEffect(() => {
 		Animated.timing(pageAnim, {
@@ -159,7 +290,69 @@ export default function TeacherProfileStudentView() {
 		outputRange: [24, 0],
 	});
 
-	const visibleComments = showAllComments ? comments : comments.slice(0, 2);
+	
+
+	if (loading) {
+		return (
+			<SafeAreaView style={styles.safeArea}>
+				<StatusBar barStyle="light-content" />
+				<View style={styles.spinnerContainer}>
+					<ActivityIndicator size="large" color="#1E1B6B" />
+					<Text style={styles.spinnerText}>Loading teacher profile...</Text>
+				</View>
+			</SafeAreaView>
+		);
+	}
+
+	if (message) {
+		return (
+			<SafeAreaView style={styles.safeArea}>
+				<StatusBar barStyle="light-content" />
+				<View style={styles.errorContainer}>
+					<Text style={styles.errorText}>{message}</Text>
+					<TouchableOpacity onPress={() => router.back()} style={styles.backButtonError}>
+						<Text style={styles.backButtonErrorText}>Go Back</Text>
+					</TouchableOpacity>
+				</View>
+			</SafeAreaView>
+		);
+	}
+
+	if (!teacher) {
+		return (
+			<SafeAreaView style={styles.safeArea}>
+				<StatusBar barStyle="light-content" />
+				<View style={styles.errorContainer}>
+					<Text style={styles.errorText}>No teacher data found</Text>
+					<TouchableOpacity onPress={() => router.back()} style={styles.backButtonError}>
+						<Text style={styles.backButtonErrorText}>Go Back</Text>
+					</TouchableOpacity>
+				</View>
+			</SafeAreaView>
+		);
+	}
+
+	const teacherFirstName = teacher?.first_name || '';
+	const teacherLastName = teacher?.last_name || '';
+	const teacherFullName = `${teacherFirstName} ${teacherLastName}`.trim() || 'Teacher';
+	const teacherSubjects = Array.isArray(teacher?.subject) ? teacher.subject.join(', ') : teacher?.subject || 'Various Subjects';
+	const teacherLevels = Array.isArray(teacher?.school_levels_taught) ? teacher.school_levels_taught.join(' · ') : teacher?.school_levels_taught || 'All Levels';
+	const teacherMode = Array.isArray(teacher?.mode) ? teacher.mode.join(' / ') : teacher?.mode || 'Online';
+	const teacherLocation = teacher?.postal_adress || 'Not specified';
+	const teacherBio = teacher?.bio || 'No bio available';
+	const teacherRating = teacher?.rating ? teacher.rating.toFixed(1) : 'N/A';
+	const teacherEmail = teacher?.email || 'Not provided';
+	const teacherPhone = teacher?.phone || 'Not provided';
+	const teacherHomeVisits = teacher?.home_visits ? 'Yes' : 'No';
+	const teacherAvailableDays = Array.isArray(teacher?.available_days) ? teacher.available_days : [];
+	const teacherStartTime = teacher?.start_time || '';
+	const teacherEndTime = teacher?.end_time || '';
+
+	const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+	const daysAvailability = dayLabels.map((day) => ({
+		label: day,
+		slot: teacherAvailableDays.includes(day) ? true : null,
+	}));
 
 	return (
 		<SafeAreaView style={styles.safeArea}>
@@ -177,29 +370,29 @@ export default function TeacherProfileStudentView() {
 							/>
 						</View>
 
-						<TouchableOpacity onPress={() => router.back()} style={styles.backButton} activeOpacity={0.85}>
+						<TouchableOpacity onPress={() => router.replace("/(student_space)/studentSpace")} style={styles.backButton} activeOpacity={0.85}>
 							<Text style={styles.backButtonText}>{'‹'}</Text>
 						</TouchableOpacity>
 
 						<View style={styles.avatarCircle}>
-							<Text style={styles.avatarLetter}>K</Text>
+							<Text style={styles.avatarLetter}>{teacherFirstName.charAt(0).toUpperCase() || 'T'}</Text>
 							<View style={styles.onlineDot} />
 						</View>
-						<Text style={styles.name}>Karim Hadi</Text>
-						<Text style={styles.role}>Mathematics Teacher • Online / Hybrid • Alger</Text>
+						<Text style={styles.name}>{teacherFullName}</Text>
+						<Text style={styles.role}>{teacherSubjects} • {teacherMode} • {teacherLocation}</Text>
 
 						<View style={styles.headerBadgesRow}>
 							<View style={styles.ratingBadge}>
-								<Text style={styles.ratingBadgeText}>4.9 Rating</Text>
+								<Text style={styles.ratingBadgeText}>{teacherRating} Rating</Text>
 							</View>
 							<View style={styles.verifiedBadge}>
-								<Text style={styles.verifiedBadgeText}>Verified</Text>
+								<Text style={styles.verifiedBadgeText}>{teacher.verified ? 'Verified' : 'Not Verified'}</Text>
 							</View>
 						</View>
 					</View>
 
 					<View style={styles.actionsRowTop}>
-						<TouchableOpacity activeOpacity={0.9} style={styles.quoteButton} onPress={() => router.push('/(student_space)/Qoute')}>
+						<TouchableOpacity activeOpacity={0.9} style={styles.quoteButton} onPress={() => router.push({ pathname: '/(student_space)/Qoute' , params: { teacherId } } as any)}>
 							<Animated.View style={[styles.quoteShine, { transform: [{ translateX: shineAnim }, { rotate: '24deg' }] }]} />
 							<Text style={styles.quoteButtonText}>Send Quote</Text>
 						</TouchableOpacity>
@@ -209,56 +402,110 @@ export default function TeacherProfileStudentView() {
 						</TouchableOpacity>
 					</View>
 
-					<Section title="Personal Information" delay={1} animatedValue={pageAnim}>
-						<InfoRow label="Name" value="Karim Hadi" />
-						<InfoRow label="Email" value="hadi.karim@example.com" />
-						<InfoRow label="Phone" value="+213 552 987 456" />
-						<InfoRow label="Address" value="Tizi Ouzou, Algeria" />
-					</Section>
+				<Section title="Personal Information" delay={1} animatedValue={pageAnim}>
+					<InfoRow label="Name" value={teacherFullName} />
+					<InfoRow label="Email" value={teacherEmail} />
+					<InfoRow label="Phone" value={teacherPhone} />
+					<InfoRow label="Address" value={teacherLocation} />
+				</Section>
 
-					<Section title="Teaching Profile" delay={2} animatedValue={pageAnim}>
-						<View style={styles.teachingList}>
-							{TEACHING_DETAILS.map((item) => (
-								<View key={item.key} style={styles.teachingItem}>
-									<View style={styles.teachingIconWrap}>
-										<Ionicons name={item.icon as any} size={18} color="#23287B" />
-									</View>
-
-									<View style={styles.teachingTextWrap}>
-										<Text style={styles.teachingLabel}>{item.label}</Text>
-										<Text style={styles.teachingValue}>{item.value}</Text>
-									</View>
-
-									<Ionicons name="chevron-forward" size={18} color="#B8BDCA" />
-								</View>
-							))}
+				<Section title="Teaching Profile" delay={2} animatedValue={pageAnim}>
+					<View style={styles.teachingList}>
+						<View style={styles.teachingItem}>
+							<View style={styles.teachingIconWrap}>
+								<Ionicons name="book-outline" size={18} color="#23287B" />
+							</View>
+							<View style={styles.teachingTextWrap}>
+								<Text style={styles.teachingLabel}>EXPERTISE / SUBJECTS</Text>
+								<Text style={styles.teachingValue}>{teacherSubjects}</Text>
+							</View>
+							<Ionicons name="chevron-forward" size={18} color="#B8BDCA" />
 						</View>
-					</Section>
-
-					<Section title="Pedagogical Description" delay={3} animatedValue={pageAnim}>
-						<View style={styles.descriptionBox}>
-							<Text style={styles.descriptionText}>
-								Experienced Math teacher with 3 years helping students build confidence in logical thinking.
-								My approach focuses on clarity, step-by-step understanding, and practical exercises.
-							</Text>
+						<View style={styles.teachingItem}>
+							<View style={styles.teachingIconWrap}>
+								<Ionicons name="school-outline" size={18} color="#23287B" />
+							</View>
+							<View style={styles.teachingTextWrap}>
+								<Text style={styles.teachingLabel}>LEVELS TAUGHT</Text>
+								<Text style={styles.teachingValue}>{teacherLevels}</Text>
+							</View>
+							<Ionicons name="chevron-forward" size={18} color="#B8BDCA" />
 						</View>
-					</Section>
-
-					<Section title="Weekly Availability" delay={4} animatedValue={pageAnim}>
-						<View style={styles.availabilityTrack}>
-							{DAYS.map((day) => (
-								<View key={`${day.label}-${day.slot ?? 'off'}`} style={styles.availabilityDayCol}>
-									<Text style={[styles.availabilityDayLabel, day.slot && styles.availabilityDayLabelActive]}>{day.label}</Text>
-									<View style={[styles.availabilityDot, day.slot ? styles.availabilityDotActive : styles.availabilityDotInactive]}>
-										{day.slot ? <Text style={styles.availabilityDotText}>{day.slot}</Text> : null}
-									</View>
-								</View>
-							))}
+						<View style={styles.teachingItem}>
+							<View style={styles.teachingIconWrap}>
+								<Ionicons name="desktop-outline" size={18} color="#23287B" />
+							</View>
+							<View style={styles.teachingTextWrap}>
+								<Text style={styles.teachingLabel}>TEACHING MODE</Text>
+								<Text style={styles.teachingValue}>{teacherMode}</Text>
+							</View>
+							<Ionicons name="chevron-forward" size={18} color="#B8BDCA" />
 						</View>
-					</Section>
+						<View style={styles.teachingItem}>
+							<View style={styles.teachingIconWrap}>
+								<Ionicons name="home-outline" size={18} color="#23287B" />
+							</View>
+							<View style={styles.teachingTextWrap}>
+								<Text style={styles.teachingLabel}>LOCATION</Text>
+								<Text style={styles.teachingValue}>{teacherLocation}</Text>
+							</View>
+							<Ionicons name="chevron-forward" size={18} color="#B8BDCA" />
+						</View>
+						<View style={styles.teachingItem}>
+							<View style={styles.teachingIconWrap}>
+								<Ionicons name="time-outline" size={18} color="#23287B" />
+							</View>
+							<View style={styles.teachingTextWrap}>
+								<Text style={styles.teachingLabel}>HOME VISITS</Text>
+								<Text style={styles.teachingValue}>{teacherHomeVisits}</Text>
+							</View>
+							<Ionicons name="chevron-forward" size={18} color="#B8BDCA" />
+						</View>
+						<View style={styles.teachingItem}>
+							<View style={styles.teachingIconWrap}>
+								<Ionicons name="play-circle-outline" size={18} color="#23287B" />
+							</View>
+							<View style={styles.teachingTextWrap}>
+								<Text style={styles.teachingLabel}>START TIME</Text>
+								<Text style={styles.teachingValue}>{teacherStartTime || 'Not specified'}</Text>
+							</View>
+							<Ionicons name="chevron-forward" size={18} color="#B8BDCA" />
+						</View>
+						<View style={styles.teachingItem}>
+							<View style={styles.teachingIconWrap}>
+								<Ionicons name="stop-circle-outline" size={18} color="#23287B" />
+							</View>
+							<View style={styles.teachingTextWrap}>
+								<Text style={styles.teachingLabel}>END TIME</Text>
+								<Text style={styles.teachingValue}>{teacherEndTime || 'Not specified'}</Text>
+							</View>
+							<Ionicons name="chevron-forward" size={18} color="#B8BDCA" />
+						</View>
+					</View>
+				</Section>
 
+				<Section title="Pedagogical Description" delay={3} animatedValue={pageAnim}>
+					<View style={styles.descriptionBox}>
+						<Text style={styles.descriptionText}>
+							{teacherBio}
+						</Text>
+					</View>
+				</Section>
+
+				<Section title="Weekly Availability" delay={4} animatedValue={pageAnim}>
+				<View style={styles.availabilityTrack}>
+					{daysAvailability.map((day) => (
+						<View key={`${day.label}-${day.slot ?? 'off'}`} style={styles.availabilityDayCol}>
+							<Text style={[styles.availabilityDayLabel, day.slot && styles.availabilityDayLabelActive]}>{day.label}</Text>
+							<View style={[styles.availabilityDot, day.slot ? styles.availabilityDotActive : styles.availabilityDotInactive]}>
+								{day.slot ? <Text style={styles.availabilityDotText}>{day.slot}</Text> : null}
+							</View>
+						</View>
+					))}
+				</View>
+			</Section>
 					<Section
-						title="Teacher Comments"
+						title="Evaluate this teacher"
 						delay={5}
 						animatedValue={pageAnim}
 						containerStyle={styles.commentsSectionContainer}
@@ -269,40 +516,12 @@ export default function TeacherProfileStudentView() {
 								activeOpacity={0.85}
 								style={styles.commentsHeaderToggleButton}
 							>
-								<Text style={styles.commentsHeaderToggleText}>{showAllComments ? '▲' : 'See all'}</Text>
+								
 							</TouchableOpacity>
 						}
 					>
 						<View style={styles.commentsContainerAccent}>
-							<View style={styles.commentsList}>
-								{visibleComments.map((comment) => (
-									<View key={comment.id} style={styles.commentCard}>
-										<View style={styles.commentTopRow}>
-											<View style={styles.commentIdentity}>
-												<Image source={{ uri: comment.avatar }} style={styles.commentAvatar} />
-												<View>
-													<Text style={styles.commentAuthor}>{comment.student}</Text>
-													<View style={styles.commentStarsRow}>
-														{[1, 2, 3, 4, 5].map((star) => (
-															<Text
-																key={`${comment.id}-star-${star}`}
-																style={[
-																	styles.commentStar,
-																	Number(comment.rating) >= star && styles.commentStarActive,
-																]}
-															>
-																★
-															</Text>
-														))}
-													</View>
-												</View>
-											</View>
-											<Text style={styles.commentMeta}>{comment.time}</Text>
-										</View>
-										<Text style={styles.commentMessage}>{comment.message}</Text>
-									</View>
-								))}
-							</View>
+							
 
 							{!showAddComment ? (
 								<TouchableOpacity
@@ -771,6 +990,13 @@ const styles = StyleSheet.create({
 		lineHeight: 21,
 		color: '#2D3658',
 	},
+	emptyEvaluationsText: {
+		fontSize: 13,
+		fontWeight: '600',
+		color: '#6A769A',
+		textAlign: 'center',
+		paddingVertical: 10,
+	},
 	addCommentBox: {
 		marginTop: 12,
 		padding: 12,
@@ -863,7 +1089,45 @@ const styles = StyleSheet.create({
 		fontWeight: '500',
 		color: '#2f45c7',
 	},
+	spinnerContainer: {
+		flex: 1,
+		justifyContent: 'center',
+		alignItems: 'center',
+		backgroundColor: '#EEF3FF',
+	},
+	spinnerText: {
+		marginTop: 12,
+		fontSize: 14,
+		fontWeight: '600',
+		color: '#1E1B6B',
+	},
+	errorContainer: {
+		flex: 1,
+		justifyContent: 'center',
+		alignItems: 'center',
+		backgroundColor: '#EEF3FF',
+		paddingHorizontal: 16,
+	},
+	errorText: {
+		fontSize: 14,
+		fontWeight: '600',
+		color: '#E63B3B',
+		marginBottom: 16,
+		textAlign: 'center',
+	},
+	backButtonError: {
+		paddingHorizontal: 16,
+		paddingVertical: 10,
+		borderRadius: 8,
+		backgroundColor: '#1E1B6B',
+	},
+	backButtonErrorText: {
+		fontSize: 13,
+		fontWeight: '600',
+		color: '#FFFFFF',
+	},
 	bottomSpacer: {
 		height: 18,
 	},
 });
+

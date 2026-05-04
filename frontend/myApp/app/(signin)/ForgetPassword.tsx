@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BASE_URL } from '../../constants/api';
 import { 
   StyleSheet, 
@@ -43,7 +43,9 @@ export default function ForgetPassword() {
   const router = useRouter();
 
   // Spinner rotation
-  spinnerRotate.value = withRepeat(withTiming(360, { duration: 1000 }), -1, false);
+  useEffect(() => {
+    spinnerRotate.value = withRepeat(withTiming(360, { duration: 1000 }), -1, false);
+  }, []);
 
   const animatedSpinnerStyle = useAnimatedStyle(() => {
     return {

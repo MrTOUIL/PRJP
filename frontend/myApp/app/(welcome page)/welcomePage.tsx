@@ -494,7 +494,7 @@ useEffect(() => {
       .then(data => {
         if (data.succ) {
           if (data.role === "teacher") router.replace("/(teacher_space)/teacherSpace");
-          if (data.role === "student") router.replace("/(student_space)/studentSpace");
+          if (data.role === "student" || data.role === "parent") router.replace("/(student_space)/studentSpace");
         } else if (data.error === "Token expired!") {
           fetch(`${BASE_URL}/teacher/refresh`, { 
             method: "POST",
@@ -513,7 +513,7 @@ useEffect(() => {
               .then(data => {
                 if (data.succ) {
                   if (data.role === "teacher") router.replace("/(teacher_space)/teacherSpace");
-                  if (data.role === "student") router.replace("/(student_space)/studentSpace");
+                  if (data.role === "student" || data.role === "parent") router.replace("/(student_space)/studentSpace");
                 } else {
                   //router.replace("/signin");
                 }

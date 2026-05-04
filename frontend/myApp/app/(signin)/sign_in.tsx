@@ -149,6 +149,8 @@ export default function SignIn() {
         //SAVE TOKENS DIRECTLY HERE
         await SecureStore.setItemAsync("accessToken", data.accessToken);
         await SecureStore.setItemAsync("refreshToken", data.refreshToken);
+        await SecureStore.setItemAsync("userRole", data.role || "student");
+        await SecureStore.setItemAsync("sessionUser", JSON.stringify({ role: data.role || "student" }));
 
         //NAVIGATION (no id needed anymore)
         if (data.role === "student" || data.role === "parent") {

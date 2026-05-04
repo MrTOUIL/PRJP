@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BASE_URL } from '../../constants/api';
 import {
   SafeAreaView,
@@ -160,7 +160,9 @@ export default function SignUpTeacher() {
     }
   };
 
-  spinnerRotate.value = withRepeat(withTiming(360, { duration: 1000 }), -1, false);
+  useEffect(() => {
+    spinnerRotate.value = withRepeat(withTiming(360, { duration: 1000 }), -1, false);
+  }, []);
 
   const animatedSpinnerStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${spinnerRotate.value}deg` }],

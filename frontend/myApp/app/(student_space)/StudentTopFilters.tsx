@@ -15,9 +15,11 @@ type StudentTopFiltersProps = {
   activeFilter: StudentMenuFilter;
   onSelect: (filter: StudentMenuFilter) => void;
   style?: object;
+  joinedServices?: any[];
+  notJoinedServices?: any[];
 };
 
-export default function StudentTopFilters({ activeFilter, onSelect, style }: StudentTopFiltersProps) {
+export default function StudentTopFilters({ activeFilter, onSelect, style, joinedServices = [], notJoinedServices = [] }: StudentTopFiltersProps) {
   const router = useRouter();
 
   return (
@@ -34,7 +36,13 @@ export default function StudentTopFilters({ activeFilter, onSelect, style }: Stu
                     if (item.id === "requests") {
                           router.push("/requests");
                       } else if (item.id === "services") {
-                    router.push("/StServices");
+                    router.push({
+                      pathname: '/(student_space)/StServices',
+                      params: {
+                        joinedServices: JSON.stringify(joinedServices),
+                        notJoinedServices: JSON.stringify(notJoinedServices),
+                      },
+                    } as any);
                      } else if (item.id === "suggestions") {
                     router.push("/(student_space)/suggestions");
                      }else {

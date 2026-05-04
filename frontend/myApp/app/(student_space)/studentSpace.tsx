@@ -1,6 +1,9 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Dimensions, Platform, Image } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, Feather, MaterialIcons } from '@expo/vector-icons';
+import { BASE_URL } from '../../constants/api';
+import * as SecureStore from 'expo-secure-store';
+import { getStudentOrParentRole } from '../../constants/roleApi';
 import Animated, {
     Easing,
     FadeInDown,
@@ -18,13 +21,17 @@ import { useRouter } from 'expo-router';
 
 const { width } = Dimensions.get('window');
 
-const TUTOR_SUGGESTIONS = [
+const COLORS = {
+    primary: '#1A1A5E',
+};
+
+/*const TUTOR_SUGGESTIONS = [
     { id: 1, name: 'Sara Belhadj', level: 'Terminale S', subject: 'Physics', color: '#149A8B' },
     { id: 2, name: 'M. Rahmani', level: 'Lycee', subject: 'Mathematics', color: '#FDBB2D' },
     { id: 3, name: 'L. Mansouri', level: 'All levels', subject: 'English', color: '#EF4444' },
-];
+];*/
 
-const AVAILABLE_SERVICES = [
+/*const AVAILABLE_SERVICES = [
     {
         id: 1,
         name: 'Individual Math Sessions',
@@ -36,7 +43,7 @@ const AVAILABLE_SERVICES = [
         priceSuffix: '/session',
         color: '#149A8B',
     },
-];
+];*/
 
 const MY_SUBJECTS = [
   { id: 1, name: 'Algebra', progress: 0.65, color: '#1E1B6B' }, // Deep Blue
@@ -60,6 +67,17 @@ export default function StudentSpace({
     const orbX = useSharedValue(-180);
     const orbY = useSharedValue(18);
     const orbOpacity = useSharedValue(0);
+    const [student, setStudent] = useState<any>({});
+    const [joinedServices, setJoinedServices] = useState<any[]>([]);
+    const [suggestedServices, setSuggestedServices] = useState<any[]>([]);
+    const [suggestedTeachers, setSuggestedTeachers] = useState<any[]>([]);
+    const [myRequests, setMyRequests] = useState<any[]>([]);
+    const [studentSessions, setStudentSessions] = useState<any[]>([]);
+    const [myEvaluations, setMyEvaluations] = useState<any[]>([]);
+    const [somerequests , setSomerequests] = useState<any[]>([]);
+    const [notJoinedServices , setNotJoinedServices] = useState<any[]>([]) ;
+
+    const router = useRouter();
 
     useEffect(() => {
         orbX.value = withRepeat(
@@ -100,12 +118,87 @@ export default function StudentSpace({
         );
     }, [orbX, orbY, orbOpacity]);
 
+    useEffect(() => {
+        const getStudentInfo = async () => {
+            try {
+                const accessToken = await SecureStore.getItemAsync('accessToken');
+                const refreshToken = await SecureStore.getItemAsync('refreshToken');
+                const apiRole = await getStudentOrParentRole();
+
+                const res = await fetch(`${BASE_URL}/${apiRole}/getProfile`, {
+                    method: 'GET',
+                    headers: { 'content-type': 'application/json', authorization: `Bearer ${accessToken}` },
+                });
+                const data = await res.json();
+                if (data.succ) {
+                    setStudent(data.student || {});
+                    setJoinedServices(data.joinedServices || []);
+                    setSuggestedServices(data.suggestedServices || []);
+                    setSuggestedTeachers(data.suggestedTeachers || []);
+                    setMyRequests(data.myRequests || []);
+                    setMyEvaluations(data.myEvaluations || []);
+                    setStudentSessions(data.StudentSessions || []);
+                    setNotJoinedServices(data.notJoinedServices || []);
+                    await SecureStore.setItemAsync('studentProfileData', JSON.stringify(data));
+                } else if (data.error === 'Token expired!') {
+                    // try refresh
+                    const r = await fetch(`${BASE_URL}/${apiRole}/refresh`, {
+                        method: 'POST',
+                        headers: { 'content-type': 'application/json' },
+                        body: JSON.stringify({ refreshToken }),
+                    });
+                    const newData = await r.json();
+                    if (newData.accessToken) {
+                        await SecureStore.setItemAsync('accessToken', newData.accessToken);
+                        const res2 = await fetch(`${BASE_URL}/${apiRole}/getProfile`, {
+                            method: 'GET',
+                            headers: { 'content-type': 'application/json', authorization: `Bearer ${newData.accessToken}` },
+                        });
+                        const data2 = await res2.json();
+                        if (data2.succ) {
+                            setStudent(data2.student || {});
+                            setJoinedServices(data2.joinedServices || []);
+                            setSuggestedServices(data2.suggestedServices || []);
+                            setSuggestedTeachers(data2.suggestedTeachers || []);
+                            setMyRequests(data2.myRequests || []);
+                            setMyEvaluations(data2.myEvaluations || []);
+                            setStudentSessions(data2.StudentSessions || []);
+                            setNotJoinedServices(data2.notJoinedServices || []);
+                            await SecureStore.setItemAsync('studentProfileData', JSON.stringify(data2));
+                        } else {
+                            router.replace('/sign_in');
+                        }
+                    } else {
+                        router.replace('/sign_in');
+                    }
+                } else {
+                    router.replace('/sign_in');
+                }
+            } catch (err) {
+                console.error(err);
+                router.replace('/sign_in');
+            }
+        };
+
+        getStudentInfo();
+    }, []);
+
+    useEffect(() => {
+      if (myRequests.length > 0){
+        setSomerequests(myRequests.slice(0,4)) ;//we just want to show some of the requests in the home page, the rest can be seen in the "my requests" page
+      }
+    },[myRequests]) ; 
+
     const orbStyle = useAnimatedStyle(() => ({
         transform: [{ translateX: orbX.value }, { translateY: orbY.value }],
         opacity: orbOpacity.value,
     }));
 
-  const router = useRouter();
+    const displayName = student?.role === 'parent'
+        ? `${student?.parentf || ''} ${student?.parentl || ''}`.trim()
+        : `${student?.first_name || ''} ${student?.last_name || ''}`.trim();
+    const displayInitial = displayName ? displayName.charAt(0).toUpperCase() : 'U';
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -120,14 +213,14 @@ export default function StudentSpace({
                 </View>
 
         <View style={styles.headerContent}>
-          <View style={styles.userInfo}>
-             <View style={styles.avatarContainer}>
-               <Text style={styles.avatarText}>Y</Text>
-             </View>
-             <View>
-               <Text style={styles.userName}>Student Name</Text>
-             </View>
-          </View>
+                <View style={styles.userInfo}>
+                         <View style={styles.avatarContainer}>
+                             <Text style={styles.avatarText}>{displayInitial}</Text>
+                         </View>
+                         <View>
+                             <Text style={styles.userName}>{displayName || 'Student Name'}</Text>
+                         </View>
+                    </View>
         </View>
         
                 <Animated.View pointerEvents="none" style={[styles.headerOrb, orbStyle]} />
@@ -140,71 +233,110 @@ export default function StudentSpace({
       >
                 {/* Top Filter Menu */}
                 <Animated.View entering={FadeInUp.delay(150).duration(500)}>
-                    <StudentTopFilters activeFilter={activeFilter} onSelect={onSelectFilter} />
+                    <StudentTopFilters
+                        activeFilter={activeFilter}
+                        onSelect={onSelectFilter}
+                        joinedServices={joinedServices}
+                        notJoinedServices={notJoinedServices}
+                    />
                 </Animated.View>
 
         {/* Quick Stats */}
         <View style={styles.statsContainer}>
-          {[
-            { num: '12', label: 'SESSIONS', delay: 200 },
-            { num: '4', label: 'SUBJECTS', delay: 300 },
-            { num: '3', label: 'REQUESTS', delay: 400 },
-          ].map((stat, index) => (
-            <Animated.View key={index} entering={FadeInUp.delay(stat.delay).duration(500)} style={styles.statCard}>
-              <Text style={styles.statNumber}>{stat.num}</Text>
-              <Text style={styles.statLabel}>{stat.label}</Text>
-            </Animated.View>
-          ))}
+                    {[
+                        { num: `${studentSessions?.length ?? 0}`, label: 'SESSIONS', delay: 200 },
+                        { num: `${myEvaluations?.length ?? 0}`, label: 'EVALUATIONS', delay: 300 },
+                        { num: `${myRequests?.length ?? 0}`, label: 'REQUESTS', delay: 400 },
+                    ].map((stat, index) => (
+                        <Animated.View key={index} entering={FadeInUp.delay(stat.delay).duration(500)} style={styles.statCard}>
+                            <Text style={styles.statNumber}>{stat.num}</Text>
+                            <Text style={styles.statLabel}>{stat.label}</Text>
+                        </Animated.View>
+                    ))}
         </View>
 
-        {/* Upcoming Session Promo */}
-        <Animated.View entering={FadeInRight.delay(500).duration(600)} style={styles.promoCard}>
-              <Animated.View pointerEvents="none" style={[styles.promoGlowOrb, orbStyle]} />
-          <View style={styles.promoContent}>
-             <View style={styles.promoTag}>
-                <Ionicons name="time" size={12} color="#1E1B6B" /> {/* Deep Blue */}
-                <Text style={styles.promoTagText}>IN 2 HOURS</Text>
-             </View>
-             <Text style={styles.promoTitle}>Advanced Buffers use</Text>
-             <Text style={styles.promoSubtitle}>with Dr. Amine Ziani · Online</Text>
-             <Text style={styles.promoTime}>Fri 27 Feb · 16:00 - 18:00</Text>
+        {/* Upcoming Sessions */}
+        <Animated.View entering={FadeInRight.delay(500).duration(600)} style={styles.sectionContainer}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Upcoming Session</Text>
+                        
           </View>
-          <TouchableOpacity style={styles.joinButton}>
-                 <Text style={styles.joinButtonText}>View Details</Text>
-                 <Ionicons name="arrow-forward" size={16} color="#1E1B6B" />
-          </TouchableOpacity>
+          
+                    {studentSessions?.length === 0 && (
+            <Text style={{ color: '#999', fontStyle: 'italic', marginLeft: 20 }}>No sessions available yet.</Text>
+          )}
+          
+                    {studentSessions?.length > 0 && (() => {
+                        const session = studentSessions[0];
+
+                        return (
+                            <View key={session?._id || 'upcoming-session'} style={styles.upcomingCard}>
+                                <View style={styles.upcomingHeader}>
+                                    <View style={styles.upcomingBadge}>
+                                        <MaterialIcons name="alarm" size={14} color="#FFD700" />
+                                    </View>
+                                </View>
+                                <Text style={styles.upcomingTitle}>{session?.service?.title}</Text>
+                                <Text style={styles.upcomingSubtitle}>with {session?.done_by?.first_name} {session?.done_by?.last_name}</Text>
+                                <Text style={styles.upcomingSubtitle}>location: {session?.location}</Text>
+                                <View style={styles.upcomingFooter}>
+                                    <View style={styles.dateTimeRow}>
+                                        <Feather name="calendar" size={14} color="#A0A0E0" />
+                                        <Text style={styles.dateTimeText}>{session?.Date}</Text>
+                                        <Feather name="clock" size={14} color="#A0A0E0" style={{ marginLeft: 10 }} />
+                                        <Text style={styles.dateTimeText}>{session?.start_time} - {session?.end_time}</Text>
+                                        <Text style={styles.dateTimeText}>| {session?.status}</Text>
+                                    </View>
+                                </View>
+
+                                <View style={styles.cardDecorationCircle} />
+                            </View>
+                        );
+                    })()}
         </Animated.View>
 
         {/* Tutor Suggestions */}
         {showSuggestions && (
         <Animated.View entering={FadeInUp.delay(600).duration(600)}>
             <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Tutor Suggestions</Text>
-                <TouchableOpacity><Text style={styles.seeAllText}>See all</Text></TouchableOpacity>
+                <Text style={styles.sectionTitle}>Tutor Suggestions-according to your level</Text>
+                                
             </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
-                {TUTOR_SUGGESTIONS.map((tutor, index) => (
-                    <Animated.View key={tutor.id} style={styles.tutorCard}>
-                        <View style={styles.tutorHeader}>
-                            <View style={[styles.tutorAvatar, { backgroundColor: tutor.color }]}>
-                                <Text style={styles.tutorAvatarText}>{tutor.name.charAt(0)}</Text>
-                            </View>
-                            <Text style={styles.tutorName}>{tutor.name}</Text>
-                            <Text style={styles.tutorLevel}>{tutor.level}</Text>
-                            <View style={styles.tutorSubjectPill}>
-                              <Text style={styles.tutorSubjectPillText}>{tutor.subject}</Text>
-                            </View>
-                        </View>
-                        <View style={styles.tutorFooter}>
 
-                     <TouchableOpacity style={styles.tutorButton}  onPress={() => { router.push('/(student_space)/Qoute'); }} >
-                                <Text style={styles.tutorButtonText} >Send Request</Text>
+            {suggestedTeachers?.length === 0 ? (
+              <Text style={{ color: '#999', fontStyle: 'italic', marginLeft: 5 , marginBottom: 20 }}>No suggested teachers available yet.</Text>
+            ) : (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
+                  {suggestedTeachers.map((teacher: any, index: number) => {
+                      const fullName = `${teacher.first_name || ''} ${teacher.last_name || ''}`.trim() || 'Teacher';
+                      const initials = fullName.split(' ').filter(Boolean).slice(0, 1).map((part: string) => part.charAt(0).toUpperCase()).join('') || 'T';
+                      const subjects = Array.isArray(teacher.subject) ? teacher.subject : [];
+                      const levels = Array.isArray(teacher.school_levels_taught) ? teacher.school_levels_taught : [];
+                      const displaySubject = subjects[0] || 'Tutor';
+                      const displayLevel = levels[0] || 'All levels';
+                      const colors = ['#149A8B', '#FDBB2D', '#EF4444', '#6366F1', '#10B981'];
 
-                            </TouchableOpacity>
-                        </View>
-                    </Animated.View>
-                ))}
-            </ScrollView>
+                      return (
+                          <Animated.View key={teacher._id || index} style={styles.tutorCard}>
+                              <View style={styles.tutorHeader}>
+                                  <View style={[styles.tutorAvatar, { backgroundColor: colors[index % colors.length] }]}>
+                                      <Text style={styles.tutorAvatarText}>{initials}</Text>
+                                  </View>
+                                  <Text style={styles.tutorName}>{fullName}</Text>
+                                  <Text style={styles.tutorLevel}>{displayLevel}</Text>
+                                  <View style={styles.tutorSubjectPill}>
+                                    <Text style={styles.tutorSubjectPillText}>{displaySubject}</Text>
+                                  </View>
+                                  <Text style={styles.tutorLevel}>{teacher.rating ? `${teacher.rating}/5 rating` : 'No rating yet'}</Text>
+                              </View>
+                              <View style={styles.tutorFooter}>
+                                
+                              </View>
+                          </Animated.View>
+                      );
+                  })}
+              </ScrollView>
+            )}
         </Animated.View>
         )}
 
@@ -212,69 +344,89 @@ export default function StudentSpace({
         {showServices && (
         <Animated.View entering={FadeInUp.delay(700).duration(600)}>
             <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Available Services</Text>
-                <TouchableOpacity><Text style={styles.seeAllText}>Browse all</Text></TouchableOpacity>
+                <Text style={styles.sectionTitle}>Suggested Services-according to your level</Text>
+                
             </View>
-            <View>
-                {AVAILABLE_SERVICES.map((service) => (
-                    <View key={service.id} style={styles.serviceCard}>
-                                            <View style={styles.serviceTopRow}>
-                                                <View style={[styles.serviceIcon, { backgroundColor: service.color }]}>
-                                                    <Text style={styles.serviceAvatarText}>S</Text>
-                                                </View>
-                                                <View style={styles.serviceInfo}>
-                                                    <Text style={styles.serviceName}>{service.name}</Text>
-                                                    <Text style={styles.serviceSub}>{service.tutor}</Text>
-                                                </View>
-                                                <View style={styles.servicePriceWrap}>
-                                                    <Text style={styles.servicePrice}>{service.price}</Text>
-                                                    <Text style={styles.servicePriceSuffix}>{service.priceSuffix}</Text>
-                                                </View>
-                                            </View>
-                                            <View style={styles.serviceTagsRow}>
-                                                <View style={styles.serviceTag}>
-                                                    <Ionicons name="time-outline" size={13} color="#98A2B3" />
-                                                    <Text style={styles.serviceTagText}>{service.duration}</Text>
-                                                </View>
-                                                <View style={styles.serviceTag}>
-                                                    <Ionicons name="wifi-outline" size={13} color="#98A2B3" />
-                                                    <Text style={styles.serviceTagText}>{service.mode}</Text>
-                                                </View>
-                                                <View style={styles.serviceTag}>
-                                                    <Ionicons name="person-outline" size={13} color="#98A2B3" />
-                                                    <Text style={styles.serviceTagText}>{service.type}</Text>
-                                                </View>
-                                            </View>
-                                            <TouchableOpacity style={styles.serviceActionButton}>
-                                                <Text style={styles.serviceActionButtonText}>Request This Service</Text>
-                                            </TouchableOpacity>
+
+            {suggestedServices?.length === 0 ? (
+              <Text style={{ color: '#999', fontStyle: 'italic', marginLeft: 5, marginBottom: 20 }}>No suggested services available yet.</Text>
+            ) : (
+              <View>
+                {suggestedServices.map((service: any) => {
+                  const teacherName = `${service.done_by?.first_name || ''} ${service.done_by?.last_name || ''}`.trim() || 'Teacher';
+
+                  return (
+                    <View key={service._id} style={styles.serviceCard}>
+                      <View style={styles.serviceTopRow}>
+                        <View style={styles.serviceInfo}>
+                          <Text style={styles.serviceName}>{service.title}</Text>
+                          <Text style={styles.serviceSub}>{teacherName} • {service.target_audiance}</Text>
+                        </View>
+                        <View style={styles.servicePriceWrap}>
+                          <Text style={styles.servicePrice}>{service.cost} DZD</Text>
+                          <Text style={styles.servicePriceSuffix}>/session</Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.serviceTagsRow}>
+                        <View style={styles.serviceTag}>
+                          <Feather name="video" size={12} color="#666" />
+                          <Text style={styles.serviceTagText}>{service.mode}</Text>
+                        </View>
+                        <View style={styles.serviceTag}>
+                          <Feather name="user" size={12} color="#666" />
+                          <Text style={styles.serviceTagText}>{service.type}</Text>
+                        </View>
+                      </View>
                     </View>
-                ))}
-            </View>
+                  );
+                })}
+              </View>
+            )}
         </Animated.View>
         )}
 
-        {/* My Requests (Preview) */}
-        {showRequests && (
-        <Animated.View entering={FadeInUp.delay(900).duration(600)}>
+        {/* My Requests */}
+        {/*{somerequests.length === 0 && (
+          <View style={styles.sectionContainer}>
             <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>My Requests</Text>
-                <TouchableOpacity><Text style={styles.seeAllText}>See all</Text></TouchableOpacity>
+              <Text style={styles.sectionTitle}>My Requests</Text>
             </View>
-            <View style={styles.requestPreview}>
-                <View style={styles.requestPreviewHeader}>
-                    <Ionicons name="calendar" size={20} color="#666" />
-                    <View style={{marginLeft: 10, flex: 1}}>
-                        <Text style={styles.reqPrevTitle}>Advanced Mathematics</Text>
-                        <Text style={styles.reqPrevSub}>M. Rahmani · 800 DZD</Text>
-                    </View>
-                    <View style={[styles.statusBadge, { backgroundColor: '#E8F5E9' }]}>
-                        <Text style={[styles.statusText, { color: '#2E7D32' }]}>Accepted</Text>
-                    </View>
-                </View>
+            <Text style={{color: '#999', fontStyle: 'italic'}}>No requests yet.</Text>
+          </View>
+        )}
+        {somerequests.length > 0 && (
+          <Animated.View entering={FadeInDown.delay(400).springify()} style={styles.sectionContainer}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>My Requests</Text>
+              <TouchableOpacity><Text style={styles.seeAllText}>See all</Text></TouchableOpacity>
             </View>
-        </Animated.View>
-                )}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -20, paddingHorizontal: 20 }}>
+              {somerequests.map((req, idx) => (
+                req && req.requester ? (
+                  <View key={req._id} style={styles.requestCard}>
+                    <View style={[styles.requestAvatar, { backgroundColor: "green" }]}>
+                      <Text style={styles.requestAvatarText}>{req.requester.first_name.charAt(0)}</Text>
+                    </View>
+                    <Text style={styles.reqName}>{req.requester.first_name} {req.requester.last_name}</Text>
+                    <Text style={styles.reqSchool}>{req.niveau}</Text>
+                    
+                    <View style={styles.reqTags}>
+                      <View style={styles.reqTag}>
+                        <Text style={styles.reqTagText}>{req.matiere}</Text>
+                      </View>
+                      <View style={[styles.reqTag, {marginLeft: 5, backgroundColor: req.mode === 'Online' ? '#E3F2FD' : '#FFF3E0'}]}>
+                        <Text style={[styles.reqTagText, {color: req.mode === 'Online' ? '#2196F3' : '#FF9800'}]}>{req.mode}</Text>
+                      </View>
+                    </View>
+
+                    <Text style={styles.reqPrice}>{req.price}<Text style={styles.reqPriceUnit}>/session</Text></Text>
+                  </View>
+                ) : null
+              ))}
+            </ScrollView>
+          </Animated.View>
+        )}*/}
 
                 <View style={{height: 24}} />
       </ScrollView>
@@ -289,77 +441,130 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: '#1E1B6B', // Deep Blue (Logo Primary)
-        borderBottomLeftRadius: 30,
-        borderBottomRightRadius: 30,
-        paddingTop: Platform.OS === 'android' ? 50 : 60,
-        paddingBottom: 20,
-        paddingHorizontal: 16,
-        minHeight: 120,
-    shadowColor: '#1E1B6B',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 15,
-    elevation: 8,
-    zIndex: 10,
-        overflow: 'hidden',
-        position: 'relative',
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    paddingTop: Platform.OS === 'android' ? 30 : 60,
+    paddingBottom: 20,
+    paddingHorizontal: 16,
+    minHeight: 120,
   },
-    topRightCurveContainer: {
-        position: 'absolute',
-        top: 0,
-        right: 0,
-        width: 118,
-        height: 62,
-        alignItems: 'flex-end',
-        justifyContent: 'center',
-        zIndex: 2,
+    sectionContainer: {
+            marginBottom: 25,
     },
-    topRightCurve: {
-        position: 'absolute',
-        top: 0,
-        right: 0,
-        width: '100%',
-        height: '100%',
-        backgroundColor: '#FFFFFF',
-        borderBottomLeftRadius: 48,
-    },
-    headerLogo: {
-        width: 118,
-        height: 70,
-        marginRight: 6,
-        marginTop: 0,
-        zIndex: 3,
-    },
+  topRightCurveContainer: {
+      position: 'absolute',
+      top: 0,
+      right: 0,
+      width: 140,
+      height: 90,
+      borderBottomLeftRadius: 70,
+      backgroundColor: '#FFFFFF',
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingBottom: 15,
+      paddingLeft: 15,
+      zIndex: 0,
+  },
+  topRightCurve: {
+      position: 'absolute',
+      top: 0,
+      right: 0,
+      width: 140,
+      height: 90,
+      borderBottomLeftRadius: 70,
+      backgroundColor: '#FFFFFF',
+      opacity: 0.98,
+  },
+  headerLogo: {
+      width: 80,
+      height: 35,
+      zIndex: 1,
+  },
   headerContent: {
-    flexDirection: 'row',
-        justifyContent: 'flex-start',
-    alignItems: 'center',
-        paddingHorizontal: 4,
-        marginTop: -8,
+      paddingTop: 40,
+      zIndex: 1,
   },
   userInfo: {
       flexDirection: 'row',
       alignItems: 'center',
+      marginBottom: 15,
+      marginTop: 10,
   },
-    avatarContainer: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        backgroundColor: '#FFD700',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 10,
-    },
-    avatarText: {
-        fontWeight: '800',
-        color: '#1E1B6B',
-        fontSize: 16,
-    },
-    userName: {
-        color: '#fff',
-        fontWeight: '800',
-        fontSize: 16,
-    },
+  avatarContainer: {
+      width: 50,
+      height: 50,
+      borderRadius: 25,
+      backgroundColor: '#FFD700',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 12,
+      position: 'relative',
+  },
+  avatarText: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: '#1A1A5E',
+  },
+  upcomingCard: {
+      backgroundColor: COLORS.primary,
+      borderRadius: 20,
+      padding: 20,
+      position: 'relative',
+      overflow: 'hidden',
+      marginBottom: 12,
+  },
+  cardDecorationCircle: {
+      position: 'absolute',
+      top: -50,
+      right: -50,
+      width: 200,
+      height: 200,
+      borderRadius: 100,
+      backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  upcomingHeader: {
+      flexDirection: 'row',
+      marginBottom: 15,
+  },
+  upcomingBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: 'rgba(255,255,255,0.15)',
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: 10,
+  },
+  upcomingTitle: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: '#FFFFFF',
+      marginBottom: 5,
+  },
+  upcomingSubtitle: {
+      fontSize: 14,
+      color: 'rgba(255,255,255,0.7)',
+      marginBottom: 20,
+  },
+  upcomingFooter: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+  },
+  dateTimeRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+  },
+  dateTimeText: {
+      color: '#A0A0E0',
+      fontSize: 12,
+      marginLeft: 5,
+  },
+  userName: {
+      color: '#fff',
+      fontWeight: '800',
+      fontSize: 16,
+  },
   content: {
     flex: 1,
   },
@@ -762,6 +967,122 @@ const styles = StyleSheet.create({
   statusText: {
       fontSize: 11,
       fontWeight: '700',
-    }
-
+    },
+  sessionCard: {
+      backgroundColor: '#fff',
+      borderRadius: 16,
+      padding: 16,
+      marginBottom: 12,
+      marginHorizontal: 16,
+      shadowColor: '#000',
+      shadowOpacity: 0.05,
+      shadowOffset: { width: 0, height: 2 },
+      elevation: 2,
+  },
+  sessionHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: 12,
+  },
+  sessionTitle: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: '#1E293B',
+      marginBottom: 4,
+  },
+  sessionSubtitle: {
+      fontSize: 13,
+      color: '#64748B',
+  },
+  sessionStatus: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: '#A0A0E0',
+      backgroundColor: '#F0EFFF',
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 6,
+  },
+  sessionDetails: {
+      borderTopWidth: 1,
+      borderTopColor: '#E2E8F0',
+      paddingTop: 12,
+  },
+  detailRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 8,
+  },
+  detailText: {
+      fontSize: 12,
+      color: '#475569',
+      marginLeft: 8,
+  },
+  requestCard: {
+      backgroundColor: '#FFFFFF',
+      width: 160,
+      padding: 15,
+      borderRadius: 20,
+      marginRight: 15,
+      alignItems: 'center',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.05,
+      shadowRadius: 10,
+      elevation: 2,
+  },
+  requestAvatar: {
+      width: 50,
+      height: 50,
+      borderRadius: 25,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 10,
+  },
+  requestAvatarText: {
+      color: '#FFFFFF',
+      fontSize: 22,
+      fontWeight: 'bold',
+  },
+  reqName: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: '#1E293B',
+      marginBottom: 2,
+      textAlign: 'center',
+  },
+  reqSchool: {
+      fontSize: 12,
+      color: '#999',
+      marginBottom: 10,
+      textAlign: 'center',
+  },
+  reqTags: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      marginBottom: 10,
+  },
+  reqTag: {
+      backgroundColor: '#F5F5F5',
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 8,
+  },
+  reqTagText: {
+      fontSize: 10,
+      fontWeight: '600',
+      color: '#666',
+  },
+  reqPrice: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: '#1E293B',
+      marginBottom: 15,
+  },
+  reqPriceUnit: {
+      fontSize: 12,
+      fontWeight: 'normal',
+      color: '#999',
+  },
 });

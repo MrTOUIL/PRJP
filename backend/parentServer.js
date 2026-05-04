@@ -1,8 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const students = require('./schemas/Student');
+const parents = require('./schemas/parent');
 const { protect, authorize } = require('./middleware');
-const Student = require('./schemas/Student');
 const messages = require('./schemas/message') ;
 const { body, validationResult } = require('express-validator');
 
@@ -10,26 +9,27 @@ const { body, validationResult } = require('express-validator');
 
 
 
+
 // get  profile (student space) 
 
-router.get('/getProfile', protect, authorize('student'), async (req, res) => {
+router.get('/getProfile', protect, authorize('parent'), async (req, res) => {
     try {
         const studentId = req.user.id;
-        const teacherStudentsModel = require('./schemas/teacherStudent');
-        const request_students = require('./schemas/request_student');
-        const evaluations = require('./schemas/evaluation_student');
+        const teacherStudentsModel = require('./schemas/teacherParent');
+        const request_students = require('./schemas/request_parent');
+        const evaluations = require('./schemas/evaluation_parents');
         const teachersModel = require('./schemas/teacher');
         const servicesModel = require('./schemas/service');
 
         // basic student info
-        const studentData = await students.findById(studentId);
+        const studentData = await parents.findById(studentId);
         if (!studentData) {
             return res.status(404).json({ error: "Student not found!" });
         }
 
         // joined services
         const joinedServices = await teacherStudentsModel
-            .find({ student: studentId })
+            .find({ parent: studentId })
             .populate('teacher', '-password')
             .populate('service');
 
@@ -144,11 +144,11 @@ router.post('/refresh', async (req, res) => {
 
 
 // GET /student/suggestions
-router.get('/suggestions', protect, authorize('student'), async (req, res) => {
+router.get('/suggestions', protect, authorize('parent'), async (req, res) => {
     try {
         const teachersModel = require('./schemas/teacher');
         
-        const studentData = await students.findById(req.user.id);
+        const studentData = await parents.findById(req.user.id);
 
         const matchingTeachers = await teachersModel
             .find({ school_levels_taught: { $in: [studentData.academic_level] } })
@@ -183,7 +183,7 @@ router.get('/suggestions', protect, authorize('student'), async (req, res) => {
 
 // GET /student/searchTeachers  
 // studnet search for teacher                                                         
-router.post('/searchTeachers', protect , authorize('student'),async (req, res) => {
+router.post('/searchTeachers', protect , authorize('parent'),async (req, res) => {
     try {
         const { query } = req.body ; 
         //search by location only (postal_adress)!
@@ -193,7 +193,6 @@ router.post('/searchTeachers', protect , authorize('student'),async (req, res) =
         if (!q) {
             results = await teachers.find(); // if no query, return them all
         } else {
-            // search by location, subject, or school levels
             const regex = { $regex: q, $options: 'i' };
             results = await teachers.find({
                 $or: [
@@ -212,10 +211,10 @@ router.post('/searchTeachers', protect , authorize('student'),async (req, res) =
 
 // GET /student/getTeacher/:teacherId 
 // student check profile of teachers 
-router.get('/getTeacher/:teacherId', protect, authorize('student'), async (req, res) => {
+router.get('/getTeacher/:teacherId', protect, authorize('parent'), async (req, res) => {
     try {
         const teachers = require('./schemas/teacher');
-        //const studentevaluations = require('./schemas/evaluation_student');
+        //const studentevaluations = require('./schemas/evaluation_parents');
         //const parentEvaluations = require('./schemas/evaluation_parents');
         
 
@@ -238,11 +237,11 @@ router.get('/getTeacher/:teacherId', protect, authorize('student'), async (req, 
 
 /*
 // GET /student/suggestions
-router.get('/suggestions', protect, authorize('student'), async (req, res) => {
+router.get('/suggestions', protect, authorize('parent'), async (req, res) => {
     try {
         const teachersModel = require('./schemas/teacher');
         
-        const studentData = await students.findById(req.user.id);
+        const studentData = await parents.findById(req.user.id);
 
         const matchingTeachers = await teachersModel
             .find({ school_levels_taught: { $in: [studentData.academic_level] } })
@@ -276,9 +275,9 @@ router.get('/suggestions', protect, authorize('student'), async (req, res) => {
 */
 
 // POST /student/evaluate
-router.post('/evaluate', protect, authorize('student'), async (req, res) => {
+router.post('/evaluate', protect, authorize('parent'), async (req, res) => {
     try {
-        const evaluations = require('./schemas/evaluation_student');
+        const evaluations = require('./schemas/evaluation_parents');
         const teachers = require('./schemas/teacher');
 
         const { teacherId, note, comment } = req.body;
@@ -318,9 +317,9 @@ router.post('/evaluate', protect, authorize('student'), async (req, res) => {
 
 
 // POST /student/sendRequest
-router.post('/sendRequest', protect, authorize('student'), async (req, res) => {
+router.post('/sendRequest', protect, authorize('parent'), async (req, res) => {
     try {
-        const request_students = require('./schemas/request_student');
+        const request_students = require('./schemas/request_parent');
         const { teacherId, matiere, niveau, objectif, frequence, duree, price, mode } = req.body;
 
         await request_students.create({
@@ -345,9 +344,9 @@ router.post('/sendRequest', protect, authorize('student'), async (req, res) => {
 });
 
 // GET /student/myRequests
-router.get('/myRequests', protect, authorize('student'), async (req, res) => {
+router.get('/myRequests', protect, authorize('parent'), async (req, res) => {
     try {
-        const request_students = require('./schemas/request_student');
+        const request_students = require('./schemas/request_parent');
         
         const myRequests = await request_students
             .find({ requester: req.user.id })
@@ -363,11 +362,11 @@ router.get('/myRequests', protect, authorize('student'), async (req, res) => {
 
 
 // PUT /student/cancelRequest/:id
-router.put('/cancelRequest/:id', protect, authorize('student'), async (req, res) => {
+router.put('/cancelRequest/:id', protect, authorize('parent'), async (req, res) => {
     try {
-        const request_students = require('./schemas/request_student');
+        const request_students = require('./schemas/request_parent');
         
-        const request = await request_students.findById(req.params.id);
+        const request = await request_parents.findById(req.params.id);
         
         if (!request) {
             return res.status(404).json({ error: "Request not found!" });
@@ -389,11 +388,11 @@ router.put('/cancelRequest/:id', protect, authorize('student'), async (req, res)
 });
 
 // DELETE /student/deleteRequest/:id
-router.delete('/deleteRequest/:id', protect, authorize('student'), async (req, res) => {
+router.delete('/deleteRequest/:id', protect, authorize('parent'), async (req, res) => {
     try {
-        const request_students = require('./schemas/request_student');
+        const request_students = require('./schemas/request_parent');
         
-        const request = await request_students.findById(req.params.id);
+        const request = await request_parents.findById(req.params.id);
         
         if (!request) {
             return res.status(404).json({ error: "Request not found!" });
@@ -403,7 +402,7 @@ router.delete('/deleteRequest/:id', protect, authorize('student'), async (req, r
             return res.json({ error: "Only rejected or cancelled requests can be deleted!" });
         }
 
-        await request_students.findByIdAndDelete(req.params.id);
+        await request_parents.findByIdAndDelete(req.params.id);
 
         res.json({ succ: "Request deleted!" });
 
@@ -418,11 +417,11 @@ router.delete('/deleteRequest/:id', protect, authorize('student'), async (req, r
 
 
 // PUT /student/editProfile
-router.put('/editProfile', protect, authorize('student'), async (req, res) => {
+router.put('/editProfile', protect, authorize('parent'), async (req, res) => {
     try {
         const { first_name, last_name , postal_adress, academic_level } = req.body;
         
-        const student = await students.findById(req.user.id);
+        const student = await parents.findById(req.user.id);
         if (!student) return res.status(404).json({ error: "Student not found!" });
 
         if (first_name) student.first_name = first_name;
@@ -447,13 +446,13 @@ router.put('/editProfile', protect, authorize('student'), async (req, res) => {
 
 // GET /student/allServices ( but not the joined ones )
 // GET /student/allServices (excludes joined ones)
-router.get('/allServices', protect, authorize('student'), async (req, res) => {
+router.get('/allServices', protect, authorize('parent'), async (req, res) => {
     try {
         const servicesModel = require('./schemas/service');
-        const teacherStudents = require('./schemas/teacherStudent');
+        const teacherStudents = require('./schemas/teacherParent');
 
         // get all services student already joined
-        const joined = await teacherStudents.find({ student: req.user.id });
+        const joined = await teacherStudents.find({ parent: req.user.id });
         const joinedServiceIds = joined.map(j => String(j.service));
 
         // return all services EXCEPT joined ones
@@ -471,12 +470,12 @@ router.get('/allServices', protect, authorize('student'), async (req, res) => {
 
 
 // GET /student/joinedServices
-router.get('/joinedServices', protect, authorize('student'), async (req, res) => {
+router.get('/joinedServices', protect, authorize('parent'), async (req, res) => {
     try {
-        const teacherStudents = require('./schemas/teacherStudent');
+        const teacherStudents = require('./schemas/teacherParent');
         
         const joined = await teacherStudents
-            .find({ student: req.user.id })
+            .find({ parent: req.user.id })
             .populate('teacher', '-password')
             .populate('service');
 
@@ -490,7 +489,7 @@ router.get('/joinedServices', protect, authorize('student'), async (req, res) =>
 
 
 // GET /student/joinedServices/:serviceId/sessions
-router.get('/joinedServices/:serviceId/sessions', protect, authorize('student'), async (req, res) => {
+router.get('/joinedServices/:serviceId/sessions', protect, authorize('parent'), async (req, res) => {
     try {
         const sessions = require('./schemas/session');
         
@@ -507,7 +506,7 @@ router.get('/joinedServices/:serviceId/sessions', protect, authorize('student'),
 }); 
 
 // GET /student/joinedServices/:serviceId/sessions/:sessionId/documents
-router.get('/joinedServices/:serviceId/sessions/documents', protect, authorize('student'), async (req, res) => {
+router.get('/joinedServices/:serviceId/sessions/documents', protect, authorize('parent'), async (req, res) => {
     try {
         const documents = require('./schemas/document');
         const sessions = require('./schemas/session');
@@ -526,10 +525,12 @@ router.get('/joinedServices/:serviceId/sessions/documents', protect, authorize('
     }
 });
 
-router.get("/getmessages",protect,authorize("student"),async(req,res) => {
+router.get("/getmessages",protect,authorize("parent"),async(req,res) => {
    try{
-       const studentId = req.user.id ; 
-       const msgsRaw = (await messages.find({ receiver: studentId }).lean()).reverse() ; //to show the latest message first
+       const parentId = req.user.id ; 
+    const msgsRaw = (await messages.find({ receiver: parentId }).lean()).reverse(); //to show the latest message first
+
+       // Now we will populate the sender field manually to include the sender's name and role
 
        const Teachers = require('./schemas/teacher');
        const Parents = require('./schemas/parent');
@@ -550,9 +551,35 @@ router.get("/getmessages",protect,authorize("student"),async(req,res) => {
         console.error(e) ;
         res.json({error:"error"}) ; 
    }
-}) ;
+}) ; 
 
-router.post("/sendmessage",protect,authorize("student"),
+/*router.get("/getmessages",protect,authorize("student"),async(req,res) => {
+   try{
+       const parentId = req.user.id ; 
+       const msgsRaw = await messages.find({ receiver: studentId }).lean();
+
+       const Teachers = require('./schemas/teacher');
+       const Parents = require('./schemas/parent');
+       const Students = require('./schemas/Student');
+
+       const populated = await Promise.all(msgsRaw.map(async (m) => {
+           let senderObj = null;
+           if (m && m.sender) {
+               senderObj = await Teachers.findById(m.sender).select('-password').lean();
+               if (!senderObj) senderObj = await Parents.findById(m.sender).select('-password').lean();
+               if (!senderObj) senderObj = await Students.findById(m.sender).select('-password').lean();
+           }
+           return { ...m, sender: senderObj || m.sender };
+       }));
+
+       res.json({ succ: "succ", messages: populated });
+   }catch(e){
+        console.error(e) ;
+        res.json({error:"error"}) ; 
+   }
+}) ;*/
+
+router.post("/sendmessage",protect,authorize("parent"),
 body("msg").isString().notEmpty().isLength({ max: 100 })
 ,async(req,res) => {
    const errors = validationResult(req);
@@ -573,30 +600,31 @@ body("msg").isString().notEmpty().isLength({ max: 100 })
         console.error(e) ;
         res.json({error:"error"}) ; 
    }
-}) ;
+}) ; 
 
-//this for replying that is all 
-router.post("/sendmessage2",protect,authorize("student"),
+
+// Reply route to teachers (parent -> teacher) using `reciever` field like student sendmessage2
+router.post("/sendmessage2",protect,authorize("parent"),
 body("msg").isString().notEmpty().isLength({ max: 100 })
 ,async(req,res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ error: errors.array() });
-    }
+   const errors = validationResult(req);
+   if (!errors.isEmpty()) {
+    return res.status(400).json({ error: errors.array() });
+   }
 
-    try{
-        const { msg , reciever } = req.body ;
-        const senderId = req.user.id ;
-        // If you intend to send to a teacher, ensure the teacher exists
-        const teachers = require('./schemas/teacher');
-        const receiverr = await teachers.findById(reciever);
-        if (!receiverr) return res.status(404).json({ error: "Recipient teacher not found" });
-        await messages.create({ sender: senderId, receiver: reciever, msg, actors: "teachers" });
-        res.json({ succ: "Message sent to teacher!" });
-    }catch(e){
-        console.error(e) ;
-        res.json({error:"error"}) ;
-    }
+   try{
+       const { msg , reciever } = req.body ;
+       const senderId = req.user.id ;
+       // Ensure recipient teacher exists
+       const teachers = require('./schemas/teacher');
+       const receiverr = await teachers.findById(reciever);
+       if (!receiverr) return res.status(404).json({ error: "Recipient teacher not found" });
+       await messages.create({ sender: senderId, receiver: reciever, msg, actors: "teachers" });
+       res.json({ succ: "Message sent to teacher!" });
+   }catch(e){
+       console.error(e) ;
+       res.json({error:"error"}) ;
+   }
 }) ; 
 
 

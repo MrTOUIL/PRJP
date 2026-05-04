@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BASE_URL } from '../../constants/api';
 import {
     Image,
@@ -134,13 +134,15 @@ export default function StudentRegister() {
     const [showWilayaList, setShowWilayaList] = useState(false);
     const spinnerRotate = useSharedValue(0);
 
-    spinnerRotate.value = withRepeat(withTiming(360, { duration: 1000 }), -1, false);
+    useEffect(() => {
+        spinnerRotate.value = withRepeat(withTiming(360, { duration: 1000 }), -1, false);
+    }, []);
 
     const animatedSpinnerStyle = useAnimatedStyle(() => ({
         transform: [{ rotate: `${spinnerRotate.value}deg` }],
     }));
 
-    const levels = ['primary', 'middle', 'high', 'college'];
+    const levels = ['Primary', 'Middle', 'High School', 'University'];
 
     const handleRegister = ():void => {
         setMsg("") ; 

@@ -29,6 +29,49 @@ const transporter = nodemailer.createTransport({
   }
 });
 
+function escapeHtml(str) {
+  if (str == null) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function buildNotificationHtml({ recipientName = '', mainHtml = '' }) {
+  const safeName = escapeHtml(recipientName);
+  return `<!doctype html>
+  <html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+  </head>
+  <body style="margin:0;padding:0;background:#f3f4f6;">
+    <div style="max-width:680px;margin:0 auto;padding:32px 16px;font-family:Arial,Helvetica,sans-serif;color:#111827;">
+      <div style="background:#ffffff;border:1px solid #e5e7eb;border-radius:18px;overflow:hidden;box-shadow:0 10px 30px rgba(15,23,42,0.08);">
+        <div style="background:linear-gradient(135deg,#0f172a 0%,#1f2937 55%,#334155 100%);padding:28px 30px;text-align:center;">
+          
+          <div style="color:#e2e8f0;font-size:12px;letter-spacing:2px;text-transform:uppercase;">Administration</div>
+          <div style="color:#ffffff;font-size:26px;font-weight:700;margin-top:8px;">Notification officielle</div>
+        </div>
+        <div style="padding:32px 30px;line-height:1.8;font-size:15px;">
+          <p style="margin:0 0 14px 0;">Bonjour ${safeName},</p>
+          ${mainHtml}
+          <p style="margin:0 0 6px 0;">Cordialement,</p>
+          <p style="margin:0;color:#6b7280;">L'équipe ALEMNI ONLINE</p>
+        </div>
+        <div style="padding:18px 30px 28px 30px;border-top:1px solid #e5e7eb;color:#6b7280;font-size:12px;line-height:1.6;">
+          <div style="font-weight:700;color:#111827;margin-bottom:4px;">ALEMNI ONLINE</div>
+          <div>Email automatique envoyé par le système.</div>
+        </div>
+      </div>
+    </div>
+  </body>
+  </html>`;
+} 
+
+
 function generateCode() {
   return Math.floor(100000 + Math.random() * 900000);
 }
@@ -78,14 +121,21 @@ router.post('/register_student',
         if (user2 || user3 || user4){
           return res.json({message:"account with same info exists!"}); 
         }
-        //after the info are verified , we sent the email
-        const code = generateCode() ;
-        const info = await transporter.sendMail({
-           from: `<${process.env.MAIL_USER}>`,
-           to: email,
-           subject: "Verify your mail!",
-           html: `<p>This is the code of your account to verify with : ${code} </p>`,
-        }) ;
+          //after the info are verified , we sent the email
+          const code = generateCode();
+          const mainHtml = `<p style="margin:0 0 18px 0;">Nous vous contactons concernant la vérification de votre compte.</p>
+            <div style="background:#f8fafc;border-left:4px solid #2563eb;border-radius:12px;padding:18px 20px;margin:18px 0 20px 0;color:#1f2937;">
+              <div style="font-size:12px;letter-spacing:1px;text-transform:uppercase;color:#64748b;font-weight:700;margin-bottom:8px;">Code de vérification</div>
+              <div style="font-size:20px;font-weight:700;">${escapeHtml(code)}</div>
+            </div>
+            <p style="margin:0 0 6px 0;">Ce code vous permettra de terminer l'inscription.</p>`;
+
+          const info = await transporter.sendMail({
+            from: `<${process.env.MAIL_USER}>`,
+            to: email,
+            subject: "Verify your mail!",
+            html: buildNotificationHtml({ recipientName: `${first_name || ''} ${last_name || ''}`, mainHtml }),
+          });
         //now we store in pending !
         const hashedpassword = await bcrypt.hash(password,14) ; 
         const m = await student_pendings.findOne({ $or: [{email}, {phone}] });
@@ -147,14 +197,21 @@ router.post('/register_parent',
         if (user2 || user3 || user4){
           return res.json({message:"account with same info exists!"}); 
         }
-        //after the info are verified , we sent the email
-        const code = generateCode() ;
-        const info = await transporter.sendMail({
-           from: `<${process.env.MAIL_USER}>`,
-           to: email,
-           subject: "Verify your mail!",
-           html: `<p>This is the code of your account to verify with : ${code} </p>`,
-        }) ;
+          //after the info are verified , we sent the email
+          const code = generateCode();
+          const mainHtml = `<p style="margin:0 0 18px 0;">Nous vous contactons concernant la vérification de votre compte.</p>
+            <div style="background:#f8fafc;border-left:4px solid #2563eb;border-radius:12px;padding:18px 20px;margin:18px 0 20px 0;color:#1f2937;">
+              <div style="font-size:12px;letter-spacing:1px;text-transform:uppercase;color:#64748b;font-weight:700;margin-bottom:8px;">Code de vérification</div>
+              <div style="font-size:20px;font-weight:700;">${escapeHtml(code)}</div>
+            </div>
+            <p style="margin:0 0 6px 0;">Ce code vous permettra de terminer l'inscription.</p>`;
+
+          const info = await transporter.sendMail({
+            from: `<${process.env.MAIL_USER}>`,
+            to: email,
+            subject: "Verify your mail!",
+            html: buildNotificationHtml({ recipientName: `${first_name || ''} ${last_name || ''}`, mainHtml }),
+          });
         //now we store in pending !
         const hashedpassword = await bcrypt.hash(password,14) ; 
         const m = await parent_pendings.findOne({ $or: [{email}, {phone}] });
@@ -217,13 +274,20 @@ router.post('/register_teacher',
         if (user2 || user3 || user4){
           return res.json({message:"account with same info exists!"}); 
         }
-        const code = generateCode();
-        await transporter.sendMail({
-           from: `<${process.env.MAIL_USER}>`,
-           to: email,
-           subject: "Verify your mail!",
-           html: `<p>This is the code of your account to verify with : ${code} </p>`,
-        });
+          const code = generateCode();
+          const mainHtml = `<p style="margin:0 0 18px 0;">Nous vous contactons concernant la vérification de votre compte.</p>
+            <div style="background:#f8fafc;border-left:4px solid #2563eb;border-radius:12px;padding:18px 20px;margin:18px 0 20px 0;color:#1f2937;">
+              <div style="font-size:12px;letter-spacing:1px;text-transform:uppercase;color:#64748b;font-weight:700;margin-bottom:8px;">Code de vérification</div>
+              <div style="font-size:20px;font-weight:700;">${escapeHtml(code)}</div>
+            </div>
+            <p style="margin:0 0 6px 0;">Ce code vous permettra de terminer l'inscription.</p>`;
+
+          await transporter.sendMail({
+            from: `<${process.env.MAIL_USER}>`,
+            to: email,
+            subject: "Verify your mail!",
+            html: buildNotificationHtml({ recipientName: `${first_name || ''} ${last_name || ''}`, mainHtml }),
+          });
 
         const hashedpassword = await bcrypt.hash(password,14);
         const m = await teacher_pendings.findOne({ $or: [{email}, {phone}] });
@@ -262,12 +326,19 @@ router.put('/resend_code',
         if (!user){
           return res.json({error:"invalid mail!"}) ;
         }
-        const code = generateCode() ;
+        const code = generateCode();
+        const mainHtml = `<p style="margin:0 0 18px 0;">Nous vous contactons concernant la vérification de votre compte.</p>
+            <div style="background:#f8fafc;border-left:4px solid #2563eb;border-radius:12px;padding:18px 20px;margin:18px 0 20px 0;color:#1f2937;">
+              <div style="font-size:12px;letter-spacing:1px;text-transform:uppercase;color:#64748b;font-weight:700;margin-bottom:8px;">Code de vérification</div>
+              <div style="font-size:20px;font-weight:700;">${escapeHtml(code)}</div>
+            </div>
+            <p style="margin:0 0 6px 0;">Ce code vous permettra de terminer l'inscription.</p>`;
+
         const info = await transporter.sendMail({
          from: `<${process.env.MAIL_USER}>`,
          to: email,
          subject: "Verify your mail!",
-         html: `<p>This is the code of your account to verify with : ${code} </p>`,
+         html: buildNotificationHtml({ recipientName: (user && (user.first_name || user.last_name)) ? `${user.first_name || ''} ${user.last_name || ''}` : '', mainHtml }),
         });
         //update 
         user.code = code ; 
@@ -635,14 +706,21 @@ router.post("/forgetpw_mail",
           await resetpasswords.deleteOne({email}) ; 
         }
 
-        //after the mail is verified , send the code 
-        const code = generateCode() ; 
-        const info = await transporter.sendMail({
-           from: `<${process.env.MAIL_USER}>`,
-           to: email,
-           subject: "Verify your mail!",
-           html: `<p>This is the code of your account to verify with : ${code} . It will expires in 10 minutes</p>`,
-        }) ;
+          //after the mail is verified , send the code
+          const code = generateCode();
+          const mainHtml = `<p style="margin:0 0 18px 0;">Vous avez demandé à réinitialiser votre mot de passe.</p>
+            <div style="background:#f8fafc;border-left:4px solid #ef4444;border-radius:12px;padding:18px 20px;margin:18px 0 20px 0;color:#1f2937;">
+              <div style="font-size:12px;letter-spacing:1px;text-transform:uppercase;color:#64748b;font-weight:700;margin-bottom:8px;">Code de réinitialisation</div>
+              <div style="font-size:20px;font-weight:700;">${escapeHtml(code)}</div>
+            </div>
+            <p style="margin:0 0 6px 0;">Ce code expire dans 10 minutes.</p>`;
+
+          const info = await transporter.sendMail({
+            from: `<${process.env.MAIL_USER}>`,
+            to: email,
+            subject: "Verify your mail!",
+            html: buildNotificationHtml({ recipientName: (user && (user.first_name || user.last_name)) ? `${user.first_name || ''} ${user.last_name || ''}` : '', mainHtml }),
+          });
         
         await resetpasswords.create({
           email , 
@@ -663,13 +741,26 @@ router.put("/resend_code_forgetpw",async(req,res) => {
   try{
     const {email} = req.body ; 
     
-    const code = generateCode() ; 
+    const code = generateCode();
+    const user1 = await students.findOne({email}) ;
+    const user2 = await parents.findOne({email}) ;
+    const user3 = await teachers.findOne({email}) ;
+    const user4 = await admins.findOne({email}) ;
+    const user = user1 || user2 || user3 || user4 || null;
+
+    const mainHtml = `<p style="margin:0 0 18px 0;">Vous avez demandé à réinitialiser votre mot de passe.</p>
+            <div style="background:#f8fafc;border-left:4px solid #ef4444;border-radius:12px;padding:18px 20px;margin:18px 0 20px 0;color:#1f2937;">
+              <div style="font-size:12px;letter-spacing:1px;text-transform:uppercase;color:#64748b;font-weight:700;margin-bottom:8px;">Code de réinitialisation</div>
+              <div style="font-size:20px;font-weight:700;">${escapeHtml(code)}</div>
+            </div>
+            <p style="margin:0 0 6px 0;">Ce code expire dans 10 minutes.</p>`;
+
     const info = await transporter.sendMail({
       from: `<${process.env.MAIL_USER}>`,
       to: email,
       subject: "Verify your mail!",
-      html: `<p>This is the code of your account to verify with : ${code} . It will expires in 10 minutes</p>`,
-    }) ;
+      html: buildNotificationHtml({ recipientName: (user && (user.first_name || user.last_name)) ? `${user.first_name || ''} ${user.last_name || ''}` : '', mainHtml }),
+    });
     const m = await resetpasswords.findOne({email}) ;
     if (m) // if the 10 min still not pass!!
       {await resetpasswords.deleteOne({email}) ;}

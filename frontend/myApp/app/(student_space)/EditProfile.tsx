@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   SafeAreaView,
   ScrollView,
@@ -7,74 +7,113 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  Image,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as SecureStore from 'expo-secure-store';
+import { BASE_URL } from '../../constants/api';
+import { getStudentOrParentRole } from '../../constants/roleApi';
 import { useRouter } from 'expo-router';
-import * as ImagePicker from 'expo-image-picker';
 
+const ACADEMIC_LEVELS = ['Primary', 'Middle', 'High School', 'University'];
+const WILAYAS = [
+  'ADRAR', 'CHLEF', 'LAGHOUAT', 'OUM EL BOUAGHI', 'BATNA', 'BEJAIA', 'BISKRA',
+  'BECHAR', 'BLIDA', 'BOUIRA', 'TAMANRASSET', 'TEBESSA', 'TLEMCEN', 'TIARET',
+  'TIZI OUZOU', 'ALGER', 'DJELFA', 'JIJEL', 'SETIF', 'SAIDA', 'SKIKDA',
+  'SIDI BEL ABBES', 'ANNABA', 'GUELMA', 'CONSTANTINE', 'MEDEA', 'MOSTAGANEM',
+  'MSILA', 'MASCARA', 'OUARGLA', 'ORAN', 'EL BAYADH', 'ILLIZI',
+  'BORDJ BOU ARRERIDJ', 'BOUMERDES', 'EL TAREF', 'TINDOUF', 'TISSEMSILT',
+  'EL OUED', 'KHENCHELA', 'SOUK AHRAS', 'TIPAZA', 'MILA', 'AIN DEFLA', 'NAAMA',
+  'AIN TEMOUCHENT', 'GHARDAIA', 'RELIZANE', "EL M'GHAIR", 'EL MENIA',
+  'OULED DJELLAL', 'BORDJ BADJI MOKHTAR', 'BENI ABBES', 'TIMIMOUN', 'TOUGGOURT',
+  'DJANET', 'IN SALAH', 'IN GUEZZAM'
+];
 
 export default function EditProfile() {
   const router = useRouter();
-    const [profileImage, setProfileImage] = useState<string | null>(null);
-  const [fullName, setFullName] = useState('Karima Benali');
-  const [address, setAddress] = useState('Alger, Bab Ezzouar');
-  const [level, setLevel] = useState('Terminale S');
-  const [sessionMode, setSessionMode] = useState('Online · Hybrid');
-  const [description, setDescription] = useState(
-    'Motivated Terminale S student with a strong interest in Mathematics and Physics. I approach studies with determination and focus, and prefer clear study progress to work effectively.'
-  );
+    
+  const [firstName, setFirstName] = useState('Karima');
+  const [lastName, setLastName] = useState('Benali');
+  const [address, setAddress] = useState('');
+  const [level, setLevel] = useState('High School');
+  const [showLevelPicker, setShowLevelPicker] = useState(false);
+  const [showWilayaPicker, setShowWilayaPicker] = useState(false);
 
-  const [newGoal, setNewGoal] = useState('');
-  const [learningGoals, setLearningGoals] = useState<string[]>([
-    'Master key concepts in Mathematics and Physics',
-    'Practice exam simulations every week',
-  ]);
+  // load profile from secure store if available
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await SecureStore.getItemAsync('studentProfileData');
+        if (data) {
+          const parsed = JSON.parse(data);
+          const f = parsed.first_name || parsed.firstName || '';
+          const l = parsed.last_name || parsed.lastName || '';
+          setFirstName(f || (parsed.fullName ? parsed.fullName.split(' ')[0] : ''));
+          setLastName(l || (parsed.fullName ? parsed.fullName.split(' ').slice(1).join(' ') : ''));
+          if (parsed.postal_adress) setAddress(parsed.postal_adress);
+          if (parsed.academic_level) setLevel(parsed.academic_level);
+        }
+      } catch (e) {
+        // ignore parse errors
+      }
+    })();
+  }, []);
 
-  const canAddGoal = useMemo(() => newGoal.trim().length > 0, [newGoal]);
 
+ 
 
-  const pickImage = async () => {
-  const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-  if (status !== 'granted') {
-    alert('Permission to access media library is required!');
-    return;
-  }
+  const handleSave = async () => {
+    const payload = {
+      first_name: firstName,
+      last_name: lastName,
+      postal_adress: address,
+      academic_level: level,
+    };
 
-  const result = await ImagePicker.launchImageLibraryAsync({
-    mediaTypes: ImagePicker.MediaTypeOptions.Images,
-    allowsEditing: true,
-    aspect: [1, 1],
-    quality: 0.8,
-  });
+    const apiRole = await getStudentOrParentRole();
 
-  if (!result.canceled && result.assets.length > 0) {
-    setProfileImage(result.assets[0].uri);
-  }
-};
+    const sendSave = async (token: string) => {
+      const resp = await fetch(`${BASE_URL}/${apiRole}/editProfile`, {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+        body: JSON.stringify(payload),
+      });
+      return resp.json();
+    };
 
-  const handleSave = () => {
-    console.log('Saved:', {
-      fullName,
-      address,
-      level,
-      sessionMode,
-      learningGoals,
-    });
-    router.back();
-  };
+    try {
+      const accessToken = await SecureStore.getItemAsync('accessToken');
+      const refreshToken = await SecureStore.getItemAsync('refreshToken');
+      let data = await sendSave(accessToken || '');
 
-  const handleAddGoal = () => {
-    const cleanGoal = newGoal.trim();
-    if (!cleanGoal) {
-      return;
+      if (data && data.error === 'Token expired!') {
+        const r = await fetch(`${BASE_URL}/${apiRole}/refresh`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ refreshToken }),
+        });
+        const newData = await r.json();
+        if (newData.accessToken) {
+          await SecureStore.setItemAsync('accessToken', newData.accessToken);
+          data = await sendSave(newData.accessToken);
+        }
+      }
+
+      if (data && data.succ) {
+        // update local stored profile
+        if (data.student) {
+          await SecureStore.setItemAsync('studentProfileData', JSON.stringify(data.student));
+        }
+        router.replace('/(student_space)/studentSpace');
+        return;
+      }
+
+      // fallback: just go back
+      router.back();
+    } catch (err) {
+      console.error(err);
+      router.back();
     }
-    setLearningGoals(prev => [...prev, cleanGoal]);
-    setNewGoal('');
-  };
-
-  const handleRemoveGoal = (index: number) => {
-    setLearningGoals(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleGoBack = () => {
@@ -104,38 +143,22 @@ export default function EditProfile() {
           <Text style={styles.pageTitle}>Edit Student Profile</Text>
         </View>
 
-        <View style={styles.photoCard}>
-          <View style={styles.photoRow}>
-            <TouchableOpacity onPress={pickImage}>
-  <View style={styles.profileAvatar}>
-    {profileImage ? (
-      <Image
-        source={{ uri: profileImage }}
-        style={{ width: 72, height: 72, borderRadius: 36 }}
-      />
-    ) : (
-      <Text style={styles.profileAvatarText}>K</Text>
-    )}
-  </View>
-</TouchableOpacity>
-           
-
-            <TouchableOpacity style={styles.uploadPhotoButton} activeOpacity={0.9}  onPress={pickImage} >
-              <Ionicons name="cloud-upload-outline" size={16} color="#FFFFFF" />
-              <Text style={styles.uploadPhotoButtonText}>Upload Photo</Text>
-            </TouchableOpacity>
-          </View>
-
-          <Text style={styles.photoHintText}>Change or upload a new profile picture.</Text>
-        </View>
+        
 
         <View style={styles.block}>
           <Text style={styles.blockTitle}>Personal Information</Text>
           <View style={styles.whiteCard}>
             <FormRow
-              label="Full Name"
-              value={fullName}
-              onChange={setFullName}
+              label="First Name"
+              value={firstName}
+              onChange={setFirstName}
+              icon="person-outline"
+            />
+
+            <FormRow
+              label="Last Name"
+              value={lastName}
+              onChange={setLastName}
               icon="person-outline"
             />
 
@@ -144,6 +167,7 @@ export default function EditProfile() {
               value={address}
               onChange={setAddress}
               icon="location-outline"
+              onPress={() => setShowWilayaPicker(true)}
               isLast
             />
           </View>
@@ -152,76 +176,25 @@ export default function EditProfile() {
         <View style={styles.block}>
           <Text style={styles.blockTitle}>Academic Profile</Text>
           <View style={styles.whiteCard}>
-            <FormRow
-              label="School Level"
-              value={level}
-              onChange={setLevel}
-              icon="school-outline"
-            />
-
-            <FormRow
-              label="Preferred Session Mode"
-              value={sessionMode}
-              onChange={setSessionMode}
-              icon="laptop-outline"
-              isLast
-            />
-          </View>
-        </View>
-
-        <View style={styles.block}>
-          <Text style={styles.blockTitle}>Pedagogical Description</Text>
-          <View style={styles.descriptionCard}>
-            <TextInput
-              style={styles.descriptionInput}
-              value={description}
-              onChangeText={setDescription}
-              multiline
-              placeholder="Write a short pedagogical description"
-              placeholderTextColor="#98A2B3"
-            />
-          </View>
-        </View>
-
-        <View style={styles.goalsCard}>
-          <View style={styles.goalsTitleRow}>
-            <Text style={styles.sectionTitle}>Learning Objectives</Text>
-            <Ionicons name="star-outline" size={18} color="#D3A900" />
-          </View>
-
-          {learningGoals.map((goal, index) => (
-            <View key={`${goal}-${index}`} style={styles.goalItem}>
-              <Text style={styles.goalText}>{goal}</Text>
-              <TouchableOpacity
-                onPress={() => handleRemoveGoal(index)}
-                style={styles.goalRemoveButton}
-                activeOpacity={0.85}
-              >
-                <Ionicons name="close" size={16} color="#C13A3A" />
-              </TouchableOpacity>
-            </View>
-          ))}
-
-          <View style={styles.addGoalRow}>
-            <TextInput
-              style={styles.addGoalInput}
-              value={newGoal}
-              onChangeText={setNewGoal}
-              placeholder="Add learning goal"
-              placeholderTextColor="#98A2B3"
-            />
-
             <TouchableOpacity
-              style={[styles.addGoalButton, !canAddGoal && styles.addGoalButtonDisabled]}
-              onPress={handleAddGoal}
-              disabled={!canAddGoal}
-              activeOpacity={0.9}
+              style={[styles.row, styles.rowSeparator]}
+              onPress={() => setShowLevelPicker(true)}
+              activeOpacity={0.7}
             >
-              <Ionicons name="add" size={17} color="#FFFFFF" />
-              <Text style={styles.addGoalButtonText}>Add</Text>
+              <View style={styles.iconWrap}>
+                <Ionicons name="school-outline" size={18} color="#4F46E5" />
+              </View>
+              <View style={styles.inputWrap}>
+                <Text style={styles.label}>School Level</Text>
+                <View style={styles.pickerDisplay}>
+                  <Text style={styles.pickerValue}>{level || 'Select a level'}</Text>
+                  <Ionicons name="chevron-down" size={18} color="#6B7280" />
+                </View>
+              </View>
             </TouchableOpacity>
           </View>
         </View>
+
 
         <View style={styles.buttonWrap}>
           <TouchableOpacity style={styles.saveButton} onPress={handleSave} activeOpacity={0.9}>
@@ -237,6 +210,94 @@ export default function EditProfile() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      <Modal
+        visible={showLevelPicker}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowLevelPicker(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.pickerContainer}>
+            <View style={styles.pickerHeader}>
+              <Text style={styles.pickerTitle}>Select School Level</Text>
+              <TouchableOpacity onPress={() => setShowLevelPicker(false)}>
+                <Ionicons name="close" size={24} color="#2A3470" />
+              </TouchableOpacity>
+            </View>
+            {ACADEMIC_LEVELS.map((academicLevel) => (
+              <TouchableOpacity
+                key={academicLevel}
+                style={[
+                  styles.pickerOption,
+                  level === academicLevel && styles.pickerOptionSelected,
+                ]}
+                onPress={() => {
+                  setLevel(academicLevel);
+                  setShowLevelPicker(false);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.pickerOptionText,
+                    level === academicLevel && styles.pickerOptionTextSelected,
+                  ]}
+                >
+                  {academicLevel}
+                </Text>
+                {level === academicLevel && (
+                  <Ionicons name="checkmark" size={20} color="#2D5BFF" />
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showWilayaPicker}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowWilayaPicker(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.pickerContainer}>
+            <View style={styles.pickerHeader}>
+              <Text style={styles.pickerTitle}>Select Wilaya</Text>
+              <TouchableOpacity onPress={() => setShowWilayaPicker(false)}>
+                <Ionicons name="close" size={24} color="#2A3470" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView nestedScrollEnabled style={styles.pickerScroll}>
+              {WILAYAS.map((wilaya) => (
+                <TouchableOpacity
+                  key={wilaya}
+                  style={[
+                    styles.pickerOption,
+                    address === wilaya && styles.pickerOptionSelected,
+                  ]}
+                  onPress={() => {
+                    setAddress(wilaya);
+                    setShowWilayaPicker(false);
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.pickerOptionText,
+                      address === wilaya && styles.pickerOptionTextSelected,
+                    ]}
+                  >
+                    {wilaya}
+                  </Text>
+                  {address === wilaya && (
+                    <Ionicons name="checkmark" size={20} color="#2D5BFF" />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -247,15 +308,22 @@ function FormRow({
   onChange,
   icon,
   isLast = false,
+  onPress,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   icon: keyof typeof Ionicons.glyphMap;
   isLast?: boolean;
+  onPress?: () => void;
 }) {
   return (
-    <View style={[styles.row, !isLast && styles.rowSeparator]}>
+    <TouchableOpacity
+      style={[styles.row, !isLast && styles.rowSeparator]}
+      activeOpacity={onPress ? 0.7 : 1}
+      onPress={onPress}
+      disabled={!onPress}
+    >
       <View style={styles.iconWrap}>
         <Ionicons name={icon} size={18} color="#4F46E5" />
       </View>
@@ -265,10 +333,12 @@ function FormRow({
           style={styles.input}
           value={value}
           onChangeText={onChange}
-          placeholder={`Enter ${label}`}
+          placeholder={onPress ? 'Select Wilaya' : `Enter ${label}`}
+          editable={!onPress}
+          pointerEvents={onPress ? 'none' : 'auto'}
         />
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -299,61 +369,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   pageTitle: { fontSize: 20, fontWeight: '600', color: '#24306A' },
-
-  photoCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    borderWidth: 1.2,
-    borderColor: '#F3DE96',
-    padding: 16,
-    marginBottom: 14,
-    shadowColor: '#F4D34F',
-    shadowOpacity: 0.28,
-    shadowOffset: { width: 0, height: 0 },
-    shadowRadius: 12,
-    elevation: 0,
-  },
-  photoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  profileAvatar: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: '#E7EDFF',
-    borderWidth: 1,
-    borderColor: '#D4DFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  profileAvatarText: {
-    fontSize: 30,
-    fontWeight: '600',
-    color: '#24306A',
-  },
-  uploadPhotoButton: {
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: '#2D5BFF',
-    paddingHorizontal: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  uploadPhotoButtonText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '500',
-    marginLeft: 6,
-  },
-  photoHintText: {
-    marginTop: 10,
-    color: '#6C768E',
-    fontSize: 13,
-    fontWeight: '400',
-  },
+ 
 
   block: {
     marginBottom: 14,
@@ -548,4 +564,72 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   cancelButtonText: { color: '#2B3B7A', fontWeight: '500', fontSize: 16 },
+
+  pickerDisplay: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    height: 48,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#E5EAF3',
+  },
+  pickerValue: {
+    fontSize: 15,
+    color: '#1F2937',
+    fontWeight: '500',
+  },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  pickerContainer: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 20,
+    maxHeight: '80%',
+  },
+  pickerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E8ECF5',
+  },
+  pickerTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#24306A',
+  },
+  pickerOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  pickerOptionSelected: {
+    backgroundColor: '#F0F4FF',
+  },
+  pickerOptionText: {
+    fontSize: 15,
+    color: '#4B5563',
+    fontWeight: '500',
+  },
+  pickerOptionTextSelected: {
+    color: '#2D5BFF',
+    fontWeight: '600',
+  },
+  pickerScroll: {
+    maxHeight: 520,
+  },
 }); 

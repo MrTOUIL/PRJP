@@ -13,6 +13,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { FontAwesome5, FontAwesome , AntDesign } from '@expo/vector-icons';
 import { useRouter, Stack } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 
 // Define theme colors locally or import from constants
 const COLORS = {
@@ -91,6 +92,7 @@ export default function SignUp() {
 
   const handleRoleSelect = (role: 'student' | 'parent' | 'teacher') => {
     setSelectedRole(role);
+    SecureStore.setItemAsync('pendingRole', role).catch(() => {});
   };
 
   const navigateToSignIn = ():void => {

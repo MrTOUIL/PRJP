@@ -113,16 +113,21 @@ export default function CreateSession() {
             .then(data => {
               if (data.succ) {
                 router.push("/(teacher_space)/teacherSpace")
-              } else {
+              } else if (data.error === "Invalid token!" || data.error === "No token found!") {
                 router.replace("/sign_in");
+              } else {
+                setLoading(false);
+                setMsg(typeof data.error === 'string' ? data.error : 'Could not create session.');
               }
             });
           } else {
             router.replace("/sign_in");
           }
         });
-      } else {
+      } else if (data.error === "Invalid token!" || data.error === "No token found!") {
         router.replace("/sign_in");
+      } else {
+        setMsg(typeof data.error === 'string' ? data.error : 'Could not create session.');
       }
     });
   } catch (e) {

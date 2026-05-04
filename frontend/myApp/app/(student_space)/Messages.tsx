@@ -5,6 +5,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import * as SecureStore from 'expo-secure-store';
 import { BASE_URL } from '../../constants/api';
+import { getStudentOrParentRole } from '../../constants/roleApi';
 
 const COLORS = {
   primary: '#1A1A5E',
@@ -17,7 +18,7 @@ const COLORS = {
 
 const AVATAR_COLORS = ['#2962FF', '#FF6B6B', '#1A1A5E', '#0EA27F', '#9C27B0', '#F59E0B'];
 
-export default function TeacherMessages() {
+export default function Messages() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [messages, setMessages] = useState<any[]>([]);
@@ -32,9 +33,10 @@ export default function TeacherMessages() {
       try {
         const accessToken = await SecureStore.getItemAsync('accessToken');
         const refreshToken = await SecureStore.getItemAsync('refreshToken');
+        const apiRole = await getStudentOrParentRole();
 
         const fetchMessages = async (token: string | null | undefined) => {
-          const res = await fetch(`${BASE_URL}/teacher/getmessages`, {
+          const res = await fetch(`${BASE_URL}/${apiRole}/getmessages`, {
             method: 'GET',
             headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
           });
@@ -44,7 +46,7 @@ export default function TeacherMessages() {
         let data = await fetchMessages(accessToken);
 
         if (data?.error === 'Token expired!') {
-          const refreshRes = await fetch(`${BASE_URL}/teacher/refresh`, {
+          const refreshRes = await fetch(`${BASE_URL}/${apiRole}/refresh`, {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
             body: JSON.stringify({ refreshToken }),
@@ -62,13 +64,25 @@ export default function TeacherMessages() {
 
         if (data?.succ && Array.isArray(data?.messages)) {
           const mapped = data.messages.map((item: any, index: number) => {
-            const senderObj = item?.sender || {};
-            const senderName = `${senderObj.first_name || ''} ${senderObj.last_name || ''}`.trim() || 'Unknown Sender';
+            const rawSender = item?.sender;
+            const senderObj = (rawSender && typeof rawSender === 'object') ? rawSender : {};
+            const senderName = typeof rawSender === 'string'
+              ? 'Unknown Sender'
+              : `${senderObj.first_name || ''} ${senderObj.last_name || ''}`.trim() || 'Unknown Sender';
+
+            // infer role: teacher objects include school_levels_taught, parents include parentf/parentl
+            let senderRole = 'unknown';
+            if (typeof rawSender === 'object' && rawSender) {
+              if (Array.isArray(senderObj.school_levels_taught) || senderObj.subject) senderRole = 'teacher';
+              else if (senderObj.parentf || senderObj.parentl) senderRole = 'parent';
+              else if (senderObj.academic_level || senderObj.role === 'student') senderRole = 'student';
+            }
 
             return {
               id: item?._id || String(index),
               sender: senderName,
-              senderId: senderObj?._id || null,
+              senderId: (typeof rawSender === 'string') ? rawSender : (senderObj?._id || null),
+              senderRole,
               subject: item?.subject || '',
               preview: item?.msg || '',
               time: item?.time || '',
@@ -115,18 +129,19 @@ export default function TeacherMessages() {
         <TouchableOpacity 
           style={[styles.messageCard, item.unread && styles.unreadCard]}
           onPress={() => router.push({
-            pathname: '/(teacher_space)/messageReply',
+            pathname: '/(student_space)/Message',
             params: {
               sender: item.sender,
               senderId: item.senderId,
+              senderRole: item.senderRole,
               subject: item.subject,
               initialMessage: item.preview,
-              avatarColor: item.avatarColor,
+              avatarColor: item.avatarColor
             }
           })}
         >
         <View style={[styles.avatar, { backgroundColor: item.avatarColor }]}>
-            <Text style={styles.avatarText}>{item.sender.charAt(0)}</Text>
+            <Text style={styles.avatarText}>{(item.sender || 'U').charAt(0)}</Text>
         </View>
         <View style={styles.messageContent}>
             <View style={styles.headerRow}>

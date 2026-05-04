@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import {
-  LayoutChangeEvent,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -9,7 +8,10 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
+import { BASE_URL } from '../../constants/api';
+import { getStudentOrParentRole } from '../../constants/roleApi';
 import Animated, {
   Easing,
   interpolate,
@@ -34,44 +36,140 @@ type InfoRow = {
 };
 
 const STATS: ProfileStat[] = [
-  { label: 'Sessions', value: '18' },
-  { label: 'Documents', value: '9' },
-  { label: 'Qoutes', value: '3' },
+  { label: 'Sessions', value: '0' },
+  { label: 'Services', value: '0' },
+  { label: 'Requests', value: '0' },
 ];
-
-const PERSONAL_INFO: InfoRow[] = [
-  { icon: 'person-outline', label: 'Full Name', value: 'Karima Benali', iconColor: '#3B82F6', iconBg: '#DBEAFE' },
-  { icon: 'mail-outline', label: 'Email', value: 'k.benali@eleve.dz', iconColor: '#8B5CF6', iconBg: '#EDE9FE' },
-  { icon: 'call-outline', label: 'Phone', value: '+213 550 123 456', iconColor: '#14B8A6', iconBg: '#CCFBF1' },
-  { icon: 'location-outline', label: 'Address / Location', value: 'Alger, Bab Ezzouar', iconColor: '#F97316', iconBg: '#FFEDD5' },
-];
-
-const ACADEMIC_INFO: InfoRow[] = [
-  { icon: 'school-outline', label: 'School Level', value: 'Terminale S', iconColor: '#4F46E5', iconBg: '#E0E7FF' },
-  { icon: 'library-outline', label: 'Subjects · Level Concerned', value: 'Mathematics, Physics', iconColor: '#0EA5E9', iconBg: '#E0F2FE' },
-  { icon: 'laptop-outline', label: 'Preferred Session Mode', value: 'Online - Hybrid', iconColor: '#10B981', iconBg: '#D1FAE5' },
-  { icon: 'person-circle-outline', label: 'Parent / Guardian', value: 'Mohamed Benali', iconColor: '#EC4899', iconBg: '#FCE7F3' },
-];
-
-const DESCRIPTION =
-  'Motivated Terminale S student with a strong interest in Mathematics and Physics. I approach studies with determination and focus, and prefer clear study progress to work effectively.';
-
-const GOALS = [
-  'Work on exam simulations every week.',
-  'Master key concepts in Mathematics and Physics.',
-  'Build confidence before final tests.',
-];
-
-const GOALS_ORB_SIZE = 118;
-const GOALS_ORB_PADDING = 10;
 
 export default function Sprofile() {
   const router = useRouter();
-  const [goalsSectionSize, setGoalsSectionSize] = useState({ width: 0, height: 0 });
+  const { profileData } = useLocalSearchParams<{ profileData?: string }>();
+  const [profilePayload, setProfilePayload] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [logoutLoading, setLogoutLoading] = useState(false);
   const headerWavePulse = useSharedValue(1);
   const headerWaveDrift = useSharedValue(0);
   const headerShimmerX = useSharedValue(-1);
-  const goalsOrbX = useSharedValue(0);
+
+  const normalizeList = (value: any) => (Array.isArray(value) ? value : []);
+  const buildInitial = (firstName?: string, lastName?: string) => {
+    const fullName = `${firstName || ''} ${lastName || ''}`.trim();
+    return fullName ? fullName.charAt(0).toUpperCase() : 'S';
+  };
+
+  const handleLogout = async () => {
+    setLogoutLoading(true);
+    try {
+      await SecureStore.deleteItemAsync('accessToken');
+      await SecureStore.deleteItemAsync('refreshToken');
+      await SecureStore.deleteItemAsync('studentProfileData');
+      setLogoutLoading(false);
+      router.replace('/(welcome page)/welcomePage');
+    } catch (e) {
+      setLogoutLoading(false);
+      console.error('Error logging out:', e);
+    }
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadProfile = async () => {
+      try {
+        if (typeof profileData === 'string' && profileData.trim()) {
+          try {
+            const parsed = JSON.parse(decodeURIComponent(profileData));
+            if (!cancelled) {
+              setProfilePayload(parsed);
+              return;
+            }
+          } catch (parseError) {
+            console.error('Failed to parse profile params', parseError);
+          }
+        }
+
+        const accessToken = await SecureStore.getItemAsync('accessToken');
+        const refreshToken = await SecureStore.getItemAsync('refreshToken');
+        const apiRole = await getStudentOrParentRole();
+
+        const fetchProfile = async (token: string | null | undefined) => {
+          return fetch(`${BASE_URL}/${apiRole}/getProfile`, {
+            method: 'GET',
+            headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+          });
+        };
+
+        let response = await fetchProfile(accessToken);
+        let data = await response.json();
+
+        if (data?.error === 'Token expired!') {
+          const refreshResponse = await fetch(`${BASE_URL}/${apiRole}/refresh`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ refreshToken }),
+          });
+          const refreshData = await refreshResponse.json();
+
+          if (refreshData.accessToken) {
+            await SecureStore.setItemAsync('accessToken', refreshData.accessToken);
+            response = await fetchProfile(refreshData.accessToken);
+            data = await response.json();
+          } else {
+            router.replace('/sign_in');
+            return;
+          }
+        }
+
+        if (!cancelled) {
+          setProfilePayload(data?.student ? data : null);
+        }
+      } catch (error) {
+        console.error('loadProfile error', error);
+        if (!cancelled) {
+          setProfilePayload(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadProfile();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [profileData, router]);
+
+  const student = profilePayload?.student || {};
+  const sessions = normalizeList(profilePayload?.StudentSessions);
+  const requests = normalizeList(profilePayload?.myRequests);
+  const evaluations = normalizeList(profilePayload?.myEvaluations);
+  const joinedServices = normalizeList(profilePayload?.joinedServices);
+
+  const stats: ProfileStat[] = [
+    { label: 'Sessions', value: String(sessions.length) },
+    { label: 'Services', value: String(joinedServices.length) },
+    { label: 'Requests', value: String(requests.length) },
+  ];
+
+  const personalInfo: InfoRow[] = [
+    { icon: 'person-outline', label: 'Full Name', value: `${student.first_name || student.firstName || ''} ${student.last_name || student.lastName || ''}`.trim() || 'Student', iconColor: '#3B82F6', iconBg: '#DBEAFE' },
+    ...(student.role === 'parent' ? [{ icon: 'person-circle-outline' as const, label: 'Child Name', value: `${student.parentf || ''} ${student.parentl || ''}`.trim() || 'Not available', iconColor: '#F59E0B', iconBg: '#FEF3C7' }] : []),
+    { icon: 'mail-outline', label: 'Email', value: student.email || student.mail || 'Not available', iconColor: '#8B5CF6', iconBg: '#EDE9FE' },
+    { icon: 'call-outline', label: 'Phone', value: student.phone || 'Not available', iconColor: '#14B8A6', iconBg: '#CCFBF1' },
+    { icon: 'location-outline', label: 'Address / Location', value: student.postal_adress || student.address || 'Not available', iconColor: '#F97316', iconBg: '#FFEDD5' },
+  ];
+
+  const academicInfo: InfoRow[] = [
+    { icon: 'school-outline', label: 'School Level', value: student.academic_level || 'Not available', iconColor: '#4F46E5', iconBg: '#E0E7FF' },
+  ];
+
+  const description = student.description || student.pedagogical_description || 'No pedagogical description available yet.';
+  const profileTitle = student.role === 'parent'
+    ? `${student.parentf || ''} ${student.parentl || ''}`.trim() || 'Parent Profile'
+    : `${student.first_name || student.firstName || ''} ${student.last_name || student.lastName || ''}`.trim() || 'Student Profile';
 
   useEffect(() => {
     headerWavePulse.value = withRepeat(
@@ -98,41 +196,11 @@ export default function Sprofile() {
       false
     );
 
-    const maxX = Math.max(goalsSectionSize.width - GOALS_ORB_SIZE - GOALS_ORB_PADDING * 2, 0);
-
-    goalsOrbX.value = 0;
-
-    if (maxX > 0) {
-      goalsOrbX.value = withRepeat(
-        withSequence(
-          withTiming(maxX, { duration: 2200, easing: Easing.inOut(Easing.sin) }),
-          withTiming(0, { duration: 2200, easing: Easing.inOut(Easing.sin) })
-        ),
-        -1,
-        false
-      );
-    }
   }, [
-    goalsOrbX,
-    goalsSectionSize.width,
     headerShimmerX,
     headerWaveDrift,
     headerWavePulse,
   ]);
-
-  const handleGoalsSectionLayout = (event: LayoutChangeEvent) => {
-    const { width, height } = event.nativeEvent.layout;
-    const nextWidth = Math.round(width);
-    const nextHeight = Math.round(height);
-
-    setGoalsSectionSize(prev => {
-      if (prev.width === nextWidth && prev.height === nextHeight) {
-        return prev;
-      }
-
-      return { width: nextWidth, height: nextHeight };
-    });
-  };
 
   const headerWaveAnim = useAnimatedStyle(() => ({
     transform: [
@@ -152,10 +220,6 @@ export default function Sprofile() {
     opacity: 0.1,
   }));
 
-  const goalsOrbAnim = useAnimatedStyle(() => ({
-    transform: [{ translateX: goalsOrbX.value }],
-  }));
-
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -167,7 +231,7 @@ export default function Sprofile() {
 
           <View style={styles.headerForeground}>
             <View style={styles.headerTopRow}>
-              <TouchableOpacity style={styles.headerIconButton} onPress={() => router.back()}>
+              <TouchableOpacity style={styles.headerIconButton} onPress={() => router.replace('/(student_space)/studentSpace')}>
                 <Ionicons name="chevron-back" size={20} color="#FFFFFF" />
               </TouchableOpacity>
 
@@ -177,51 +241,21 @@ export default function Sprofile() {
             </View>
 
             <View style={styles.avatarWrap}>
-              <Text style={styles.avatarText}>K</Text>
+              <Text style={styles.avatarText}>{buildInitial(student.role === 'parent' ? student.parentf : (student.first_name || student.firstName), student.role === 'parent' ? student.parentl : (student.last_name || student.lastName))}</Text>
             </View>
-            <Text style={styles.name}>Karima Benali</Text>
-            <Text style={styles.level}>Terminale S</Text>
-          </View>
-        </View>
-
-        <View style={styles.statsCardWrap}>
-          <View style={styles.statsCard}>
-            {STATS.map((item, index) => (
-              <View key={item.label} style={[styles.statItem, index < STATS.length - 1 && styles.statBorder]}>
-                <Text style={styles.statValue}>{item.value}</Text>
-                <Text style={styles.statLabel}>{item.label}</Text>
-              </View>
-            ))}
+            <Text style={styles.name}>{profileTitle}</Text>
+            <Text style={styles.level}>{student.academic_level || 'Student'}</Text>
           </View>
         </View>
 
         <View style={styles.contentBody}>
-          <SectionCard title="Personal Information" rows={PERSONAL_INFO} />
-          <SectionCard title="Academic Profile" rows={ACADEMIC_INFO} splitCards />
+          <SectionCard title={student.role === 'parent' ? 'Personal information of parent' : 'Personal Information'} rows={personalInfo} />
+          <SectionCard title="Academic Profile" rows={academicInfo} splitCards />
 
           <View style={styles.block}>
             <Text style={styles.blockTitle}>Pedagogical Description</Text>
             <View style={styles.descriptionCard}>
-              <Text style={styles.descriptionText}>{DESCRIPTION}</Text>
-            </View>
-          </View>
-
-          <View style={styles.block}>
-            <View style={styles.goalsSection} onLayout={handleGoalsSectionLayout}>
-              <Animated.View pointerEvents="none" style={[styles.goalsOrb, goalsOrbAnim]} />
-
-              <View style={styles.goalsHeader}>
-                <Ionicons name="star" size={17} color="#1E1B6B" />
-                <Text style={styles.goalsHeaderText}>Learning Objectives</Text>
-              </View>
-
-              <View style={styles.goalsCard}>
-                {GOALS.map(goal => (
-                  <View key={goal} style={styles.goalRow}>
-                    <Text style={styles.goalText}>{goal.replace(/\.$/, '')}</Text>
-                  </View>
-                ))}
-              </View>
+              <Text style={styles.descriptionText}>{description}</Text>
             </View>
           </View>
 
@@ -229,9 +263,9 @@ export default function Sprofile() {
             <Text style={styles.primaryButtonText}>Edit Profile</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.secondaryButton} onPress={()=> {router.push('/(signin)/log_out')}}>
+          <TouchableOpacity style={styles.secondaryButton} onPress={handleLogout} disabled={logoutLoading}>
             <Ionicons name="log-out-outline" size={18} color="#EF4444" />
-            <Text style={styles.secondaryButtonText}>Log Out</Text>
+            <Text style={styles.secondaryButtonText}>{logoutLoading ? 'Logging out...' : 'Log Out'}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -508,60 +542,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     fontWeight: '500',
-  },
-  goalsSection: {
-    backgroundColor: '#FFFBEB',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#F1E8CE',
-    paddingHorizontal: 10,
-    paddingTop: 10,
-    paddingBottom: 12,
-    position: 'relative',
-    overflow: 'hidden',
-  },
-  goalsOrb: {
-    position: 'absolute',
-    width: GOALS_ORB_SIZE,
-    height: GOALS_ORB_SIZE,
-    borderRadius: GOALS_ORB_SIZE / 2,
-    top: GOALS_ORB_PADDING,
-    left: GOALS_ORB_PADDING,
-    backgroundColor: '#F2E9D1',
-    opacity: 0.88,
-  },
-  goalsHeader: {
-    paddingVertical: 10,
-    paddingHorizontal: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    zIndex: 2,
-  },
-  goalsHeaderText: {
-    marginLeft: 9,
-    color: '#1E1B6B',
-    fontSize: 17,
-    fontWeight: '800',
-  },
-  goalsCard: {
-    marginTop: 6,
-    gap: 10,
-    zIndex: 2,
-  },
-  goalRow: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 11,
-    borderWidth: 1,
-    borderColor: '#EDE6D5',
-    paddingVertical: 13,
-    paddingHorizontal: 14,
-  },
-  goalText: {
-    flex: 1,
-    color: '#334155',
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: '600',
   },
   primaryButton: {
     marginTop: 18,

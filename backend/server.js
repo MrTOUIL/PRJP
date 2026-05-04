@@ -104,6 +104,7 @@ async function run() {
     //app.use('/service', require('./serviceServer'));
     app.use('/api/admin', require('./admingame'));
     app.use('/student', require('./studentServer'));
+    app.use('/parent', require('./parentServer'));
     
 
     // ✅ HTTP SERVER (NO HTTPS)

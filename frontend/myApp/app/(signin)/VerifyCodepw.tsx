@@ -47,7 +47,9 @@ export default function VerifyCodepw() {
   const { email } = useLocalSearchParams();
 
   // Spinner rotation
-  spinnerRotate.value = withRepeat(withTiming(360, { duration: 1000 }), -1, false);
+  useEffect(() => {
+    spinnerRotate.value = withRepeat(withTiming(360, { duration: 1000 }), -1, false);
+  }, []);
 
   const animatedSpinnerStyle = useAnimatedStyle(() => {
     return {

@@ -39,6 +39,11 @@ type UserItem = {
   parentl?: string;
 };
 
+const sanitizeUsers = (users: unknown): UserItem[] => {
+  if (!Array.isArray(users)) return [];
+  return users.filter((item): item is UserItem => !!item && typeof item === 'object');
+};
+
 export default function ViewStudent() {
   const router = useRouter();
   const { serviceid, serviceTitle } = useLocalSearchParams();
@@ -70,9 +75,11 @@ export default function ViewStudent() {
           .then(res => res.json())
           .then(data => {
             if (data.succ && Array.isArray(data.students) && Array.isArray(data.parents)) {
-              setStudents(data.students);
-              setParents(data.parents);
-              if (data.students.length === 0 && data.parents.length === 0) {
+              const safeStudents = sanitizeUsers(data.students);
+              const safeParents = sanitizeUsers(data.parents);
+              setStudents(safeStudents);
+              setParents(safeParents);
+              if (safeStudents.length === 0 && safeParents.length === 0) {
                 setMessage('No students or parents assigned to this service yet.');
               }
             } else if (data.error === 'Token expired!') {
@@ -96,9 +103,11 @@ export default function ViewStudent() {
                       .then(res => res.json())
                       .then(retryData => {
                         if (retryData.succ && Array.isArray(retryData.students) && Array.isArray(retryData.parents)) {
-                          setStudents(retryData.students);
-                          setParents(retryData.parents);
-                          if (retryData.students.length === 0 && retryData.parents.length === 0) {
+                          const safeStudents = sanitizeUsers(retryData.students);
+                          const safeParents = sanitizeUsers(retryData.parents);
+                          setStudents(safeStudents);
+                          setParents(safeParents);
+                          if (safeStudents.length === 0 && safeParents.length === 0) {
                             setMessage('No students or parents assigned to this service yet.');
                           }
                         } else {
@@ -137,8 +146,9 @@ export default function ViewStudent() {
     fetchServiceUsers();
   }, [router, serviceid]);
 
-  const renderUserCard = (item: UserItem, type: 'student' | 'parent', index: number) => {
-    const fullName = `${item.first_name ?? ''} ${item.last_name ?? ''}`.trim() || 'Unnamed user';
+  const renderUserCard = (item: UserItem | null | undefined, type: 'student' | 'parent', index: number) => {
+    const safeItem = item ?? {};
+    const fullName = `${safeItem.first_name ?? ''} ${safeItem.last_name ?? ''}`.trim() || 'Unnamed user';
     const initials = fullName
       .split(' ')
       .filter(Boolean)
@@ -147,7 +157,7 @@ export default function ViewStudent() {
       .join('') || 'U';
 
     return (
-      <Animated.View key={`${type}-${item._id ?? index}`} entering={FadeInDown.delay(index * 80).springify()}>
+      <Animated.View key={`${type}-${safeItem._id ?? index}`} entering={FadeInDown.delay(index * 80).springify()}>
         <View style={styles.userCard}>
           <View style={[styles.avatar, type === 'student' ? styles.studentAvatar : styles.parentAvatar]}>
             <Text style={[styles.avatarText, type === 'student' ? styles.studentAvatarText : styles.parentAvatarText]}>{initials}</Text>
@@ -163,15 +173,15 @@ export default function ViewStudent() {
               </View>
             </View>
 
-            <Text style={styles.userMeta}>{item.email || 'No email provided'}</Text>
-            <Text style={styles.userMeta}>{item.phone || 'No phone provided'}</Text>
+            <Text style={styles.userMeta}>{safeItem.email || 'No email provided'}</Text>
+            <Text style={styles.userMeta}>{safeItem.phone || 'No phone provided'}</Text>
 
-            {type === 'student' && item.academic_level ? (
-              <Text style={styles.userHint}>Level: {item.academic_level}</Text>
+            {type === 'student' && safeItem.academic_level ? (
+              <Text style={styles.userHint}>Level: {safeItem.academic_level}</Text>
             ) : null}
 
-            {type === 'parent' && (item.parentf || item.parentl) ? (
-              <Text style={styles.userHint}>Child: {(item.parentf ?? '').trim()} {(item.parentl ?? '').trim()}</Text>
+            {type === 'parent' && (safeItem.parentf || safeItem.parentl) ? (
+              <Text style={styles.userHint}>Child: {(safeItem.parentf ?? '').trim()} {(safeItem.parentl ?? '').trim()}</Text>
             ) : null}
           </View>
         </View>

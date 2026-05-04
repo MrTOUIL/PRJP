@@ -1,7 +1,10 @@
-import React from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
+import { BASE_URL } from '../../constants/api';
+import { getStudentOrParentRole } from '../../constants/roleApi';
 
 type ParamValue = string | string[] | undefined;
 
@@ -22,18 +25,6 @@ type DocumentRow = {
 	icon: keyof typeof Ionicons.glyphMap;
 	color: string;
 };
-
-const sessions: SessionRow[] = [
-	{ id: 9, title: 'Friday, Feb 28 · 15:00', subtitle: 'Online · 90 min', badge: 'In 3 days', state: 'next' },
-	{ id: 10, title: 'Friday, Mar 7 · 15:00', subtitle: 'Online · 90 min', badge: 'Upcoming', state: 'upcoming' },
-	{ id: 11, title: 'Friday, Feb 21 · 15:00', subtitle: 'Online · 90 min', badge: 'Done', state: 'done' },
-];
-
-const documents: DocumentRow[] = [
-	{ id: 1, name: 'Session 8 - Exercises.pdf', date: 'Feb 21', icon: 'document-text-outline', color: '#E74C3C' },
-	{ id: 2, name: 'Derivation Recap Slides.pptx', date: 'Feb 14', icon: 'document-outline', color: '#F97316' },
-	{ id: 3, name: 'Physics - Forces Summary.pdf', date: 'Feb 7', icon: 'document-text-outline', color: '#E74C3C' },
-];
 
 const pickFirst = (value: ParamValue, fallback: string) => {
 	if (Array.isArray(value)) {
@@ -59,14 +50,28 @@ const inferDomain = (subject: string) => {
 	return 'Academic Support';
 };
 
+const parseSessionDateTime = (dateStr: string | undefined, timeStr: string | undefined) => {
+	if (!dateStr || !timeStr || typeof dateStr !== 'string') return Number.POSITIVE_INFINITY;
+	const parts = dateStr.split('/');
+	if (parts.length !== 3) return Number.POSITIVE_INFINITY;
+	const [day, month, year] = parts;
+	const parsed = new Date(`${year}-${month}-${day}T${timeStr}`);
+	return Number.isNaN(parsed.getTime()) ? Number.POSITIVE_INFINITY : parsed.getTime();
+};
+
 export default function ServiceStd() {
 	const router = useRouter();
 	const params = useLocalSearchParams();
+	const [sessions, setSessions] = useState<SessionRow[]>([]);
+	const [loadingSessions, setLoadingSessions] = useState(false);
+	const [documents, setDocuments] = useState<any[]>([]);
+	const [loadingDocuments, setLoadingDocuments] = useState(false);
 
+	const serviceId = pickFirst(params.serviceId, '');
 	const title = pickFirst(params.title, 'Individual Math Sessions');
 	const subject = pickFirst(params.subject, pickFirst(params.type, 'Mathematics'));
 	const domain = pickFirst(params.domain, inferDomain(subject));
-	const type = pickFirst(params.type, 'Individual');
+	const type = pickFirst(params.serviceType, pickFirst(params.type, 'service'));
 	const targetAudience = pickFirst(params.target_audiance, 'Terminale S');
 	const mode = pickFirst(params.mode, 'Online');
 	const cost = pickFirst(params.cost, '800');
@@ -76,10 +81,150 @@ export default function ServiceStd() {
 	);
 	const tutor = pickFirst(params.tutor, 'Sara Belhadj | Mathematics & Physics');
 	const level = pickFirst(params.level, targetAudience);
-	const duration = pickFirst(params.duration, '90 min');
+	const verifiedStatus = pickFirst(params.verified, 'not verified').toLowerCase();
+	const isVerified = verifiedStatus === 'verified' || verifiedStatus === 'true' || verifiedStatus === 'yes';
 	const tutorInfo = parseTutor(tutor);
 	const teacherInitial = tutorInfo.name.charAt(0).toUpperCase();
 	const costLabel = `${cost} DZD`;
+
+	useEffect(() => {
+		const fetchSessionsAndDocuments = async () => {
+			if (!serviceId) {
+				setSessions([]);
+				setDocuments([]);
+				return;
+			}
+
+			try {
+				setLoadingSessions(true);
+				setLoadingDocuments(true);
+				const accessToken = await SecureStore.getItemAsync('accessToken');
+				const refreshToken = await SecureStore.getItemAsync('refreshToken');
+				const apiRole = await getStudentOrParentRole();
+
+				const parseResponseSafely = async (response: Response) => {
+					const contentType = response.headers.get('content-type') || '';
+					if (contentType.includes('application/json')) {
+						try {
+							return await response.json();
+						} catch (e) {
+							return { error: 'Invalid JSON', raw: await response.text(), status: response.status };
+						}
+					}
+					// fallback: return raw text so we can log HTML/error pages
+					const text = await response.text();
+					return { error: 'Non-JSON response', raw: text, status: response.status };
+				};
+
+				const load = async (token: string | null | undefined) => {
+					const response = await fetch(`${BASE_URL}/${apiRole}/joinedServices/${serviceId}/sessions`, {
+						method: 'GET',
+						headers: { authorization: `Bearer ${token}` },
+					});
+					return parseResponseSafely(response);
+				};
+
+				const loadDocs = async (token: string | null | undefined) => {
+					const response = await fetch(`${BASE_URL}/${apiRole}/joinedServices/${serviceId}/sessions/documents`, {
+						method: 'GET',
+						headers: { authorization: `Bearer ${token}` },
+					});
+					return parseResponseSafely(response);
+				};
+
+				let data = await load(accessToken);
+				let docData = await loadDocs(accessToken);
+
+				if (data?.error === 'Token expired!' || docData?.error === 'Token expired!') {
+					const refreshResponse = await fetch(`${BASE_URL}/${apiRole}/refresh`, {
+						method: 'POST',
+						headers: { 'content-type': 'application/json' },
+						body: JSON.stringify({ refreshToken }),
+					});
+					const refreshData = await refreshResponse.json();
+					if (refreshData.accessToken) {
+						await SecureStore.setItemAsync('accessToken', refreshData.accessToken);
+						data = await load(refreshData.accessToken);
+						docData = await loadDocs(refreshData.accessToken);
+					} else {
+						router.replace('/sign_in');
+						return;
+					}
+				}
+
+				if (Array.isArray(data?.sessions)) {
+					const mappedSessions: SessionRow[] = [...data.sessions]
+						.sort((left: any, right: any) => parseSessionDateTime(left?.Date, left?.start_time) - parseSessionDateTime(right?.Date, right?.start_time))
+						.map((session: any, index: number) => {
+							const isDone = String(session?.status || '').toLowerCase().includes('done') || String(session?.status || '').toLowerCase().includes('completed');
+							return {
+								id: index + 1,
+								title: session?.Date ? `${session.Date} · ${session.start_time || ''}`.trim() : 'Session',
+								subtitle: `${session?.location || 'Online'} · ${session?.end_time ? `${session.start_time || ''} - ${session.end_time}` : session?.start_time || ''}`.trim(),
+								badge: session?.status || 'Upcoming',
+								state: (isDone ? 'done' : index === 0 ? 'next' : 'upcoming') as SessionState,
+							};
+						});
+					setSessions(mappedSessions);
+				} else {
+					setSessions([]);
+				}
+
+				if (Array.isArray(docData?.documentslist)) {
+					setDocuments(docData.documentslist);
+				} else {
+					setDocuments([]);
+				}
+			} catch (err) {
+				console.error('Error fetching sessions/documents:', err);
+				setSessions([]);
+				setDocuments([]);
+			} finally {
+				setLoadingSessions(false);
+				setLoadingDocuments(false);
+			}
+		};
+
+		fetchSessionsAndDocuments();
+	}, [router, serviceId]);
+
+	const renderDocuments = () => {
+		if (loadingDocuments) {
+			return (
+				<View style={{ paddingVertical: 12 }}>
+					<ActivityIndicator color="#1E2378" />
+				</View>
+			);
+		}
+
+		if (!loadingDocuments && documents.length === 0) {
+			return <Text style={styles.emptySessions}>No documents available for this service yet.</Text>;
+		}
+
+		return documents.map((doc, index) => (
+			<View key={doc._id || index} style={styles.documentRow}>
+				<View style={styles.documentIconBox}>
+					<Ionicons name="document-text-outline" size={20} color="#E74C3C" />
+				</View>
+				<TouchableOpacity onPress={() => doc.url && openUrl(doc.url)} style={{ flex: 1, marginLeft: 10, justifyContent: 'center' }} activeOpacity={0.8}>
+					<Text style={styles.documentName}>{String(doc.title || 'Document')}</Text>
+				</TouchableOpacity>
+			</View>
+		));
+	};
+
+	const openUrl = async (url: string) => {
+		try {
+			const supported = await Linking.canOpenURL(url);
+			if (supported) {
+				await Linking.openURL(url);
+			} else {
+				console.warn('Cannot open URL:', url);
+			}
+		} catch (err) {
+			console.error('openUrl error', err);
+		}
+	};
 
 	return (
 		<SafeAreaView style={styles.page}>
@@ -88,9 +233,9 @@ export default function ServiceStd() {
 					<TouchableOpacity style={styles.headerIconButton} onPress={() => router.back()} activeOpacity={0.85}>
 						<Ionicons name="chevron-back" size={22} color="#FFFFFF" />
 					</TouchableOpacity>
-					<Text style={styles.heroTitleDark} numberOfLines={2}>{title}</Text>
+					<Text style={styles.heroTitleDark} numberOfLines={2}>{String(title)}</Text>
 					<View style={styles.pricePill}>
-						<Text style={styles.pricePillText}>{costLabel}</Text>
+						<Text style={styles.pricePillText}>{String(costLabel)}</Text>
 					</View>
 				</View>
 			</View>
@@ -103,14 +248,13 @@ export default function ServiceStd() {
 					</View>
 					<View style={styles.teacherCard}>
 						<View style={styles.teacherAvatar}>
-							<Text style={styles.teacherAvatarText}>{teacherInitial}</Text>
+							<Text style={styles.teacherAvatarText}>{String(teacherInitial)}</Text>
 						</View>
 						<View style={styles.teacherContent}>
-							<Text style={styles.teacherName}>{tutorInfo.name}</Text>
-							<Text style={styles.teacherMeta}>{tutorInfo.meta} · 5 yrs experience</Text>
+							<Text style={styles.teacherName}>{String(tutorInfo.name)}</Text>
 						</View>
 						<View style={styles.verifiedPill}>
-							<Text style={styles.verifiedText}>Verified</Text>
+							<Text style={styles.verifiedText}>{isVerified ? 'Verified' : 'Not Verified'}</Text>
 						</View>
 					</View>
 				</View>
@@ -123,27 +267,23 @@ export default function ServiceStd() {
 					<View style={styles.infoGrid}>
 						<View style={styles.infoCell}>
 							<Text style={styles.infoLabel}>DOMAIN</Text>
-							<Text style={styles.infoValue}>{domain}</Text>
+							<Text style={styles.infoValue}>{String(domain)}</Text>
 						</View>
 						<View style={styles.infoCell}>
 							<Text style={styles.infoLabel}>SUBJECT</Text>
-							<Text style={styles.infoValue}>{subject}</Text>
-						</View>
-						<View style={styles.infoCell}>
-							<Text style={styles.infoLabel}>DURATION</Text>
-							<Text style={styles.infoValue}>{duration}</Text>
+							<Text style={styles.infoValue}>{String(subject)}</Text>
 						</View>
 						<View style={styles.infoCell}>
 							<Text style={styles.infoLabel}>MODE</Text>
-							<Text style={styles.infoValue}>{mode}</Text>
+							<Text style={styles.infoValue}>{String(mode)}</Text>
 						</View>
 						<View style={styles.infoCell}>
 							<Text style={styles.infoLabel}>TYPE</Text>
-							<Text style={styles.infoValue}>{type}</Text>
+							<Text style={styles.infoValue}>{String(type)}</Text>
 						</View>
 						<View style={styles.infoCell}>
 							<Text style={styles.infoLabel}>LEVEL</Text>
-							<Text style={styles.infoValue}>{level}</Text>
+							<Text style={styles.infoValue}>{String(level)}</Text>
 						</View>
 					</View>
 				</View>
@@ -153,7 +293,7 @@ export default function ServiceStd() {
 						<Text style={styles.sectionTitle}>DESCRIPTION</Text>
 						<View style={styles.sectionLine} />
 					</View>
-					<Text style={styles.descriptionText}>{comment}</Text>
+					<Text style={styles.descriptionText}>{String(comment)}</Text>
 				</View>
 
 				<View style={styles.sectionCard}>
@@ -162,22 +302,28 @@ export default function ServiceStd() {
 						<View style={styles.sectionLine} />
 					</View>
 
-					{sessions.map((session) => (
+					{loadingSessions ? (
+						<View style={{ paddingVertical: 12 }}>
+							<ActivityIndicator color="#1E2378" />
+						</View>
+					) : sessions.length === 0 ? (
+						<Text style={styles.emptySessions}>No sessions found for this service.</Text>
+					) : sessions.map((session) => (
 						<View key={session.id} style={[styles.sessionRow, session.state === 'next' && styles.sessionRowNext]}>
 							<View style={[styles.sessionIndexBox, session.state === 'next' && styles.sessionIndexBoxNext]}>
 								{session.state === 'done' ? (
 									<Ionicons name="checkmark" size={18} color="#16A34A" />
 								) : (
-									<Text style={[styles.sessionIndexText, session.state === 'next' && styles.sessionIndexTextNext]}>{session.id}</Text>
+									<Text style={[styles.sessionIndexText, session.state === 'next' && styles.sessionIndexTextNext]}>{String(session.id)}</Text>
 								)}
 							</View>
 							<View style={styles.sessionTexts}>
-								<Text style={[styles.sessionTitle, session.state === 'next' && styles.sessionTitleNext]}>{session.title}</Text>
-								<Text style={[styles.sessionSubtitle, session.state === 'next' && styles.sessionSubtitleNext]}>{session.subtitle}</Text>
+								<Text style={[styles.sessionTitle, session.state === 'next' && styles.sessionTitleNext]}>{String(session.title)}</Text>
+								<Text style={[styles.sessionSubtitle, session.state === 'next' && styles.sessionSubtitleNext]}>{String(session.subtitle)}</Text>
 							</View>
 							<View style={[styles.sessionBadge, session.state === 'next' && styles.sessionBadgeNext, session.state === 'done' && styles.sessionBadgeDone]}>
 								<Text style={[styles.sessionBadgeText, session.state === 'next' && styles.sessionBadgeTextNext, session.state === 'done' && styles.sessionBadgeTextDone]}>
-									{session.badge}
+									{String(session.badge)}
 								</Text>
 							</View>
 						</View>
@@ -190,20 +336,11 @@ export default function ServiceStd() {
 						<View style={styles.sectionLine} />
 					</View>
 
-					{documents.map((doc) => (
-						<View key={doc.id} style={styles.documentRow}>
-							<View style={styles.documentIconBox}>
-								<Ionicons name={doc.icon} size={20} color={doc.color} />
-							</View>
-							<Text style={styles.documentName}>{doc.name}</Text>
-							<Text style={styles.documentDate}>{doc.date}</Text>
-						</View>
-					))}
+				{renderDocuments()}
 				</View>
 
-				<View style={{ height: 20 }} />
-			</ScrollView>
-		</SafeAreaView>
+			<View style={{ height: 20 }} />
+		</ScrollView>		</SafeAreaView>
 	);
 }
 
@@ -285,6 +422,12 @@ const styles = StyleSheet.create({
 		height: 1,
 		flex: 1,
 		backgroundColor: '#D7DCEB',
+	},
+	emptySessions: {
+		color: '#64748B',
+		fontSize: 13,
+		fontStyle: 'italic',
+		paddingVertical: 8,
 	},
 	teacherCard: {
 		flexDirection: 'row',
@@ -467,11 +610,11 @@ const styles = StyleSheet.create({
 		justifyContent: 'center',
 	},
 	documentName: {
-		flex: 1,
-		marginLeft: 10,
 		fontSize: 13,
 		fontWeight: '600',
 		color: '#0A1A4A',
+		textAlignVertical: 'center',
+		includeFontPadding: false,
 	},
 	documentDate: {
 		fontSize: 12,

@@ -21,6 +21,8 @@ const teacherParents = require('./schemas/teacherParent') ;
 const teacherStudents = require('./schemas/teacherStudent') ;
 //const services = require('./schemas/service') ; 
 
+const messages = require('./schemas/message') ;
+
 const { protect, authorize } = require("./middleware");
 const request_parent = require("./schemas/request_parent");
 
@@ -33,12 +35,19 @@ router.get("/getProfile" , protect , authorize("teacher") , async (req,res) => {
         }
         //let's return also the sessions of this teacher
         const teacherSessions = await sessions.find({ done_by: teacherId }).populate("service") ;
-        const parseDate = (str) => {
-           const [day, month, year] = str.split("/");
-           return new Date(year, month - 1, day);
-        };
+          const parseDate = (str) => {
+              if (!str || typeof str !== 'string') return Number.POSITIVE_INFINITY;
+              const [day, month, year] = str.split('/');
+              if (!day || !month || !year) return Number.POSITIVE_INFINITY;
+              const parsed = new Date(Number(year), Number(month) - 1, Number(day));
+              return Number.isNaN(parsed.getTime()) ? Number.POSITIVE_INFINITY : parsed.getTime();
+          };
 
-        const sortedSessions = [...teacherSessions].sort((a, b) => parseDate(a.date) - parseDate(b.date));
+          const sortedSessions = [...teacherSessions].sort((a, b) => {
+                const dateA = a?.Date ?? a?.date;
+                const dateB = b?.Date ?? b?.date;
+                return parseDate(dateA) - parseDate(dateB);
+          });
         
         //let's return the requests 
         const parentRequests = await request_parents.find({ res_by: teacherId }).populate("requester") ;
@@ -60,10 +69,10 @@ router.get("/getProfile" , protect , authorize("teacher") , async (req,res) => {
           
         const evaluationsFromStudents = await evaluations_students.find({ evaluated: teacherId }).populate("evaluator") ;
         //sort by date 
-        evaluationsFromStudents.sort((a, b) => parseDate(a.date) - parseDate(b.date));
+        evaluationsFromStudents.sort((a, b) => parseDate(a?.date ?? a?.Date) - parseDate(b?.date ?? b?.Date));
         const evaluationsFromParents = await evaluation_parents.find({ evaluated: teacherId }).populate("evaluator") ;
         //sort by date 
-        evaluationsFromParents.sort((a, b) => parseDate(a.date) - parseDate(b.date));
+        evaluationsFromParents.sort((a, b) => parseDate(a?.date ?? a?.Date) - parseDate(b?.date ?? b?.Date));
 
 
         let evs = [] ; 
@@ -72,7 +81,7 @@ router.get("/getProfile" , protect , authorize("teacher") , async (req,res) => {
         }else{
             evs = [evaluationsFromStudents[0],evaluationsFromParents[0]] ;
         }
-        res.json({succ:"profile fetched successfully" , teacher:teacherData , sessions:teacherSessions , sortedSessions , upcomingSession:sortedSessions[0]
+        res.json({succ:"profile fetched successfully" , teacher:teacherData , sessions:teacherSessions , sortedSessions , upcomingSession:sortedSessions[sortedSessions.length - 1]
         , parentRequests : parReq , studentRequests : stuReq , reqs , teacherServices , evaluationsFromStudents , evaluationsFromParents , evs }) ;
          
     }catch(err){
@@ -181,15 +190,20 @@ async(req,res) => {
     }
  
     try{
-        const {serviceid , Date , start_time , end_time , location , status} = req.body ; 
+        const { serviceid, Date: sessionDate, start_time, end_time, location, status } = req.body ; 
+
+        const parseSessionDateTime = (dateStr, timeStr) => {
+            const [day, month, year] = String(dateStr).split('/');
+            return new globalThis.Date(`${year}-${month}-${day}T${timeStr}`);
+        };
         
         const ss = await sessions.find({done_by:req.user.id}) ; //table of sessions 
         //check if there is no conflict
         for (const session of ss) {
-           const existingStart = new Date(`${session.Date}T${session.start_time}`);
-           const existingEnd   = new Date(`${session.Date}T${session.end_time}`);
-           const newStart      = new Date(`${Date}T${start_time}`);
-           const newEnd        = new Date(`${Date}T${end_time}`);
+           const existingStart = parseSessionDateTime(session.Date, session.start_time);
+           const existingEnd   = parseSessionDateTime(session.Date, session.end_time);
+           const newStart      = parseSessionDateTime(sessionDate, start_time);
+           const newEnd        = parseSessionDateTime(sessionDate, end_time);
 
            if (newStart < existingEnd && newEnd > existingStart) {
               return res.status(409).json({
@@ -200,7 +214,7 @@ async(req,res) => {
 
         //no conflict , now let's add in the db 
         await sessions.create({
-            Date , start_time , end_time , location , status , service:serviceid , done_by:req.user.id 
+            Date: sessionDate , start_time , end_time , location , status , service:serviceid , done_by:req.user.id 
         }) ; 
 
         res.json({succ:"successful"}) ;
@@ -642,10 +656,10 @@ router.post("/getstudents",protect,authorize("teacher"),async(req,res) => {
     try{
         const {serviceid} = req.body ; 
         const teacherStudentRelations = await teacherStudents.find({teacher:req.user.id , service:serviceid}).populate("student") ;
-        const studentsList = teacherStudentRelations.map(rel => rel.student) ;
+        const studentsList = teacherStudentRelations.map(rel => rel.student).filter(Boolean) ;
 
         const teacherParentRelations = await teacherParents.find({teacher:req.user.id , service:serviceid}).populate("parent") ;
-        const parentsList = teacherParentRelations.map(rel => rel.parent) ;
+        const parentsList = teacherParentRelations.map(rel => rel.parent).filter(Boolean) ;
         res.json({succ:"succ" , students:studentsList , parents:parentsList}) ;
     }catch(e){
         console.error(e) ;
@@ -656,11 +670,13 @@ router.post("/getstudents",protect,authorize("teacher"),async(req,res) => {
 //get all students of a teacher for all his services :
 router.get("/getallstudents",protect,authorize("teacher"),async(req,res) => {
     try{
-        const teacherStudentRelations = await teacherStudents.find({teacher:req.user.id}).populate("student") ;
-        const studentsList = teacherStudentRelations.map(rel => rel.student) ;
+        //since a student can be related to the teacher in the teacherStudent collection for different services , we can have duplicates in the studentsList if we just do a find on teacherStudents with teacher id and populate student . to avoid this , we will first find all the teacherStudent relations for this teacher , then we will extract the unique student ids from these relations , and finally we will fetch the student data for these unique student ids . same for parents
+        
+        const teacherStudentRelations = await teacherStudents.find({teacher:req.user.id}).populate("student").populate("service") ;
+        const studentsList = teacherStudentRelations.map(rel => rel.student).filter(Boolean) ;
 
-        const teacherParentRelations = await teacherParents.find({teacher:req.user.id}).populate("parent") ;
-        const parentsList = teacherParentRelations.map(rel => rel.parent) ;
+        const teacherParentRelations = await teacherParents.find({teacher:req.user.id}).populate("parent").populate("service") ;
+        const parentsList = teacherParentRelations.map(rel => rel.parent).filter(Boolean) ;
 
         res.json({succ:"succ" , students:studentsList , parents:parentsList}) ;
     }catch(e){
@@ -695,5 +711,49 @@ router.put("/acceptrequest" , protect , authorize("teacher") , async(req,res) =>
         res.json({error:"error"}) ;
     }
 }) ;
+
+router.get("/getmessages",protect,authorize("teacher"),async(req,res) => {
+   try{
+       const teacherId = req.user.id ; 
+       const msgs = (await messages.find({receiver:teacherId}).populate("sender")).reverse() ; //to show the latest message first
+       res.json({succ:"succ" , messages:msgs}) ; 
+   }catch(e){
+        console.error(e) ;
+        res.json({error:"error"}) ; 
+   }
+}) ; 
+
+router.post("/replytomessage",protect,authorize("teacher"),
+body("msg").isString().isLength({min:1})
+,async(req,res) => {
+    try{
+        const {msg , receiverid} = req.body ; 
+        const senderid = req.user.id ;
+
+        // Determine receiver actor type so refPath works (students | parents | teachers)
+        let actorType = 'teachers';
+        if (receiverid) {
+            const foundStudent = await students.findById(receiverid).lean().exec();
+            if (foundStudent) actorType = 'students';
+            else {
+                const foundParent = await parents.findById(receiverid).lean().exec();
+                if (foundParent) actorType = 'parents';
+            }
+        }
+
+        // Create message using schema fields: `msg` and `actors`
+        await messages.create({
+            sender: senderid,
+            receiver: receiverid,
+            msg: msg,
+            actors: actorType,
+        });
+
+        res.json({succ:"succ"});
+    }catch(e){
+        console.error(e) ;
+        res.json({error:"error"}) ;
+    }
+}) ; 
 
 module.exports = router ;

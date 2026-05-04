@@ -14,10 +14,14 @@ import {
   Modal,
   FlatList,
   TouchableWithoutFeedback,
+  Alert,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter , useLocalSearchParams} from 'expo-router';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { FontAwesome5, MaterialIcons, Ionicons, Feather } from '@expo/vector-icons';
+import * as SecureStore from 'expo-secure-store';
+import { BASE_URL } from '../../constants/api';
+import { getStudentOrParentRole } from '../../constants/roleApi';
 
 const { width } = Dimensions.get('window');
 
@@ -51,6 +55,8 @@ const DURATIONS = [
   '1 hour', '1.5 hours', '2 hours', '2.5 hours', '3 hours', '4 hours'
 ];
 
+const MODES = ['Online', 'Presential', 'Hybrid'];
+
 const COLORS = {
   primary: '#2E2D75', // Dark purple from the screenshot header
   secondary: '#FFD700', // Gold/Yellow icon color
@@ -65,6 +71,7 @@ const COLORS = {
 
 export default function DevisPedagogique() {
   const router = useRouter();
+  const { teacherId } = useLocalSearchParams() as { teacherId?: string };
   
   // State for form fields
   const [subject, setSubject] = useState('');
@@ -73,6 +80,8 @@ export default function DevisPedagogique() {
   const [frequency, setFrequency] = useState('');
   const [duration, setDuration] = useState('');
   const [budget, setBudget] = useState('');
+  const [mode, setMode] = useState('');
+  const [loading, setLoading] = useState(false);
 
   // Selection Modal State
   const [modalVisible, setModalVisible] = useState(false);
@@ -92,9 +101,88 @@ export default function DevisPedagogique() {
     setModalVisible(false);
   };
 
-  const handleSend = () => {
-    // Implement send logic
-    console.log('Sending quote...', { subject, level, objective, frequency, duration, budget });
+  const handleSend = async () => {
+    // Validate all fields
+    if (!subject || !level || !objective || !frequency || !duration || !budget || !mode) {
+      Alert.alert('Missing Fields', 'Please fill in all fields before sending the quote.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const accessToken = await SecureStore.getItemAsync('accessToken');
+      const refreshToken = await SecureStore.getItemAsync('refreshToken');
+      const apiRole = await getStudentOrParentRole();
+
+      let response = await fetch(`${BASE_URL}/${apiRole}/sendRequest`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          matiere: subject,
+          niveau: level,
+          objectif: objective,
+          frequence: frequency,
+          duree: duration,
+          price: parseInt(budget) || 0,
+          mode: mode,
+          teacherId: teacherId || undefined,
+        }),
+      });
+
+      let data = await response.json();
+
+      // Handle token expiry
+      if (data?.error === 'Token expired!') {
+        const r = await fetch(`${BASE_URL}/${apiRole}/refresh`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ refreshToken }),
+        });
+        const newData = await r.json();
+        if (newData.accessToken) {
+          await SecureStore.setItemAsync('accessToken', newData.accessToken);
+          response = await fetch(`${BASE_URL}/${apiRole}/sendRequest`, {
+            method: 'POST',
+            headers: {
+              'content-type': 'application/json',
+              authorization: `Bearer ${newData.accessToken}`,
+            },
+            body: JSON.stringify({
+              matiere: subject,
+              niveau: level,
+              objectif: objective,
+              frequence: frequency,
+              duree: duration,
+              price: parseInt(budget) || 0,
+              mode: mode,
+              teacherId: teacherId || undefined,
+            }),
+          });
+          data = await response.json();
+        } else {
+          Alert.alert('Error', 'Session expired. Please sign in again.');
+          router.replace('/sign_in');
+          setLoading(false);
+          return;
+        }
+      }
+
+      if (data?.succ) {
+        Alert.alert('Success', 'Your quote has been sent successfully!');
+        handleReset();
+        router.replace('/(student_space)/studentSpace');
+      } else {
+        Alert.alert('Error', data?.error || 'Failed to send quote.');
+      }
+    } catch (err) {
+      console.error('handleSend error:', err);
+      Alert.alert('Error', 'Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleReset = () => {
@@ -104,6 +192,7 @@ export default function DevisPedagogique() {
     setFrequency('');
     setDuration('');
     setBudget('');
+    setMode('');
   };
 
   const renderSectionHeader = (icon: string, title: string, color: string = COLORS.primary) => (
@@ -285,11 +374,31 @@ export default function DevisPedagogique() {
             </View>
           </Animated.View>
 
+          {/* Mode of Delivery */}
+          <Animated.View entering={FadeInDown.delay(700).springify()}>
+            <View style={styles.divider} />
+            {renderSectionHeader('location-arrow', 'Mode of Delivery')}
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Select Mode <Text style={styles.required}>*</Text></Text>
+              <TouchableOpacity
+                style={styles.inputContainer}
+                onPress={() => openSelection('Select Mode', MODES, setMode)}
+              >
+                <Ionicons name="location" size={20} color={COLORS.primary} />
+                <Text style={mode ? styles.inputText : styles.placeholderText}>
+                  {mode || 'Select a mode'}
+                </Text>
+                <MaterialIcons name="keyboard-arrow-down" size={24} color={COLORS.textLight} style={styles.chevron} />
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
+
           {/* Action Buttons */}
           <Animated.View entering={FadeInUp.delay(800).springify()} style={styles.footer}>
-            <TouchableOpacity style={styles.submitButton} onPress={handleSend}>
+            <TouchableOpacity style={[styles.submitButton, loading && styles.buttonDisabled]} onPress={handleSend} disabled={loading}>
               <FontAwesome5 name="paper-plane" size={16} color={COLORS.white} style={{ marginRight: 10 }} />
-              <Text style={styles.submitButtonText}>Send Quote</Text>
+              <Text style={styles.submitButtonText}>{loading ? 'Sending...' : 'Send Quote'}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.resetButton} onPress={handleReset}>
@@ -549,6 +658,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
+  },
+  buttonDisabled: {
+    backgroundColor: '#CCCCCC',
+    shadowOpacity: 0.1,
   },
   submitButtonText: {
     color: COLORS.white,

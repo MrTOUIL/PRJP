@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, StatusBar, Platform, KeyboardAvoidingView } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, StatusBar, Platform, KeyboardAvoidingView, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import * as SecureStore from 'expo-secure-store';
+import { BASE_URL } from '../../constants/api';
 
 const COLORS = {
   primary: '#1A1A5E',
@@ -16,14 +18,68 @@ const COLORS = {
 export default function ReplyMessage() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { sender, subject, initialMessage, avatarColor } = params;
+  const { sender, senderId, subject, initialMessage, avatarColor } = params as any;
   
   const [replyText, setReplyText] = useState('');
 
-  const handleSend = () => {
-    // Logic to send message goes here
-    console.log('Sending message:', replyText);
-    router.back();
+  const handleSend = async () => {
+    const text = (replyText || '').trim();
+    if (!text) return Alert.alert('Empty message', 'Please type a message before sending.');
+
+    try {
+      const accessToken = await SecureStore.getItemAsync('accessToken');
+      const refreshToken = await SecureStore.getItemAsync('refreshToken');
+
+      const doSend = async (token: string | null) => {
+        const res = await fetch(`${BASE_URL}/teacher/replytomessage`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+          body: JSON.stringify({ msg: text, receiverid: senderId }),
+        });
+        const ct = res.headers.get('content-type') || '';
+        if (ct.includes('application/json')) {
+          const j = await res.json();
+          return { status: res.status, json: j };
+        }
+        const txt = await res.text();
+        return { status: res.status, text: txt };
+      };
+
+      let data = await doSend(accessToken);
+
+      if (data?.json?.error === 'Token expired!') {
+        const refreshRes = await fetch(`${BASE_URL}/teacher/refresh`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ refreshToken }),
+        });
+        const refreshCt = refreshRes.headers.get('content-type') || '';
+        const refreshData = refreshCt.includes('application/json') ? await refreshRes.json() : { raw: await refreshRes.text() };
+        if (refreshData?.accessToken) {
+          await SecureStore.setItemAsync('accessToken', refreshData.accessToken);
+          data = await doSend(refreshData.accessToken);
+        } else {
+          router.replace('/sign_in');
+          return;
+        }
+      }
+
+      if (data?.json && data.json.succ) {
+        Alert.alert('Sent', 'Reply sent successfully');
+        router.back();
+      } else if (data?.json && data.json.error) {
+        Alert.alert('Error', data.json.error);
+      } else if (data?.text) {
+        // server returned non-json (likely HTML error) — show raw text for debugging
+        console.warn('Non-JSON response from /teacher/replytomessage:', data.text);
+        Alert.alert('Server response', data.text.substring(0, 1000));
+      } else {
+        Alert.alert('Error', 'Unable to send message');
+      }
+    } catch (err) {
+      console.error(err);
+      Alert.alert('Error', 'Unable to send message');
+    }
   };
 
   return (

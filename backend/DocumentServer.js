@@ -66,57 +66,55 @@ body("type_doc").trim().isLength({min:1})
 router.post("/getdocuments" , protect , authorize("teacher") , async(req,res) => {
     try{
         const {sessionid} = req.body ; 
-        const d = await documents.find({session : sessionid}) ;
-        res.json({succ:"fetched successfully" , documents:d}) ;
+        // fetch documents from DB
+        const d = await documents.find({session : sessionid}).lean();
+
+        // authorize B2 and generate fresh signed URLs for each file (in case stored tokens expired)
+        await b2.authorize();
+
+        const docsWithSigned = await Promise.all(d.map(async (doc) => {
+            try{
+                // extract filename from stored url if possible
+                let fileName = null;
+                if (doc.url) {
+                    try{
+                        const urlObj = new URL(doc.url);
+                        const parts = urlObj.pathname.split('/');
+                        fileName = parts.pop();
+                        if (fileName && fileName.includes('?')) {
+                            fileName = fileName.split('?')[0];
+                        }
+                    }catch(e){
+                        // fallback: try last segment of the string
+                        const parts = String(doc.url).split('/');
+                        fileName = parts.pop().split('?')[0];
+                    }
+                }
+
+                if (!fileName) return doc;
+
+                const authResponse = await b2.getDownloadAuthorization({
+                    bucketId: BUCKET_ID,
+                    fileNamePrefix: fileName,
+                    validDurationInSeconds: 60 * 60 * 24 // 1 day
+                });
+
+                const signedUrl = `https://f005.backblazeb2.com/file/${BUCKET_NAME}/${encodeURIComponent(fileName)}?Authorization=${authResponse.data.authorizationToken}`;
+
+                return { ...doc, signedUrl };
+            }catch(e){
+                console.error('signed url generation failed for doc', doc._id, e);
+                return doc; // return original doc if signing fails
+            }
+        }));
+
+        res.json({succ:"fetched successfully" , documents:docsWithSigned}) ;
     }catch(e){
         console.log(e);
         res.json({ error: "error" });
     }
 })
 
-/*router.delete("/deletedocument",protect,authorize("teacher") , async(req,res) => {
-    try{
-        const {id} = req.body ; 
-        const media = await documents.findOne({_id:id}) ;
-        if (!media){
-            return res.json({error:"not found!"}) ;
-        }
-        await b2.authorize() ;
-        await b2.deleteFileVersion({
-            fileId:media.fileId
-        }) ; 
-        await media.deleteOne() ;
-        res.json({succ:"succ"}) ; 
-    }catch(e){
-        console.error(e) ; 
-        res.json({error:"error"}) ; 
-    }
-}) ; */
 
-/*router.delete("/deletedocument", protect, authorize("teacher"), async (req, res) => {
-    try {
-        const { id } = req.body;
-        const media = await documents.findOne({ _id: id });
-        if (!media) {
-            return res.json({ error: "not found!" });
-        }
-        await b2.authorize();
-
-        // Extract fileName from the stored URL
-        const urlPath = new URL(media.url).pathname; // e.g. /file/bucketname/1234567890-myfile.pdf
-        const fileName = urlPath.split('/').pop().split('?')[0]; // e.g. 1234567890-myfile.pdf
-
-        await b2.deleteFileVersion({
-            fileId: media.fileId,
-            fileName: fileName,   // ← this was missing
-        });
-
-        await media.deleteOne();
-        res.json({ succ: "succ" });
-    } catch (e) {
-        console.error(e);
-        res.json({ error: "error" });
-    }
-});*/
 
 module.exports = router ;

@@ -49,7 +49,9 @@ export default function VerifyCodepw() {
   const { email } = useLocalSearchParams();
 
   // Spinner rotation
-  spinnerRotate.value = withRepeat(withTiming(360, { duration: 1000 }), -1, false);
+  useEffect(() => {
+    spinnerRotate.value = withRepeat(withTiming(360, { duration: 1000 }), -1, false);
+  }, []);
 
   const animatedSpinnerStyle = useAnimatedStyle(() => {
     return {
@@ -139,6 +141,8 @@ export default function VerifyCodepw() {
         //STORE TOKENS (same as login)
         await SecureStore.setItemAsync("accessToken", data.accessToken);
         await SecureStore.setItemAsync("refreshToken", data.refreshToken);
+        await SecureStore.setItemAsync("userRole", data.role || "student");
+        await SecureStore.setItemAsync("sessionUser", JSON.stringify({ role: data.role || "student" }));
         
         //NAVIGATION
         if (data.role === "teacher") {
