@@ -109,6 +109,7 @@ router.post('/register_student',
 
     try{
         const {first_name,last_name,email,phone,postal_adress,password,academic_level} = req.body ; 
+        console.log("testing now.....") ;
         //verify if there is not an account with the same info 
         const st1 = await students.findOne({email:email}) ; 
         const st2 = await students.findOne({phone:phone}) ; 
@@ -119,6 +120,7 @@ router.post('/register_student',
         const user3 = await teachers.findOne({$or:[{email} , {phone}]}) ; 
         const user4 = await admins.findOne({$or:[{email} , {phone}]}) ; 
         if (user2 || user3 || user4){
+          console.log("found in other collection") ;
           return res.json({message:"account with same info exists!"}); 
         }
           //after the info are verified , we sent the email
@@ -157,6 +159,7 @@ router.post('/register_student',
         res.json({succ:"email sent!"}) ; 
     }catch(e){
         res.json({error:"invalid credentials"}) ;
+        console.log(e) ;
     }
 }) ; 
 
@@ -689,7 +692,8 @@ router.post("/forgetpw_mail",
 
     try{
 
-        const {email} = req.body ; 
+        const {email} = req.body ;
+        console.log("working now....") ; 
 
         const user1 = await students.findOne({email:email}) ;
         const user2 = await parents.findOne({email:email}) ; 
@@ -698,6 +702,7 @@ router.post("/forgetpw_mail",
         const user = user1 || user2 || user3 || user4 ; 
         
         if (!user){
+          console.log("not found in any collection") ;
           return res.json({error:"invalid mail!"}) ;
         }
         
@@ -730,6 +735,7 @@ router.post("/forgetpw_mail",
 
     }catch(e){
         res.json({error:"error!"}) ;
+        console.log(e) ;
     }
 }) ;
 
