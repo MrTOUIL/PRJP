@@ -21,8 +21,8 @@ const nodemailer = require('nodemailer') ;
 
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
-  port: 465,
-  secure: true,
+  port: 587,
+  secure: false,
   auth: {
     user: process.env.MAIL_USER,
     pass: process.env.MAIL_PASS,
@@ -690,7 +690,6 @@ router.post("/forgetpw_mail",
     try{
 
         const {email} = req.body ; 
-        console.log("🔍 ForgetPassword - Looking for email:", email);
 
         const user1 = await students.findOne({email:email}) ;
         const user2 = await parents.findOne({email:email}) ; 
@@ -698,13 +697,7 @@ router.post("/forgetpw_mail",
         const user4 = await admins.findOne({email:email}) ; 
         const user = user1 || user2 || user3 || user4 ; 
         
-        console.log("Found in Students:", !!user1);
-        console.log("Found in Parents:", !!user2);
-        console.log("Found in Teachers:", !!user3);
-        console.log("Found in Admins:", !!user4);
-        
         if (!user){
-          console.log("❌ User not found in any collection");
           return res.json({error:"invalid mail!"}) ;
         }
         
@@ -736,9 +729,7 @@ router.post("/forgetpw_mail",
         res.json({succ:"succ!" , email}) ; 
 
     }catch(e){
-        console.error("❌ ForgetPassword Error:", e.message);
-        console.error("Full error:", e);
-        res.json({error:"error!", details: e.message}) ;
+        res.json({error:"error!"}) ;
     }
 }) ;
 
