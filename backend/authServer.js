@@ -17,9 +17,10 @@ const resetpasswords = require('./schemas/resetpassword') ;
 
 const tokens = require('./schemas/tokens') ; 
   
-const nodemailer = require('nodemailer') ; 
+//const nodemailer = require('nodemailer') ; 
+const { Resend } = require("resend") ; 
 
-const transporter = nodemailer.createTransport({
+/*const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
   port: 587,
   secure: false,
@@ -27,7 +28,9 @@ const transporter = nodemailer.createTransport({
     user: process.env.MAIL_USER,
     pass: process.env.MAIL_PASS,
   }
-});
+});*/
+
+const resend = new Resend(process.env.RESEND_API_KEY) ;
 
 function escapeHtml(str) {
   if (str == null) return '';
@@ -132,8 +135,8 @@ router.post('/register_student',
             </div>
             <p style="margin:0 0 6px 0;">Ce code vous permettra de terminer l'inscription.</p>`;
 
-          const info = await transporter.sendMail({
-            from: `<${process.env.MAIL_USER}>`,
+          const info = await resend.emails.send({
+            from: 'onboarding@resend.dev',
             to: email,
             subject: "Verify your mail!",
             html: buildNotificationHtml({ recipientName: `${first_name || ''} ${last_name || ''}`, mainHtml }),
@@ -209,8 +212,8 @@ router.post('/register_parent',
             </div>
             <p style="margin:0 0 6px 0;">Ce code vous permettra de terminer l'inscription.</p>`;
 
-          const info = await transporter.sendMail({
-            from: `<${process.env.MAIL_USER}>`,
+          const info = await resend.emails.send({
+            from: 'onboarding@resend.dev',
             to: email,
             subject: "Verify your mail!",
             html: buildNotificationHtml({ recipientName: `${first_name || ''} ${last_name || ''}`, mainHtml }),
@@ -285,8 +288,8 @@ router.post('/register_teacher',
             </div>
             <p style="margin:0 0 6px 0;">Ce code vous permettra de terminer l'inscription.</p>`;
 
-          await transporter.sendMail({
-            from: `<${process.env.MAIL_USER}>`,
+          await resend.emails.send({
+            from: 'onboarding@resend.dev',
             to: email,
             subject: "Verify your mail!",
             html: buildNotificationHtml({ recipientName: `${first_name || ''} ${last_name || ''}`, mainHtml }),
@@ -337,8 +340,8 @@ router.put('/resend_code',
             </div>
             <p style="margin:0 0 6px 0;">Ce code vous permettra de terminer l'inscription.</p>`;
 
-        const info = await transporter.sendMail({
-         from: `<${process.env.MAIL_USER}>`,
+        const info = await resend.emails.send({
+         from: 'onboarding@resend.dev',
          to: email,
          subject: "Verify your mail!",
          html: buildNotificationHtml({ recipientName: (user && (user.first_name || user.last_name)) ? `${user.first_name || ''} ${user.last_name || ''}` : '', mainHtml }),
@@ -720,8 +723,8 @@ router.post("/forgetpw_mail",
             </div>
             <p style="margin:0 0 6px 0;">Ce code expire dans 10 minutes.</p>`;
 
-          const info = await transporter.sendMail({
-            from: `<${process.env.MAIL_USER}>`,
+          const info = await resend.emails.send({
+            from: 'onboarding@resend.dev',
             to: email,
             subject: "Verify your mail!",
             html: buildNotificationHtml({ recipientName: (user && (user.first_name || user.last_name)) ? `${user.first_name || ''} ${user.last_name || ''}` : '', mainHtml }),
@@ -733,7 +736,7 @@ router.post("/forgetpw_mail",
         }) ; 
         res.json({succ:"succ!" , email}) ; 
 
-    }catch(e){
+    }catch(e){  
         res.json({error:"error!"}) ;
         console.log(e) ;
     }
@@ -761,8 +764,8 @@ router.put("/resend_code_forgetpw",async(req,res) => {
             </div>
             <p style="margin:0 0 6px 0;">Ce code expire dans 10 minutes.</p>`;
 
-    const info = await transporter.sendMail({
-      from: `<${process.env.MAIL_USER}>`,
+    const info = await resend.emails.send({
+      from: 'onboarding@resend.dev',
       to: email,
       subject: "Verify your mail!",
       html: buildNotificationHtml({ recipientName: (user && (user.first_name || user.last_name)) ? `${user.first_name || ''} ${user.last_name || ''}` : '', mainHtml }),
