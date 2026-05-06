@@ -18,18 +18,22 @@ const resetpasswords = require('./schemas/resetpassword') ;
 const tokens = require('./schemas/tokens') ; 
   
 const nodemailer = require('nodemailer') ; 
+const axios = require("axios") ; 
 //const { Resend } = require("resend") ; 
 
-const transporter = nodemailer.createTransport({
-  host: "smtp-relay.brevo.com",
-  port: 587,
-  secure: false,
-  auth: {
-    user: process.env.BREVO_USER,
-    pass: process.env.BREVO_PASS,
-  }
-});
-
+async function sendEmail({ to, subject, html }) {
+  await axios.post('https://api.brevo.com/v3/smtp/email', {
+    sender: { name: "Alemni Online", email: "nr_nait_saidi@esi.dz" },
+    to: [{ email: to }],
+    subject,
+    htmlContent: html
+  }, {
+    headers: {
+      'api-key': process.env.BREVO_API_KEY,
+      'Content-Type': 'application/json'
+    }
+  });
+}
 //const resend = new Resend(process.env.RESEND_API_KEY) ;
 
 function escapeHtml(str) {
@@ -135,11 +139,16 @@ router.post('/register_student',
             </div>
             <p style="margin:0 0 6px 0;">Ce code vous permettra de terminer l'inscription.</p>`;
 
-          const info = await transporter.sendMail({
+          /*const info = await transporter.sendMail({
             from: `<${process.env.BREVO_USER}>`,
             to: email,
             subject: "Verify your mail!",
             html: buildNotificationHtml({ recipientName: `${first_name || ''} ${last_name || ''}`, mainHtml }),
+          });*/
+          await sendEmail({
+            to: email,
+            subject: "Verify your mail!",
+            html: buildNotificationHtml({ recipientName: `${first_name || ''} ${last_name || ''}`, mainHtml })
           });
         //now we store in pending !
         const hashedpassword = await bcrypt.hash(password,14) ; 
@@ -212,11 +221,16 @@ router.post('/register_parent',
             </div>
             <p style="margin:0 0 6px 0;">Ce code vous permettra de terminer l'inscription.</p>`;
 
-          const info = await transporter.sendMail({
+          /*const info = await transporter.sendMail({
             from: `<${process.env.BREVO_USER}>`,
             to: email,
             subject: "Verify your mail!",
             html: buildNotificationHtml({ recipientName: `${first_name || ''} ${last_name || ''}`, mainHtml }),
+          });*/
+          await sendEmail({
+            to: email,
+            subject: "Verify your mail!",
+            html: buildNotificationHtml({ recipientName: `${first_name || ''} ${last_name || ''}`, mainHtml })
           });
         //now we store in pending !
         const hashedpassword = await bcrypt.hash(password,14) ; 
@@ -288,8 +302,7 @@ router.post('/register_teacher',
             </div>
             <p style="margin:0 0 6px 0;">Ce code vous permettra de terminer l'inscription.</p>`;
 
-          await transporter.sendMail({
-            from: `<${process.env.BREVO_USER}>`,
+          await sendEmail({
             to: email,
             subject: "Verify your mail!",
             html: buildNotificationHtml({ recipientName: `${first_name || ''} ${last_name || ''}`, mainHtml }),
@@ -340,8 +353,7 @@ router.put('/resend_code',
             </div>
             <p style="margin:0 0 6px 0;">Ce code vous permettra de terminer l'inscription.</p>`;
 
-        const info = await transporter.sendMail({
-          from: `<${process.env.BREVO_USER}>`,
+        await sendEmail({
           to: email,
           subject: "Verify your mail!",
           html: buildNotificationHtml({ recipientName: (user && (user.first_name || user.last_name)) ? `${user.first_name || ''} ${user.last_name || ''}` : '', mainHtml }),
@@ -723,8 +735,7 @@ router.post("/forgetpw_mail",
             </div>
             <p style="margin:0 0 6px 0;">Ce code expire dans 10 minutes.</p>`;
 
-          const info = await transporter.sendMail({
-            from: `<${process.env.BREVO_USER}>`,
+          await sendEmail({
             to: email,
             subject: "Verify your mail!",
             html: buildNotificationHtml({ recipientName: (user && (user.first_name || user.last_name)) ? `${user.first_name || ''} ${user.last_name || ''}` : '', mainHtml }),
@@ -764,12 +775,19 @@ router.put("/resend_code_forgetpw",async(req,res) => {
             </div>
             <p style="margin:0 0 6px 0;">Ce code expire dans 10 minutes.</p>`;
 
-    const info = await transporter.sendMail({
+    /*const info = await transporter.sendMail({
       from: `<${process.env.BREVO_USER}>`,
       to: email,
       subject: "Verify your mail!",
       html: buildNotificationHtml({ recipientName: (user && (user.first_name || user.last_name)) ? `${user.first_name || ''} ${user.last_name || ''}` : '', mainHtml }),
+    });*/
+
+    await sendEmail({
+      to: email,
+      subject: "Verify your mail!",
+      html: buildNotificationHtml({ recipientName: (user && (user.first_name || user.last_name)) ? `${user.first_name || ''} ${user.last_name || ''}` : '', mainHtml }),
     });
+
     const m = await resetpasswords.findOne({email}) ;
     if (m) // if the 10 min still not pass!!
       {await resetpasswords.deleteOne({email}) ;}
