@@ -11,15 +11,11 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { API_BASE } from './constants/api';
 
 type AccessAccountProps = {
   onAuthenticated: (payload: { accessToken: string; role: string; email: string; adminId: string; adminFirstName: string; adminLastName: string }) => void;
 };
-
-const API_BASE = Platform.select({
-  android: 'http://10.0.2.2:5000',
-  default: 'http://localhost:5000',
-});
 
 export default function AccessAccount({ onAuthenticated }: AccessAccountProps) {
   const [email, setEmail] = useState('');
@@ -74,7 +70,7 @@ export default function AccessAccount({ onAuthenticated }: AccessAccountProps) {
     const trimmedEmail = email.trim();
 
     if (!trimmedEmail || !password) {
-      setError('Veuillez saisir votre email et votre mot de passe.');
+      setError('Please enter your email and password.');
       return;
     }
 
@@ -96,26 +92,28 @@ export default function AccessAccount({ onAuthenticated }: AccessAccountProps) {
       if (!response.ok) {
         const message =
           Array.isArray(data?.error)
-            ? data.error[0]?.msg || 'Connexion impossible.'
-            : data?.error || 'Connexion impossible.';
+            ? data.error[0]?.msg || 'Login failed.'
+            : data?.error || 'Login failed.';
         throw new Error(message);
       }
 
       if (data?.role !== 'admin') {
-        throw new Error('Ce compte n a pas le role admin.');
+        throw new Error('This account does not have the admin role.');
       }
 
-      setSuccess('Acces admin valide. Ouverture du dashboard...');
-      onAuthenticated({
+      const session = {
         accessToken: data.accessToken,
         role: data.role,
         email: trimmedEmail,
         adminId: String(data.id || '').trim(),
         adminFirstName: String(data.first_name || '').trim(),
         adminLastName: String(data.last_name || '').trim(),
-      });
+      };
+
+      setSuccess('Login successful. Opening the dashboard...');
+      onAuthenticated(session);
     } catch (loginError: unknown) {
-      setError(loginError instanceof Error ? loginError.message : 'Erreur de connexion.');
+      setError(loginError instanceof Error ? loginError.message : 'Login error.');
     } finally {
       setLoading(false);
     }
@@ -148,7 +146,7 @@ export default function AccessAccount({ onAuthenticated }: AccessAccountProps) {
           >
             <View style={styles.logoContainer}>
               <Animated.Image
-                source={require('./assets/Logo_nobg.png')}
+                source={require('./admin.png')}
                 style={[
                   styles.logo,
                   {
@@ -173,7 +171,7 @@ export default function AccessAccount({ onAuthenticated }: AccessAccountProps) {
             </View>
 
             <View style={styles.heroBadge}>
-              <Text style={styles.heroBadgeText}>Acceder au compte admin</Text>
+              <Text style={styles.heroBadgeText}>Admin access</Text>
             </View>
 
             <Animated.Text
@@ -188,10 +186,10 @@ export default function AccessAccount({ onAuthenticated }: AccessAccountProps) {
                 },
               ]}
             >
-              Bienvenue sur l espace admin
+              Welcome to the admin area
             </Animated.Text>
             <Text style={styles.subtitle}>
-              Connecte-toi avec un compte admin existant avant d ouvrir le dashboard.
+              Sign in with an existing admin account to open the dashboard.
             </Text>
 
             <Animated.View
@@ -210,18 +208,18 @@ export default function AccessAccount({ onAuthenticated }: AccessAccountProps) {
                 },
               ]}
             >
-              <Text style={styles.label}>Email admin</Text>
+              <Text style={styles.label}>Admin email</Text>
               <TextInput
                 value={email}
                 onChangeText={setEmail}
-                placeholder="admin@exemple.com"
+                placeholder="admin@example.com"
                 placeholderTextColor="#94a3b8"
                 autoCapitalize="none"
                 keyboardType="email-address"
                 style={styles.input}
               />
 
-              <Text style={styles.label}>Mot de passe</Text>
+              <Text style={styles.label}>Password</Text>
               <TextInput
                 value={password}
                 onChangeText={setPassword}
@@ -239,7 +237,7 @@ export default function AccessAccount({ onAuthenticated }: AccessAccountProps) {
                 onPress={handleLogin}
                 disabled={loading}
               >
-                <Text style={styles.buttonText}>{loading ? 'Verification...' : 'Entrer dans le dashboard'}</Text>
+                <Text style={styles.buttonText}>{loading ? 'Verifying...' : 'Enter dashboard'}</Text>
               </Pressable>
             </Animated.View>
           </Animated.View>

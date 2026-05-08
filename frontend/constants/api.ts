@@ -1,6 +1,8 @@
-const API_BASE = ((): string => {
-  return typeof navigator !== 'undefined' && (navigator as any).product === 'ReactNative' ? 'http://10.0.2.2:5000' : 'http://localhost:5000';
-})();
+import { Platform } from 'react-native';
+
+const API_HOST = process.env.EXPO_PUBLIC_API_BASE_URL || '172.20.10.5';
+
+export const API_BASE = Platform.OS === 'web' ? 'http://localhost:5000' : `http://${API_HOST}:5000`;
 
 const ADMIN_TOKEN = 'dev-admin-token';
 import { getCurrentAdminId } from './adminSession';

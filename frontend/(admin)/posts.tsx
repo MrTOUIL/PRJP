@@ -223,16 +223,16 @@ export default function ManagePosts({ onOpenPostDetails, onOpenOwnerProfile, onB
       >
         {onBack ? (
           <TouchableOpacity onPress={onBack} style={styles.backBtn}>
-            <ThemedText style={styles.backBtnText}>Retour</ThemedText>
+            <ThemedText style={styles.backBtnText}>Back</ThemedText>
           </TouchableOpacity>
         ) : null}
         <View style={[styles.hero, { backgroundColor: AdminTheme.colors.surfaceLight }]}
         >
           <View style={styles.heroRow}>
             <View style={styles.heroAccent} />
-            <ThemedText type="title" style={styles.heroTitle}>Devis & Services</ThemedText>
+            <ThemedText type="title" style={styles.heroTitle}>Quotes & Services</ThemedText>
           </View>
-          <ThemedText style={styles.heroSub}>Garde le catalogue propre et visible.</ThemedText>
+          <ThemedText style={styles.heroSub}>Keep the catalog clean and visible.</ThemedText>
         </View>
 
         <View style={styles.searchRow}>
@@ -277,7 +277,7 @@ export default function ManagePosts({ onOpenPostDetails, onOpenOwnerProfile, onB
         />
 
         <View style={styles.logsSection}>
-          <ThemedText type="subtitle">Dernieres actions</ThemedText>
+          <ThemedText type="subtitle">Recent actions</ThemedText>
           {logs.length === 0 ? (
             <ThemedText style={styles.empty}>No actions yet.</ThemedText>
           ) : (
@@ -296,19 +296,19 @@ export default function ManagePosts({ onOpenPostDetails, onOpenOwnerProfile, onB
           <View style={styles.modalCard}>
             <ThemedText type="subtitle">Confirmation</ThemedText>
             <ThemedText style={styles.modalSub}>
-              {`Supprimer "${deleteTarget?.title ?? ''}" ?`}
+              {`Delete "${deleteTarget?.title ?? ''}"?`}
             </ThemedText>
             {deleteError ? <ThemedText style={styles.modalError}>{deleteError}</ThemedText> : null}
             <View style={styles.modalActions}>
               <TouchableOpacity onPress={() => setDeleteModalOpen(false)} style={styles.modalBtn}>
-                <ThemedText>Annuler</ThemedText>
+                <ThemedText>Cancel</ThemedText>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={confirmDelete}
                 style={[styles.modalBtn, styles.modalPrimary]}
                 disabled={deleteLoading}
               >
-                <ThemedText style={{ color: '#FFFFFF' }}>{deleteLoading ? '...' : 'Supprimer'}</ThemedText>
+                <ThemedText style={{ color: '#FFFFFF' }}>{deleteLoading ? '...' : 'Delete'}</ThemedText>
               </TouchableOpacity>
             </View>
           </View>
@@ -317,14 +317,14 @@ export default function ManagePosts({ onOpenPostDetails, onOpenOwnerProfile, onB
       <Modal visible={!!selectedItem} transparent animationType="fade" onRequestClose={() => setSelectedItem(null)}>
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
-            <ThemedText type="subtitle">Détails</ThemedText>
+            <ThemedText type="subtitle">Details</ThemedText>
             <ThemedText style={styles.modalSub}>Titre: {selectedItem?.title}</ThemedText>
             <ThemedText style={styles.modalSub}>Type: {selectedItem?.type}</ThemedText>
             <ThemedText style={styles.modalSub}>Owner: {selectedItem?.owner}</ThemedText>
             <ThemedText style={styles.modalSub}>Price: {selectedItem?.price ?? 'N/A'}</ThemedText>
             <View style={styles.modalActions}>
               <TouchableOpacity onPress={() => setSelectedItem(null)} style={styles.modalBtn}>
-                <ThemedText>Fermer</ThemedText>
+                <ThemedText>Close</ThemedText>
               </TouchableOpacity>
             </View>
           </View>

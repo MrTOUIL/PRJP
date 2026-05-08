@@ -17,10 +17,10 @@ export default function AdminLayout() {
           },
         }}>
         <Stack.Screen name="dashboard" options={{ title: 'Admin', headerBackVisible: false }} />
-        <Stack.Screen name="users" options={{ title: 'Membres & Messages' }} />
-        <Stack.Screen name="posts" options={{ title: 'Devis & Services' }} />
-        <Stack.Screen name="reports" options={{ title: 'Rapports d actions' }} />
-        <Stack.Screen name="member/[id]" options={{ title: 'Profil membre' }} />
+        <Stack.Screen name="users" options={{ title: 'Members & Messages' }} />
+        <Stack.Screen name="posts" options={{ title: 'Quotes & Services' }} />
+        <Stack.Screen name="reports" options={{ title: 'Action Reports' }} />
+        <Stack.Screen name="member/[id]" options={{ title: 'Member Profile' }} />
         <Stack.Screen name="post/[id]" options={{ title: 'Details' }} />
       </Stack>
       <StatusBar style="auto" />

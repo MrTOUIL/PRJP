@@ -25,25 +25,25 @@ type MemberDetails = {
 const FIELD_LABELS: Record<string, string> = {
   id: 'ID',
   role: 'Role',
-  first_name: 'Prenom',
-  last_name: 'Nom',
-  parentf: 'Parent prenom',
-  parentl: 'Parent nom',
+  first_name: 'First name',
+  last_name: 'Last name',
+  parentf: 'Parent first name',
+  parentl: 'Parent last name',
   email: 'Email',
   phone: 'Phone',
-  postal_adress: 'Adresse',
-  academic_level: 'Niveau',
-  subject: 'Matieres',
-  school_levels_taught: 'Niveaux enseignes',
+  postal_adress: 'Address',
+  academic_level: 'Academic level',
+  subject: 'Subjects',
+  school_levels_taught: 'Teaching levels',
   mode: 'Mode',
-  available_days: 'Jours dispo',
-  start_time: 'Heure debut',
-  end_time: 'Heure fin',
-  home_visits: 'Visites a domicile',
+  available_days: 'Available days',
+  start_time: 'Start time',
+  end_time: 'End time',
+  home_visits: 'Home visits',
   bio: 'Bio',
   status: 'Status',
-  createdAt: 'Cree le',
-  updatedAt: 'Mis a jour',
+  createdAt: 'Created at',
+  updatedAt: 'Updated at',
 };
 
 type MemberProfileProps = {
@@ -89,13 +89,13 @@ export default function MemberProfile({ memberId, onBack }: MemberProfileProps) 
         setError(null);
       })
       .catch((err: any) => {
-        setError(err?.message || 'Erreur de chargement');
+        setError(err?.message || 'Loading error');
       });
   }, [id]);
 
   const fullName = member
-    ? `${member.first_name ?? ''} ${member.last_name ?? ''}`.trim() || 'Membre'
-    : 'Membre';
+    ? `${member.first_name ?? ''} ${member.last_name ?? ''}`.trim() || 'Member'
+    : 'Member';
 
   const fieldEntries = member
     ? Object.entries(member)
@@ -128,7 +128,7 @@ export default function MemberProfile({ memberId, onBack }: MemberProfileProps) 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {onBack ? (
           <TouchableOpacity onPress={onBack} style={styles.backBtn}>
-            <ThemedText style={styles.backBtnText}>Retour</ThemedText>
+            <ThemedText style={styles.backBtnText}>Back</ThemedText>
           </TouchableOpacity>
         ) : null}
         <Animated.View
@@ -156,7 +156,7 @@ export default function MemberProfile({ memberId, onBack }: MemberProfileProps) 
               <ThemedText type="title" style={styles.heroTitle}>{fullName}</ThemedText>
               <View style={styles.roleRow}>
                 <View style={[styles.rolePill, { borderColor: isDark ? AdminTheme.colors.borderSoft : '#CBD5F5' }]}>
-                  <ThemedText style={styles.rolePillText}>{member?.role ?? 'Membre'}</ThemedText>
+                  <ThemedText style={styles.rolePillText}>{member?.role ?? 'Member'}</ThemedText>
                 </View>
                 <View style={[styles.statusPill, { backgroundColor: isDark ? AdminTheme.colors.primarySoft : '#E0E7FF' }]}>
                   <ThemedText style={styles.statusPillText}>{member?.status ?? '---'}</ThemedText>
@@ -165,12 +165,12 @@ export default function MemberProfile({ memberId, onBack }: MemberProfileProps) 
             </View>
           </View>
           <View style={[styles.heroAccent, { backgroundColor: AdminTheme.colors.gold }]} />
-          <ThemedText style={styles.heroSub}>Profil complet du membre, informations detaillees.</ThemedText>
+          <ThemedText style={styles.heroSub}>Complete member profile with detailed information.</ThemedText>
         </Animated.View>
 
         <View style={[styles.card, { backgroundColor: isDark ? AdminTheme.colors.surfaceElevated : '#FFFFFF' }]}>
           <View style={styles.cardHeader}>
-            <ThemedText type="subtitle">Informations</ThemedText>
+            <ThemedText type="subtitle">Information</ThemedText>
             <View style={[styles.cardTag, { backgroundColor: isDark ? AdminTheme.colors.primarySoft : '#EEF2FF' }]}>
               <ThemedText style={styles.cardTagText}>Details</ThemedText>
             </View>

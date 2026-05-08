@@ -17,18 +17,18 @@ type ItemDetails = {
 const FIELD_LABELS: Record<string, string> = {
   id: 'ID',
   type: 'Type',
-  target_audiance: 'Public cible',
+  target_audiance: 'Target audience',
   mode: 'Mode',
-  expectations: 'Attentes',
-  duration: 'Duree',
-  cost: 'Prix',
+  expectations: 'Expectations',
+  duration: 'Duration',
+  cost: 'Price',
   source: 'Source',
   fileId: 'File ID',
-  comment: 'Commentaire',
-  done_by: 'Realise par',
+  comment: 'Comment',
+  done_by: 'Done by',
   status: 'Status',
-  createdAt: 'Cree le',
-  updatedAt: 'Mis a jour',
+  createdAt: 'Created at',
+  updatedAt: 'Updated at',
 };
 
 type PostDetailsProps = {
@@ -70,7 +70,7 @@ export default function PostDetails({ itemId, itemType, onOpenOwnerProfile, onBa
         setError(null);
       })
       .catch((err: any) => {
-        setError(err?.message || 'Erreur de chargement');
+        setError(err?.message || 'Loading error');
       });
   }, [id, type]);
 
@@ -131,7 +131,7 @@ export default function PostDetails({ itemId, itemType, onOpenOwnerProfile, onBa
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {onBack ? (
           <TouchableOpacity onPress={onBack} style={styles.backBtn}>
-            <ThemedText style={styles.backBtnText}>Retour</ThemedText>
+            <ThemedText style={styles.backBtnText}>Back</ThemedText>
           </TouchableOpacity>
         ) : null}
         <Animated.View
@@ -153,7 +153,7 @@ export default function PostDetails({ itemId, itemType, onOpenOwnerProfile, onBa
         >
           <View style={[styles.heroAccent, { backgroundColor: AdminTheme.colors.gold }]} />
           <ThemedText type="title" style={styles.heroTitle}>{title}</ThemedText>
-          <ThemedText style={styles.heroSub}>Details complets du service/devis.</ThemedText>
+          <ThemedText style={styles.heroSub}>Full details for the service/quote.</ThemedText>
         </Animated.View>
 
         <View style={[styles.card, { backgroundColor: isDark ? AdminTheme.colors.surfaceElevated : '#FFFFFF' }]}>
@@ -168,7 +168,7 @@ export default function PostDetails({ itemId, itemType, onOpenOwnerProfile, onBa
               style={styles.ownerBtn}
               onPress={() => onOpenOwnerProfile(ownerId)}
             >
-              <ThemedText style={styles.ownerBtnText}>Voir profil owner</ThemedText>
+              <ThemedText style={styles.ownerBtnText}>View owner profile</ThemedText>
             </TouchableOpacity>
           ) : null}
           {error ? <ThemedText style={styles.error}>{error}</ThemedText> : null}

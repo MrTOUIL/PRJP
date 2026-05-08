@@ -240,14 +240,14 @@ export default function ManageUsers({ onOpenMemberProfile, onBack }: ManageUsers
       >
         {onBack ? (
           <TouchableOpacity onPress={onBack} style={styles.backBtn}>
-            <ThemedText style={styles.backBtnText}>Retour</ThemedText>
+            <ThemedText style={styles.backBtnText}>Back</ThemedText>
           </TouchableOpacity>
         ) : null}
         <View style={[styles.hero, { backgroundColor: AdminTheme.colors.surfaceLight }]}
         >
           <View style={[styles.heroAccent, { backgroundColor: AdminTheme.colors.gold }]} />
-          <ThemedText type="title" style={styles.heroTitle}>Gestion des membres</ThemedText>
-          <ThemedText style={styles.heroSub}>Recherche rapide, actions nettes, status clair.</ThemedText>
+          <ThemedText type="title" style={styles.heroTitle}>Member management</ThemedText>
+          <ThemedText style={styles.heroSub}>Fast search, clear actions, and a clean status view.</ThemedText>
         </View>
 
         <View style={styles.searchRow}>
@@ -280,7 +280,7 @@ export default function ManageUsers({ onOpenMemberProfile, onBack }: ManageUsers
         />
 
         <View style={styles.logsSection}>
-          <ThemedText type="subtitle">Dernieres actions</ThemedText>
+          <ThemedText type="subtitle">Recent actions</ThemedText>
           {logs.length === 0 ? (
             <ThemedText style={styles.empty}>No actions yet.</ThemedText>
           ) : (
@@ -324,14 +324,14 @@ export default function ManageUsers({ onOpenMemberProfile, onBack }: ManageUsers
       <Modal visible={memberDetailOpen} transparent animationType="fade" onRequestClose={() => setMemberDetailOpen(false)}>
         <Pressable style={styles.modalBackdrop} onPress={() => setMemberDetailOpen(false)}>
           <Pressable style={styles.modalCard}>
-            <ThemedText type="subtitle">Détails membre</ThemedText>
-            <ThemedText style={styles.modalSub}>Nom: {selectedMember?.name}</ThemedText>
+            <ThemedText type="subtitle">Member details</ThemedText>
+            <ThemedText style={styles.modalSub}>Name: {selectedMember?.name}</ThemedText>
             <ThemedText style={styles.modalSub}>Email: {selectedMember?.email}</ThemedText>
             <ThemedText style={styles.modalSub}>Role: {selectedMember?.role}</ThemedText>
             <ThemedText style={styles.modalSub}>Status: {selectedMember?.status}</ThemedText>
             <View style={styles.modalActions}>
               <TouchableOpacity onPress={() => setMemberDetailOpen(false)} style={styles.modalBtn}>
-                <ThemedText>Fermer</ThemedText>
+                <ThemedText>Close</ThemedText>
               </TouchableOpacity>
             </View>
           </Pressable>
@@ -343,12 +343,12 @@ export default function ManageUsers({ onOpenMemberProfile, onBack }: ManageUsers
           <Pressable style={styles.modalCard}>
             <ThemedText type="subtitle">Confirmation</ThemedText>
             <ThemedText style={styles.modalSub}>
-              {`Etes-vous sure de supprimer cet user "${deleteTarget?.name ?? ''}" ?`}
+              {`Are you sure you want to delete this user "${deleteTarget?.name ?? ''}"?`}
             </ThemedText>
             {deleteError ? <ThemedText style={styles.modalError}>{deleteError}</ThemedText> : null}
             <View style={styles.modalActions}>
               <TouchableOpacity onPress={() => setDeleteModalOpen(false)} style={styles.modalBtn}>
-                <ThemedText>Annuler</ThemedText>
+                <ThemedText>Cancel</ThemedText>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={confirmDelete}
@@ -356,7 +356,7 @@ export default function ManageUsers({ onOpenMemberProfile, onBack }: ManageUsers
                 disabled={deleteLoading}
               >
                 <ThemedText style={{ color: '#FFFFFF' }}>
-                  {deleteLoading ? '...' : 'Supprimer'}
+                  {deleteLoading ? '...' : 'Delete'}
                 </ThemedText>
               </TouchableOpacity>
             </View>

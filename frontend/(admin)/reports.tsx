@@ -5,8 +5,6 @@ import { useEffect, useRef, useState } from 'react';
 import { AdminTheme } from '../constants/adminTheme';
 import { apiJson } from '../constants/api';
 import { getCurrentAdminId } from '../constants/adminSession';
-import * as Print from 'expo-print';
-import * as Sharing from 'expo-sharing';
 
 type ActionReport = {
   id: string;
@@ -29,15 +27,13 @@ export default function ReportsScreen({ onBack }: ReportsScreenProps) {
   const [reports, setReports] = useState<ActionReport[]>([]);
   const [adminId, setAdminId] = useState(getCurrentAdminId());
   const [loading, setLoading] = useState(false);
-  const [pdfModalOpen, setPdfModalOpen] = useState(false);
-  const [pdfNote, setPdfNote] = useState('');
-  const [activeReport, setActiveReport] = useState<ActionReport | null>(null);
+  
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   const fetchReports = async () => {
     const trimmed = adminId.trim();
     if (!trimmed) {
-      Alert.alert('Admin ID requis', 'Veuillez saisir un Admin ID.');
+      Alert.alert('Admin ID required', 'Please enter an Admin ID.');
       return;
     }
     setLoading(true);
@@ -57,7 +53,7 @@ export default function ReportsScreen({ onBack }: ReportsScreenProps) {
       }));
       setReports(mapped);
     } catch (error: any) {
-      Alert.alert('Chargement echoue', error?.message || 'Impossible de charger les rapports.');
+      Alert.alert('Loading failed', error?.message || 'Unable to load reports.');
     } finally {
       setLoading(false);
     }
@@ -68,7 +64,7 @@ export default function ReportsScreen({ onBack }: ReportsScreenProps) {
   }, []);
   const formatValue = (value: unknown) => {
     if (Array.isArray(value)) return value.join(', ');
-    if (typeof value === 'boolean') return value ? 'Oui' : 'Non';
+    if (typeof value === 'boolean') return value ? 'Yes' : 'No';
     if (typeof value === 'string' && /T\d{2}:\d{2}:\d{2}/.test(value)) {
       const parsed = new Date(value);
       if (!Number.isNaN(parsed.getTime())) return parsed.toLocaleString();
@@ -80,196 +76,7 @@ export default function ReportsScreen({ onBack }: ReportsScreenProps) {
     return String(value);
   };
 
-  const getAvatarLetter = (report: ActionReport, details: Record<string, unknown>) => {
-    const fullName = details?.first_name
-      ? `${details?.first_name ?? ''} ${details?.last_name ?? ''}`.trim()
-      : report.target;
-    const trimmed = fullName.trim();
-    return trimmed ? trimmed.charAt(0).toUpperCase() : 'A';
-  };
-
-  const buildHtml = (report: ActionReport, details: Record<string, unknown>, note: string) => {
-    const avatarLetter = getAvatarLetter(report, details);
-    const rows = Object.entries(details)
-      .filter(([key, value]) => value !== undefined && value !== null && key !== '__v' && key !== '_id')
-      .map(([key, value]) => {
-        const label = key.replace(/_/g, ' ');
-        return `<tr><td style="padding:6px 10px;color:#64748b;font-weight:600">${label}</td><td style="padding:6px 10px;color:#0f172a">${formatValue(value)}</td></tr>`;
-      })
-      .join('');
-
-    return `
-      <html>
-        <head>
-          <meta charset="utf-8" />
-          <style>
-            body { font-family: "Times New Roman", serif; background: #f8fafc; padding: 24px; color: #0f172a; }
-            .card { background: #ffffff; border: 2px solid #0f172a; border-radius: 10px; overflow: hidden; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08); }
-            .banner { background: #b91c1c; color: #ffffff; font-weight: 700; letter-spacing: 2px; padding: 10px 16px; text-transform: uppercase; font-size: 14px; }
-            .title { padding: 12px 16px; font-size: 20px; border-bottom: 1px solid #e2e8f0; }
-            .row { display: flex; gap: 16px; padding: 16px; }
-            .photo { width: 110px; height: 140px; border: 2px solid #0f172a; display: flex; align-items: center; justify-content: center; font-size: 48px; font-weight: 700; background: #0f172a; color: #ffffff; }
-            .info { flex: 1; }
-            .info h2 { font-size: 14px; margin: 0 0 8px 0; color: #334155; text-transform: uppercase; letter-spacing: 1px; }
-            .kv { display: grid; grid-template-columns: 140px 1fr; row-gap: 6px; column-gap: 12px; font-size: 12px; }
-            .label { color: #64748b; font-weight: 700; text-transform: uppercase; }
-            .value { color: #0f172a; }
-            table { width: 100%; border-collapse: collapse; margin: 0 16px 16px 16px; font-size: 12px; }
-            tr { border-bottom: 1px solid #e2e8f0; }
-            td { padding: 6px 8px; }
-            .note { margin: 0 16px 16px 16px; padding: 12px; border: 1px solid #0f172a; background: #f8fafc; border-radius: 6px; font-size: 12px; }
-            .footer { padding: 10px 16px; font-size: 11px; color: #64748b; border-top: 1px solid #e2e8f0; }
-          </style>
-        </head>
-        <body>
-          <div class="card">
-            <div class="banner">Rapport officiel</div>
-            <div class="title">${report.action} • ${report.date}</div>
-            <div class="row">
-              <div class="photo">${avatarLetter}</div>
-              <div class="info">
-                <h2>Identification</h2>
-                <div class="kv">
-                  <div class="label">Target</div><div class="value">${report.target}</div>
-                  <div class="label">Actor</div><div class="value">${report.actor}</div>
-                  ${report.note ? `<div class="label">Note</div><div class="value">${report.note}</div>` : ''}
-                </div>
-              </div>
-            </div>
-            <div class="title">Details complets</div>
-            <table>${rows}</table>
-            ${note ? `<div class="note"><strong>Commentaire admin:</strong><br/>${note}</div>` : ''}
-            <div class="footer">Generation automatique • Alemni Admin</div>
-          </div>
-        </body>
-      </html>
-    `;
-  };
-
-  const openPdfModal = (report: ActionReport) => {
-    setActiveReport(report);
-    setPdfNote('');
-    setPdfModalOpen(true);
-  };
-
-  const printHtmlOnWeb = (html: string) => {
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'fixed';
-    iframe.style.right = '0';
-    iframe.style.bottom = '0';
-    iframe.style.width = '1px';
-    iframe.style.height = '1px';
-    iframe.style.opacity = '0';
-    iframe.style.border = '0';
-    iframe.setAttribute('aria-hidden', 'true');
-
-    let printTriggered = false;
-
-    const cleanup = () => {
-      if (iframe.parentNode) {
-        iframe.parentNode.removeChild(iframe);
-      }
-    };
-
-    iframe.onload = () => {
-      try {
-        const frameWindow = iframe.contentWindow;
-        if (!frameWindow) {
-          Alert.alert('PDF echoue', 'Impossible d ouvrir l apercu impression.');
-          cleanup();
-          return;
-        }
-
-        frameWindow.document.write(html);
-        frameWindow.document.close();
-
-        setTimeout(() => {
-          if (!printTriggered) {
-            printTriggered = true;
-            frameWindow.focus();
-            frameWindow.print();
-            
-            // Nettoyage après l'impression
-            setTimeout(cleanup, 500);
-          }
-        }, 250);
-      } catch (error: any) {
-        Alert.alert('PDF echoue', error?.message || 'Erreur lors de la generation du PDF');
-        cleanup();
-      }
-    };
-
-    iframe.onerror = () => {
-      Alert.alert('PDF echoue', 'Impossible de charger l apercu.');
-      cleanup();
-    };
-
-    document.body.appendChild(iframe);
-    
-    // Écrire le HTML directement
-    try {
-      iframe.srcdoc = html;
-    } catch (error: any) {
-      Alert.alert('PDF echoue', 'Impossible de generer le contenu PDF');
-      cleanup();
-    }
-  };
-
-  const generatePdf = async (report: ActionReport, note: string) => {
-    try {
-      Alert.alert('Generation en cours...', 'Veuillez patienter');
-      
-      let details: Record<string, unknown> = {
-        action: report.action,
-        target: report.target,
-        actor: report.actor,
-        note: report.note,
-        date: report.date,
-      };
-
-      try {
-        if (report.targetType === 'member' && report.targetId) {
-          const memberData = await apiJson(`/api/admin/member/${report.targetId}`);
-          details = { ...details, ...memberData };
-        } else if (report.targetType === 'service' && report.targetId) {
-          const serviceData = await apiJson(`/api/admin/service/${report.targetId}`);
-          details = { ...details, ...serviceData };
-        } else if (report.targetType === 'devis' && report.targetId) {
-          const devisData = await apiJson(`/api/admin/devis/${report.targetId}`);
-          details = { ...details, ...devisData };
-        }
-      } catch (apiError: any) {
-        console.warn('Impossible de charger les details de la cible:', apiError?.message);
-        // Continue avec les details de base
-      }
-
-      const html = buildHtml(report, details, note);
-
-      if (Platform.OS === 'web') {
-        printHtmlOnWeb(html);
-        Alert.alert('Succes', 'PDF pret pour impression');
-        return;
-      }
-
-      const { uri } = await Print.printToFileAsync({ html });
-      const canShare = await Sharing.isAvailableAsync();
-      if (canShare) {
-        await Sharing.shareAsync(uri, { dialogTitle: 'Generer le PDF', mimeType: 'application/pdf' });
-      } else {
-        Alert.alert('PDF genere', `Fichier disponible a: ${uri}`);
-      }
-    } catch (err: any) {
-      console.error('Erreur PDF:', err);
-      Alert.alert('PDF echoue', err?.message || 'Impossible de generer le PDF. Verifiez votre connexion.');
-    }
-  };
-
-  const confirmGenerate = async () => {
-    if (!activeReport) return;
-    const note = pdfNote.trim();
-    setPdfModalOpen(false);
-    await generatePdf(activeReport, note);
-  };
+  
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -291,9 +98,6 @@ export default function ReportsScreen({ onBack }: ReportsScreenProps) {
         <ThemedText style={styles.badge}>log</ThemedText>
       </View>
       {item.note ? <ThemedText style={styles.note}>Note: {item.note}</ThemedText> : null}
-      <TouchableOpacity onPress={() => openPdfModal(item)} style={styles.pdfBtn}>
-        <ThemedText style={styles.pdfBtnText}>Generer le PDF</ThemedText>
-      </TouchableOpacity>
     </View>
   );
 
@@ -321,14 +125,14 @@ export default function ReportsScreen({ onBack }: ReportsScreenProps) {
       >
         {onBack ? (
           <TouchableOpacity onPress={onBack} style={styles.backBtn}>
-            <ThemedText style={styles.backBtnText}>Retour</ThemedText>
+            <ThemedText style={styles.backBtnText}>Back</ThemedText>
           </TouchableOpacity>
         ) : null}
         <View style={[styles.hero, { backgroundColor: '#F3F4F6' }]}
         >
           <View style={styles.heroAccent} />
-          <ThemedText type="title" style={styles.heroTitle}>Rapports d actions</ThemedText>
-          <ThemedText style={styles.heroSub}>Chaque action est tracée, rien ne se perd.</ThemedText>
+          <ThemedText type="title" style={styles.heroTitle}>Action Reports</ThemedText>
+          <ThemedText style={styles.heroSub}>Every action is tracked, nothing is lost.</ThemedText>
         </View>
 
         <View style={styles.toolbar}>
@@ -340,7 +144,7 @@ export default function ReportsScreen({ onBack }: ReportsScreenProps) {
             style={styles.adminInput}
           />
           <TouchableOpacity onPress={fetchReports} style={styles.toolbarBtn}>
-            <ThemedText style={styles.toolbarText}>{loading ? '...' : 'Actualiser'}</ThemedText>
+            <ThemedText style={styles.toolbarText}>{loading ? '...' : 'Refresh'}</ThemedText>
           </TouchableOpacity>
         </View>
 
@@ -352,30 +156,7 @@ export default function ReportsScreen({ onBack }: ReportsScreenProps) {
           ListEmptyComponent={<ThemedText style={styles.empty}>No reports found.</ThemedText>}
         />
       </Animated.View>
-      <Modal visible={pdfModalOpen} transparent animationType="fade" onRequestClose={() => setPdfModalOpen(false)}>
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <ThemedText type="subtitle">Commentaire admin</ThemedText>
-            <ThemedText style={styles.modalSub}>Ce texte apparaitra en bas du PDF.</ThemedText>
-            <TextInput
-              value={pdfNote}
-              onChangeText={setPdfNote}
-              placeholder="Ecrire un paragraphe descriptif..."
-              placeholderTextColor="#9CA3AF"
-              multiline
-              style={styles.modalInput}
-            />
-            <View style={styles.modalActions}>
-              <TouchableOpacity onPress={() => setPdfModalOpen(false)} style={styles.modalBtn}>
-                <ThemedText>Annuler</ThemedText>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={confirmGenerate} style={[styles.modalBtn, styles.modalPrimary]}>
-                <ThemedText style={{ color: '#FFFFFF' }}>Generer</ThemedText>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      
     </ThemedView>
   );
 }

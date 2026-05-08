@@ -12,6 +12,7 @@ import {
   View,
   TouchableOpacity,
 } from 'react-native';
+import { API_BASE } from '../constants/api';
 
 type AdminStats = {
   membersActive: number;
@@ -31,11 +32,6 @@ type MemberReturnSection = 'users' | 'posts' | 'post';
 type AdminDashboardProps = {
   adminName?: string;
 };
-
-const API_BASE = Platform.select({
-  android: 'http://10.0.2.2:5000',
-  default: 'http://localhost:5000',
-});
 
 const ADMIN_TOKEN = 'dev-admin-token';
 const headingFont = Platform.select({ ios: 'Georgia', android: 'serif', default: 'Georgia' });
@@ -75,7 +71,7 @@ export default function AdminDashboard({ adminName = 'Admin' }: AdminDashboardPr
       });
     } catch (fetchError: unknown) {
       const message =
-        fetchError instanceof Error ? fetchError.message : 'Erreur inconnue pendant le chargement';
+        fetchError instanceof Error ? fetchError.message : 'Unknown error while loading';
       setError(message);
     } finally {
       setLoading(false);
@@ -96,17 +92,17 @@ export default function AdminDashboard({ adminName = 'Admin' }: AdminDashboardPr
 
   const sectionTitle =
     activeSection === 'users'
-      ? 'Membres & Messages'
+      ? 'Members & Messages'
       : activeSection === 'posts'
-        ? 'Devis & Services'
-        : 'Rapports d actions';
+        ? 'Quotes & Services'
+        : 'Action Reports';
 
   const sectionDescription =
     activeSection === 'users'
-      ? 'Ici tu geres les membres, la moderation et les avertissements.'
+      ? 'Manage members, moderation, and warnings here.'
       : activeSection === 'posts'
-        ? 'Ici tu geres les devis et services publies par les membres.'
-        : 'Ici tu suis les actions admin et l historique global.';
+        ? 'Manage quotes and services published by members here.'
+        : 'Track admin actions and the full activity history here.';
 
   return (
     <View style={styles.container}>
@@ -134,8 +130,8 @@ export default function AdminDashboard({ adminName = 'Admin' }: AdminDashboardPr
         >
           <View style={styles.hero}>
             <View style={styles.heroAccent} />
-            <Text style={styles.heroTitle}>Bonjour {adminName}</Text>
-            <Text style={styles.heroSub}>Supervision claire, actions rapides, suivi propre.</Text>
+            <Text style={styles.heroTitle}>Hello {adminName}</Text>
+            <Text style={styles.heroSub}>Clear oversight, fast actions, clean tracking.</Text>
           </View>
 
           <View style={styles.grid}>
@@ -147,8 +143,8 @@ export default function AdminDashboard({ adminName = 'Admin' }: AdminDashboardPr
               }}
             >
               <View style={styles.cardAccent} />
-              <Text style={styles.cardTitle}>👥 Membres & Messages</Text>
-              <Text style={styles.cardDescription}>Gestion des membres et envoi d'avertissements.</Text>
+              <Text style={styles.cardTitle}>👥 Members & Messages</Text>
+              <Text style={styles.cardDescription}>Member management and warning delivery.</Text>
             </Pressable>
 
             <Pressable
@@ -159,8 +155,8 @@ export default function AdminDashboard({ adminName = 'Admin' }: AdminDashboardPr
               }}
             >
               <View style={styles.cardAccent} />
-              <Text style={styles.cardTitle}>📝 Devis & Services</Text>
-              <Text style={styles.cardDescription}>Consultation et modération des publications.</Text>
+              <Text style={styles.cardTitle}>📝 Quotes & Services</Text>
+              <Text style={styles.cardDescription}>Review and moderate published entries.</Text>
             </Pressable>
 
             <Pressable
@@ -171,8 +167,8 @@ export default function AdminDashboard({ adminName = 'Admin' }: AdminDashboardPr
               }}
             >
               <View style={styles.cardAccent} />
-              <Text style={styles.cardTitle}>📊 Rapports d'actions</Text>
-              <Text style={styles.cardDescription}>Suivi des actions admin et historique.</Text>
+              <Text style={styles.cardTitle}>📊 Action Reports</Text>
+              <Text style={styles.cardDescription}>Admin action tracking and history.</Text>
             </Pressable>
           </View>
 
@@ -183,10 +179,10 @@ export default function AdminDashboard({ adminName = 'Admin' }: AdminDashboardPr
               <Text style={styles.sectionDescription}>{sectionDescription}</Text>
               <View style={styles.sectionActions}>
                 <Pressable style={styles.buttonSecondary} onPress={() => setActiveSection('dashboard')}>
-                  <Text style={styles.buttonSecondaryText}>Retour dashboard</Text>
+                  <Text style={styles.buttonSecondaryText}>Back to dashboard</Text>
                 </Pressable>
                 <Pressable style={styles.button} onPress={loadStats}>
-                  <Text style={styles.buttonText}>Rafraichir donnees</Text>
+                  <Text style={styles.buttonText}>Refresh data</Text>
                 </Pressable>
               </View>
             </View>
@@ -204,14 +200,14 @@ export default function AdminDashboard({ adminName = 'Admin' }: AdminDashboardPr
                 <View style={styles.modalHeader}>
                   <Text style={styles.modalTitle}>
                     {modalSection === 'users'
-                      ? 'Membres'
+                      ? 'Members'
                       : modalSection === 'posts'
-                        ? 'Devis & Services'
+                        ? 'Quotes & Services'
                         : modalSection === 'member'
-                        ? 'Profil membre'
+                        ? 'Member Profile'
                         : modalSection === 'post'
-                          ? 'Details publication'
-                          : 'Rapports'}
+                          ? 'Post Details'
+                          : 'Reports'}
                   </Text>
                   <View style={{ flexDirection: 'row', gap: 8 }}>
                     {Platform.OS === 'web' ? (
@@ -224,11 +220,11 @@ export default function AdminDashboard({ adminName = 'Admin' }: AdminDashboardPr
                         }}
                         style={styles.modalAction}
                       >
-                        <Text style={styles.modalActionText}>Ouvrir onglet</Text>
+                        <Text style={styles.modalActionText}>Open tab</Text>
                       </TouchableOpacity>
                     ) : null}
                     <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.modalAction}>
-                      <Text style={styles.modalActionText}>Fermer</Text>
+                      <Text style={styles.modalActionText}>Close</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -248,7 +244,7 @@ export default function AdminDashboard({ adminName = 'Admin' }: AdminDashboardPr
                         }
                         return (
                           <View style={{ paddingVertical: 12 }}>
-                            <Text style={{ color: '#475569' }}>Aucun membre selectionne.</Text>
+                            <Text style={{ color: '#475569' }}>No member selected.</Text>
                           </View>
                         );
                       }
@@ -271,7 +267,7 @@ export default function AdminDashboard({ adminName = 'Admin' }: AdminDashboardPr
                         }
                         return (
                           <View style={{ paddingVertical: 12 }}>
-                            <Text style={{ color: '#475569' }}>Aucun devis/service selectionne.</Text>
+                            <Text style={{ color: '#475569' }}>No quote/service selected.</Text>
                           </View>
                         );
                       }
@@ -317,9 +313,9 @@ export default function AdminDashboard({ adminName = 'Admin' }: AdminDashboardPr
                     } catch (e: any) {
                       return (
                         <View style={{ paddingVertical: 12 }}>
-                          <Text style={{ color: '#9f1239', marginBottom: 8 }}>Erreur en chargeant la section :</Text>
+                          <Text style={{ color: '#9f1239', marginBottom: 8 }}>Error loading section:</Text>
                           <Text style={{ color: '#be123c', marginBottom: 8 }}>{String(e.message || e)}</Text>
-                          <Text style={{ color: '#475569' }}>Assure-toi d'avoir installé ou créé les dépendances manquantes.</Text>
+                          <Text style={{ color: '#475569' }}>Make sure the missing dependencies are installed or created.</Text>
                         </View>
                       );
                     }
@@ -332,7 +328,7 @@ export default function AdminDashboard({ adminName = 'Admin' }: AdminDashboardPr
 
           <View style={styles.statsContainer}>
             <View style={styles.statsHeader}>
-              <Text style={styles.statsTitle}>Supervision</Text>
+              <Text style={styles.statsTitle}>Overview</Text>
               <View style={styles.pill}>
                 <Text style={styles.pillText}>Live</Text>
               </View>
@@ -341,32 +337,32 @@ export default function AdminDashboard({ adminName = 'Admin' }: AdminDashboardPr
             {loading ? (
               <View style={styles.feedbackBox}>
                 <ActivityIndicator size="small" color="#173f7a" />
-                <Text style={styles.infoText}>Chargement des statistiques admin...</Text>
+                <Text style={styles.infoText}>Loading admin statistics...</Text>
               </View>
             ) : null}
 
             {error ? (
               <View style={[styles.feedbackBox, styles.errorBox]}>
-                <Text style={styles.errorTitle}>Impossible de charger l API admin</Text>
+                <Text style={styles.errorTitle}>Unable to load the admin API</Text>
                 <Text style={styles.errorText}>{error}</Text>
               </View>
             ) : null}
 
             <View style={styles.statRow}>
-              <Text style={styles.statLabel}>Membres actifs</Text>
+              <Text style={styles.statLabel}>Active members</Text>
               <Text style={styles.statValue}>{stats?.membersActive ?? '...'}</Text>
             </View>
             <View style={styles.statRow}>
-              <Text style={styles.statLabel}>Devis en attente</Text>
+              <Text style={styles.statLabel}>Pending quotes</Text>
               <Text style={styles.statValue}>{stats?.devisPending ?? '...'}</Text>
             </View>
             <View style={styles.statRow}>
-              <Text style={styles.statLabel}>Services actifs</Text>
+              <Text style={styles.statLabel}>Active services</Text>
               <Text style={styles.statValue}>{stats?.servicesActive ?? '...'}</Text>
             </View>
 
             <Pressable style={styles.button} onPress={loadStats}>
-              <Text style={styles.buttonText}>Rafraichir</Text>
+              <Text style={styles.buttonText}>Refresh</Text>
             </Pressable>
           </View>
         </Animated.View>
