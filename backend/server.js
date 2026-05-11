@@ -124,7 +124,7 @@ async function run() {
     app.use('/api/admin', require('./admingame'));
 
     // ✅ HTTP SERVER (NO HTTPS)
-   // Remplace le bloc app.listen actuel par celui-ci :
+   
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, '0.0.0.0', () => {
