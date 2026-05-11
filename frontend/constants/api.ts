@@ -1,8 +1,45 @@
+import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
-const API_HOST = process.env.EXPO_PUBLIC_API_BASE_URL || '172.20.10.5';
+function normalizeBaseUrl(value?: string | null) {
+  if (!value) return null;
 
-export const API_BASE = Platform.OS === 'web' ? 'http://localhost:5000' : `http://${API_HOST}:5000`;
+  const trimmed = value.trim().replace(/\/$/, '');
+  if (!trimmed) return null;
+
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `http://${trimmed}`;
+}
+
+function resolveMetroHost() {
+  const hostUri =
+    Constants.expoConfig?.hostUri ||
+    (Constants as any).manifest2?.debuggerHost ||
+    (Constants as any).manifest?.debuggerHost;
+
+  if (!hostUri) return null;
+
+  const host = hostUri
+    .replace(/^https?:\/\//i, '')
+    .replace(/^exp(s)?:\/\//i, '')
+    .split(':')[0]
+    .split('/')[0]
+    .trim();
+
+  return host || null;
+}
+
+const ENV_API_BASE = normalizeBaseUrl(process.env.EXPO_PUBLIC_API_BASE_URL);
+const METRO_HOST = resolveMetroHost();
+
+export const API_BASE =
+  ENV_API_BASE ||
+  (Platform.OS === 'web'
+    ? 'http://localhost:5000'
+    : METRO_HOST && METRO_HOST !== 'localhost' && METRO_HOST !== '127.0.0.1'
+      ? `http://${METRO_HOST}:5000`
+      : Platform.OS === 'android'
+        ? 'http://10.0.2.2:5000'
+        : 'http://localhost:5000');
 
 const ADMIN_TOKEN = 'dev-admin-token';
 import { getCurrentAdminId } from './adminSession';
